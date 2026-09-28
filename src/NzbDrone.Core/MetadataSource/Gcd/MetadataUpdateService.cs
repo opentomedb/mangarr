@@ -35,7 +35,7 @@ namespace NzbDrone.Core.MetadataSource.Gcd
         public const string DefaultManifestUrl = "https://opentomedb.com/catalogue/version.json";
 
         public const string FallbackManifestUrl =
-            "https://github.com/DrAwesome441/mangarr-metadata/releases/download/metadata/version.json";
+            "https://github.com/opentomedb/mangarr-metadata/releases/download/metadata/version.json";
 
         private static readonly TimeSpan PrimaryManifestTimeout = TimeSpan.FromSeconds(15);
 

@@ -217,7 +217,7 @@ namespace NzbDrone.Core.Notifications.Discord
                     Author = new DiscordAuthor
                     {
                         Name = Settings.Author.IsNullOrWhiteSpace() ? Environment.MachineName : Settings.Author,
-                        IconUrl = "https://raw.githubusercontent.com/DrAwesome441/unraid-icons/main/mangarr-icon.png"
+                        IconUrl = "https://raw.githubusercontent.com/opentomedb/mangarr/main/Logo/256.png"
                     },
                     Title = APPLICATION_UPDATE_TITLE,
                     Timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),

@@ -5,7 +5,7 @@ body:
 - type: markdown
   attributes:
     value: |
-      Thanks for testing Mangarr. Please search the [existing issues](https://github.com/DrAwesome441/mangarr/issues?q=is%3Aissue) first.
+      Thanks for testing Mangarr. Please search the [existing issues](https://github.com/opentomedb/mangarr/issues?q=is%3Aissue) first.
       A wrong date, volume count, ISBN or title for one series is usually a **catalogue** problem, not a Mangarr bug: use **Suggest a Correction** on the series page instead.
 - type: input
   attributes:

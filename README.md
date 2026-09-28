@@ -26,12 +26,12 @@ author is a **series** and a book is a **volume**.
 This is the first public beta. It runs every day on the maintainer's server, but you are one of
 its first outside users. Back up your library before you point Mangarr at it, expect rough
 edges, and please [report what you find](#reporting-bugs). Mangarr does not update itself:
-watch the [releases](https://github.com/DrAwesome441/mangarr/releases) or Discord #beta for new
+watch the [releases](https://github.com/opentomedb/mangarr/releases) or Discord #beta for new
 images. See [Known limitations](#known-limitations) before you start.
 
 ## Install
 
-Mangarr ships as a Docker image: `ghcr.io/drawesome441/mangarr:beta`.
+Mangarr ships as a Docker image: `ghcr.io/opentomedb/mangarr:beta`.
 
 The container keeps its settings and database in `/config`. You also mount your manga folder,
 your light-novel folder and the download client's download folder. The example below uses
@@ -65,13 +65,13 @@ docker run -d --name mangarr \
   -v /path/to/lightnovels:/data/lightnovels \
   -v /path/to/downloads:/downloads \
   --restart unless-stopped \
-  ghcr.io/drawesome441/mangarr:beta
+  ghcr.io/opentomedb/mangarr:beta
 ```
 
 ### Unraid
 
 There is no Community Applications template yet. Add it from the Docker tab with **Add
-Container**: repository `ghcr.io/drawesome441/mangarr:beta`, port `8787`, and a path for
+Container**: repository `ghcr.io/opentomedb/mangarr:beta`, port `8787`, and a path for
 `/config` (your appdata folder for Mangarr) plus the manga, light-novel and download paths above.
 The image's default `PUID=99` / `PGID=100` already matches Unraid, so you don't need to set them.
 
@@ -271,7 +271,7 @@ Paste it into Settings → Metadata Source → **Google Books API Key**, or set 
 
 ## Reporting bugs
 
-- **Bugs:** open a [GitHub issue](https://github.com/DrAwesome441/mangarr/issues/new/choose).
+- **Bugs:** open a [GitHub issue](https://github.com/opentomedb/mangarr/issues/new/choose).
   The form asks for a **trace log**: set Settings → General → Logging → Log Level to **Trace**,
   reproduce the problem, and attach `mangarr.trace.txt` from System → Log Files (or
   `/config/logs/`). **Read the log first.** It lists your series, folder paths and indexers;
@@ -289,7 +289,7 @@ It is a modified version of [Readarr](https://github.com/Readarr/Readarr) (GPLv3
 and Servarr contributors). The Mangarr changes started on 2026-06-01 and are listed in
 [CHANGELOG.md](CHANGELOG.md). With thanks to the Servarr team.
 
-Source code: <https://github.com/DrAwesome441/mangarr>. Each image's
+Source code: <https://github.com/opentomedb/mangarr>. Each image's
 `org.opencontainers.image.revision` label names the commit it was built from. To build or
 contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
 

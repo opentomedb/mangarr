@@ -4,8 +4,8 @@ contact_links:
     url: https://discord.gg/bQVwv54KdP
     about: Setup questions, "is this a bug?", and beta news. Catalogue corrections without a GitHub account go in #corrections.
   - name: Wrong or missing catalogue data (OpenTome)
-    url: https://github.com/DrAwesome441/opentome/issues/new/choose
+    url: https://github.com/opentomedb/opentome/issues/new/choose
     about: A wrong release date, volume count, ISBN or title, or a series that isn't in the catalogue.
   - name: Report a security vulnerability
-    url: https://github.com/DrAwesome441/mangarr/security/advisories/new
+    url: https://github.com/opentomedb/mangarr/security/advisories/new
     about: Please report security problems privately, not as a public issue.

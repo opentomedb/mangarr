@@ -61,7 +61,7 @@ representative at an online or offline event.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement privately, either
 through the repository's GitHub private reporting
-(<https://github.com/DrAwesome441/mangarr/security/advisories/new>) or by a direct
+(<https://github.com/opentomedb/mangarr/security/advisories/new>) or by a direct
 message to a moderator on the Mangarr Discord (<https://discord.gg/bQVwv54KdP>).
 All complaints will be reviewed and investigated promptly and fairly.
 

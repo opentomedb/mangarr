@@ -93,8 +93,8 @@ namespace NzbDrone.Core.Notifications.Join
             var request = requestBuilder.AddQueryParam("apikey", settings.ApiKey)
                           .AddQueryParam("title", title)
                           .AddQueryParam("text", message)
-                          .AddQueryParam("icon", "https://raw.githubusercontent.com/DrAwesome441/unraid-icons/main/mangarr-icon.png") // the Mangarr mark (public icons repo)
-                          .AddQueryParam("smallicon", "https://raw.githubusercontent.com/DrAwesome441/unraid-icons/main/mangarr-icon.png")
+                          .AddQueryParam("icon", "https://raw.githubusercontent.com/opentomedb/mangarr/main/Logo/256.png") // the Mangarr mark (Logo/ in the public source repo)
+                          .AddQueryParam("smallicon", "https://raw.githubusercontent.com/opentomedb/mangarr/main/Logo/256.png")
                           .AddQueryParam("priority", settings.Priority)
                           .Build();
 

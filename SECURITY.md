@@ -4,7 +4,7 @@
 
 Please report security problems privately through GitHub's private vulnerability reporting:
 open the repository's **Security** tab and choose **Report a vulnerability**, or go straight to
-<https://github.com/DrAwesome441/mangarr/security/advisories/new>.
+<https://github.com/opentomedb/mangarr/security/advisories/new>.
 
 Don't open a public issue or post the details on Discord. Include the Mangarr version
 (System → Status), how you run it, and the steps to reproduce.
@@ -14,4 +14,4 @@ problem is fixed in the next beta image, and the advisory is published once that
 
 ## Supported versions
 
-Only the newest beta image (`ghcr.io/drawesome441/mangarr:beta`) gets fixes.
+Only the newest beta image (`ghcr.io/opentomedb/mangarr:beta`) gets fixes.

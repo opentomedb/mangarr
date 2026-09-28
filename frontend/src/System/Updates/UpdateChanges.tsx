@@ -26,7 +26,7 @@ function UpdateChanges(props: UpdateChangesProps) {
           const checkChange = change.replace(
             /(^|[\s(])#(\d+)\b/g,
             (_match, before, issue) =>
-              `${before}[#${issue}](https://github.com/DrAwesome441/mangarr/issues/${issue})`
+              `${before}[#${issue}](https://github.com/opentomedb/mangarr/issues/${issue})`
           );
 
           return (

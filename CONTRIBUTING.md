@@ -1,8 +1,8 @@
 # Contributing to Mangarr
 
 Thanks for helping. Bug reports and feature requests go in
-[GitHub issues](https://github.com/DrAwesome441/mangarr/issues); catalogue data (dates, volume
-counts, missing series) goes to [OpenTome](https://github.com/DrAwesome441/opentome). This file
+[GitHub issues](https://github.com/opentomedb/mangarr/issues); catalogue data (dates, volume
+counts, missing series) goes to [OpenTome](https://github.com/opentomedb/opentome). This file
 is for working on the code.
 
 ## Orientation

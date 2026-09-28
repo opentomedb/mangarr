@@ -24,7 +24,7 @@ RUN [ -f changelog.json ] || echo '{"generated":null,"commits":[]}' > changelog.
 FROM mcr.microsoft.com/dotnet/aspnet:6.0.36-bookworm-slim AS run
 ARG MANGARR_VERSION=10.0.0.0
 LABEL org.opencontainers.image.title="Mangarr" \
-      org.opencontainers.image.source="https://github.com/DrAwesome441/mangarr" \
+      org.opencontainers.image.source="https://github.com/opentomedb/mangarr" \
       org.opencontainers.image.licenses="GPL-3.0-only" \
       org.opencontainers.image.version="$MANGARR_VERSION"
 # Readarr needs native SQLite + libicu (globalization) — not in aspnet-slim.

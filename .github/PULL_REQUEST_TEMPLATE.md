@@ -9,7 +9,7 @@ A few sentences describing the overall goals of the pull request's commits.
 #### Todos
 - [ ] Tests
 - [ ] Translation Keys (./src/NzbDrone.Core/Localization/Core/en.json)
-- [ ] Docs updated if behaviour changed (README / [CONTRIBUTING.md](https://github.com/DrAwesome441/mangarr/blob/HEAD/CONTRIBUTING.md))
+- [ ] Docs updated if behaviour changed (README / [CONTRIBUTING.md](https://github.com/opentomedb/mangarr/blob/HEAD/CONTRIBUTING.md))
 
 #### Issues Fixed or Closed by this PR
 

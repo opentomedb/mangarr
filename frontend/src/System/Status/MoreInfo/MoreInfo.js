@@ -17,7 +17,7 @@ class MoreInfo extends Component {
         <DescriptionList>
           <DescriptionListItemTitle>{translate('HomePage')}</DescriptionListItemTitle>
           <DescriptionListItemDescription>
-            <Link to="https://github.com/DrAwesome441/mangarr">github.com/DrAwesome441/mangarr</Link>
+            <Link to="https://github.com/opentomedb/mangarr">github.com/opentomedb/mangarr</Link>
           </DescriptionListItemDescription>
 
           <DescriptionListItemTitle>{translate('Wiki')}</DescriptionListItemTitle>
@@ -27,12 +27,12 @@ class MoreInfo extends Component {
 
           <DescriptionListItemTitle>{translate('SourceCode')}</DescriptionListItemTitle>
           <DescriptionListItemDescription>
-            <Link to="https://github.com/DrAwesome441/mangarr">github.com/DrAwesome441/mangarr</Link>
+            <Link to="https://github.com/opentomedb/mangarr">github.com/opentomedb/mangarr</Link>
           </DescriptionListItemDescription>
 
           <DescriptionListItemTitle>{translate('FeatureRequests')}</DescriptionListItemTitle>
           <DescriptionListItemDescription>
-            <Link to="https://github.com/DrAwesome441/mangarr/issues">github.com/DrAwesome441/mangarr/issues</Link>
+            <Link to="https://github.com/opentomedb/mangarr/issues">github.com/opentomedb/mangarr/issues</Link>
           </DescriptionListItemDescription>
 
         </DescriptionList>

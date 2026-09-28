@@ -4,7 +4,7 @@
 # and open http://<your-server>:8787. The README's "First steps" walks through the setup.
 services:
   mangarr:
-    image: ghcr.io/drawesome441/mangarr:beta
+    image: ghcr.io/opentomedb/mangarr:beta
     container_name: mangarr
     environment:
       # The user and group Mangarr runs as. Use the owner of your media and download folders

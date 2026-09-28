@@ -105,7 +105,7 @@ namespace NzbDrone.Host
                     License = new OpenApiLicense
                     {
                         Name = "GPL-3.0",
-                        Url = new Uri("https://github.com/DrAwesome441/mangarr/blob/mangarr-main/LICENSE.md")
+                        Url = new Uri("https://github.com/opentomedb/mangarr/blob/main/LICENSE.md")
                     }
                 });
 

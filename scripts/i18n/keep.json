@@ -77,9 +77,9 @@
     { "text": "Log Files", "why": "compared in logic (currentLogView)" }
   ],
   "frontend/src/System/Status/MoreInfo/MoreInfo.js": [
-    { "text": "github.com/DrAwesome441/mangarr", "why": "brand, URL or code" },
-    { "text": "github.com/DrAwesome441/mangarr", "why": "brand, URL or code" },
-    { "text": "github.com/DrAwesome441/mangarr/issues", "why": "brand, URL or code" }
+    { "text": "github.com/opentomedb/mangarr", "why": "brand, URL or code" },
+    { "text": "github.com/opentomedb/mangarr", "why": "brand, URL or code" },
+    { "text": "github.com/opentomedb/mangarr/issues", "why": "brand, URL or code" }
   ],
   "frontend/src/System/Tasks/Scheduled/ScheduledTaskRowConnector.js": [
     { "text": "EmbedMetadata", "why": "a translate() key held as data" },

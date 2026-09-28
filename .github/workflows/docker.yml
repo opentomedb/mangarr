@@ -1,4 +1,4 @@
-# Builds, tests and publishes the Mangarr image (ghcr.io/drawesome441/mangarr).
+# Builds, tests and publishes the Mangarr image (ghcr.io/opentomedb/mangarr).
 #
 # Build number: 10.0.0.(.build-base + commit count - 1), see the version job.
 #
@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/drawesome441/mangarr
+  IMAGE: ghcr.io/opentomedb/mangarr
 
 jobs:
   version:
@@ -73,6 +73,12 @@ jobs:
     timeout-minutes: 60
     # The same SDK image and steps the maintainer's test runs use (CONTRIBUTING.md).
     container: mcr.microsoft.com/dotnet/sdk:6.0
+    # MSBuild reads these as properties. SourceLink's git reader (Microsoft.Build.Tasks.Git 1.1.1) fails on
+    # the checkout's repositoryformatversion 1 ("Only versions up to 0 are supported"); the image build
+    # never sees .git (.dockerignore), so only this job needs them.
+    env:
+      EnableSourceControlManagerQueries: 'false'
+      EnableSourceLink: 'false'
     defaults:
       run:
         shell: bash

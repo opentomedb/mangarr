@@ -284,8 +284,8 @@ function Updates() {
               <div>
                 <InlineMarkdown
                   data={translate('InstallMajorVersionUpdateMessageLink', {
-                    domain: 'github.com/DrAwesome441/mangarr',
-                    url: 'https://github.com/DrAwesome441/mangarr/releases',
+                    domain: 'github.com/opentomedb/mangarr',
+                    url: 'https://github.com/opentomedb/mangarr/releases',
                   })}
                 />
               </div>
