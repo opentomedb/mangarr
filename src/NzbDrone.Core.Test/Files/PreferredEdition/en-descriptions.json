@@ -1,0 +1,27 @@
+[
+  {
+    "Language": "en",
+    "Ok": true,
+    "Reason": null
+  },
+  {
+    "Language": null,
+    "Ok": true,
+    "Reason": null
+  },
+  {
+    "Language": "fr",
+    "Ok": false,
+    "Reason": "language fr"
+  },
+  {
+    "Language": "ja",
+    "Ok": false,
+    "Reason": "language ja"
+  },
+  {
+    "Language": "en",
+    "Ok": false,
+    "Reason": "product note 'Notebook'"
+  }
+]

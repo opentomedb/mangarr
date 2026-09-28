@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- monochrome silhouette for Safari pinned tabs: the three symmetric spines -->
+  <rect x="106" y="166" width="84" height="180" rx="14" fill="#000000"/>
+  <rect x="214" y="126" width="84" height="260" rx="14" fill="#000000"/>
+  <rect x="322" y="166" width="84" height="180" rx="14" fill="#000000"/>
+</svg>

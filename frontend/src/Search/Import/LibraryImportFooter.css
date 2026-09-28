@@ -1,0 +1,72 @@
+.footer {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.inputs {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.inputContainer {
+  flex: 1;
+  margin-right: 20px;
+  min-width: 150px;
+}
+
+.label {
+  margin-bottom: 3px;
+  font-weight: bold;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+
+.searchLabelContainer {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+  font-weight: normal;
+  gap: 8px;
+}
+
+.searchContainer {
+  composes: container from '~Components/Form/CheckInput.css';
+
+  flex: 0 0 auto;
+}
+
+.searchInput {
+  composes: input from '~Components/Form/CheckInput.css';
+
+  margin-top: 0;
+}
+
+.success {
+  color: var(--successColor);
+}
+
+.error {
+  color: var(--dangerColor);
+}
+
+.notImportedFolders {
+  margin-left: 8px;
+  color: var(--helpTextColor);
+}
+
+@media only screen and (max-width: $breakpointSmall) {
+  .inputs {
+    display: block;
+  }
+
+  .inputContainer {
+    margin-right: 0;
+  }
+}

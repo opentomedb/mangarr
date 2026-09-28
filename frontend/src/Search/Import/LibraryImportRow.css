@@ -1,0 +1,56 @@
+.folder {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+}
+
+.folderName {
+  font-weight: bold;
+}
+
+.folderPath {
+  color: var(--helpTextColor);
+  font-size: $smallFontSize;
+}
+
+/* A minimum, not a width: the table scrolls sideways on a phone, as the *arr tables do. */
+.input {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  min-width: 170px;
+}
+
+.formatsCell {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+}
+
+.formats {
+  display: flex;
+  align-items: center;
+  min-height: 35px;
+  gap: 16px;
+}
+
+.format {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+  font-weight: normal;
+  gap: 6px;
+}
+
+.formatContainer {
+  composes: container from '~Components/Form/CheckInput.css';
+
+  flex: 0 0 auto;
+}
+
+.formatInput {
+  composes: input from '~Components/Form/CheckInput.css';
+
+  margin-top: 0;
+}
+
+.series {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  min-width: 200px;
+}

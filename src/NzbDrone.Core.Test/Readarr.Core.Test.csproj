@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net6.0</TargetFrameworks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Buffers" />
+    <PackageReference Include="NBuilder" />
+    <PackageReference Include="System.IO.Abstractions.TestingHelpers" />
+    <PackageReference Include="AutoFixture" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NzbDrone.Test.Common\Readarr.Test.Common.csproj" />
+    <ProjectReference Include="..\NzbDrone.Core\Readarr.Core.csproj" />
+    <!-- Light-novel storage (2026-09-22, fix round 1): the media-management home/URL/path validators
+         live in the controller (Readarr.Api.V1 has no test project that the maintainer's test script runs); this reference lets
+         MediaManagementConfigControllerFixture exercise them directly. No cycle: Api.V1 -> Core, never
+         Core.Test -> Core.Test. -->
+    <!-- UI translations v1 (2026-09-25): load-bearing: ProviderFieldEnglishFixture (and Task 10's SchemaBuilderLanguageFixture) reach Readarr.Http's SchemaBuilder through this reference. -->
+    <ProjectReference Include="..\Readarr.Api.V1\Readarr.Api.V1.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Logo\1024.png">
+      <Link>Files\1024.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Files\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,16 @@
+.tabs {
+  display: flex;
+  flex: 0 0 auto;
+  padding: 10px $pageContentBodyPadding 0;
+  gap: 6px;
+}
+
+.tabCount {
+  opacity: 0.85;
+}
+
+@media only screen and (max-width: $breakpointSmall) {
+  .tabs {
+    padding: 10px $pageContentBodyPaddingSmallScreen 0;
+  }
+}

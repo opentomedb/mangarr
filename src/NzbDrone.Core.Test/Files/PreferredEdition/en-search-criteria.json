@@ -1,0 +1,79 @@
+[
+  {
+    "Name": "Kaiju No. 8",
+    "VolumeNumber": 5.0,
+    "MediaType": 0,
+    "BookQuery": "Kaiju+No+8+v05",
+    "BookQueryAlt": "Kaiju+No+8+v5",
+    "BookQueryBare": "Kaiju+No+8+05",
+    "FieldedTitleQuery": "Kaiju+No+8",
+    "AliasQueries": [
+      "Kaijuu+8+gou+v05",
+      "Monster+8+v05"
+    ],
+    "SubtitleQueries": []
+  },
+  {
+    "Name": "The Apothecary Diaries",
+    "VolumeNumber": 12.0,
+    "MediaType": 0,
+    "BookQuery": "Apothecary+Diaries+v12",
+    "BookQueryAlt": null,
+    "BookQueryBare": "Apothecary+Diaries+12",
+    "FieldedTitleQuery": "Apothecary+Diaries",
+    "AliasQueries": [
+      "Kusuriya+no+Hitorigoto+v12"
+    ],
+    "SubtitleQueries": []
+  },
+  {
+    "Name": "Re:ZERO -Starting Life in Another World-, Chapter 1: A Day in the Capital",
+    "VolumeNumber": 2.0,
+    "MediaType": 0,
+    "BookQuery": "Re+ZERO+Starting+Life+in+Another+World+Chapter+1+A+Day+in+the+Capital+v02",
+    "BookQueryAlt": "Re+ZERO+Starting+Life+in+Another+World+Chapter+1+A+Day+in+the+Capital+v2",
+    "BookQueryBare": "Re+ZERO+Starting+Life+in+Another+World+Chapter+1+A+Day+in+the+Capital+02",
+    "FieldedTitleQuery": "Re+ZERO+Starting+Life+in+Another+World+Chapter+1+A+Day+in+the+Capital",
+    "AliasQueries": [],
+    "SubtitleQueries": []
+  },
+  {
+    "Name": "Kaiju No. 8",
+    "VolumeNumber": 3.5,
+    "MediaType": 0,
+    "BookQuery": "Kaiju+No+8+v3.5",
+    "BookQueryAlt": null,
+    "BookQueryBare": "Kaiju+No+8+3.5",
+    "FieldedTitleQuery": "Kaiju+No+8",
+    "AliasQueries": [],
+    "SubtitleQueries": []
+  },
+  {
+    "Name": "L'Attaque des Titans",
+    "VolumeNumber": 5.0,
+    "MediaType": 0,
+    "BookQuery": "L'Attaque+des+Titans+v05",
+    "BookQueryAlt": "L'Attaque+des+Titans+v5",
+    "BookQueryBare": "L'Attaque+des+Titans+05",
+    "FieldedTitleQuery": "L'Attaque+des+Titans",
+    "AliasQueries": [
+      "Shingeki+no+Kyojin+v05"
+    ],
+    "SubtitleQueries": []
+  },
+  {
+    "Name": "Sword Art Online",
+    "VolumeNumber": 2.0,
+    "MediaType": 2,
+    "BookQuery": "Sword+Art+Online+v02",
+    "BookQueryAlt": "Sword+Art+Online+v2",
+    "BookQueryBare": "Sword+Art+Online+02",
+    "FieldedTitleQuery": "Sword+Art+Online",
+    "AliasQueries": [
+      "SAO+v02"
+    ],
+    "SubtitleQueries": [
+      "Sword+Art+Online+2+Aincrad"
+    ]
+  }
+]

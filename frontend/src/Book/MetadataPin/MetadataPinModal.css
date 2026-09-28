@@ -1,0 +1,16 @@
+.hint {
+  margin-bottom: 20px;
+  color: var(--helpTextColor);
+  font-size: $smallFontSize;
+}
+
+.checked {
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.deleteButton {
+  composes: button from '~Components/Link/Button.css';
+
+  margin-right: auto;
+}

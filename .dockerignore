@@ -1,0 +1,15 @@
+# Host-side build/test artifacts must never enter the image build context:
+# the in-image `dotnet build` is incremental, and a copied _output/ with DLLs
+# newer than the sources makes it skip compilation and package STALE binaries
+# (bit us 2026-07-07: a deploy shipped the previous build's Readarr.Core.dll).
+_output/
+_tests/
+node_modules/
+.git/
+# MSBuild incremental caches. Directory.Build.props redirects intermediates to
+# _temp/obj/, so a host-side SDK-container build leaves compiled DLLs there that
+# make the in-image build skip compilation and package them as-is (this shipped
+# a stale Readarr.Core.dll three deploys in a row on 2026-07-07).
+_temp/
+src/**/obj/
+src/**/bin/

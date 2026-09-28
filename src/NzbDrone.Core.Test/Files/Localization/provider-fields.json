@@ -1,0 +1,1797 @@
+{
+  "NzbDrone.Core.CustomFormats.IndexerFlagSpecification.value": {
+    "Label": "Flag",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.CustomFormats.ReleaseGroupSpecification.value": {
+    "Label": "Regular Expression",
+    "HelpText": "Custom Format RegEx is Case Insensitive",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.CustomFormats.ReleaseTitleSpecification.value": {
+    "Label": "Regular Expression",
+    "HelpText": "Custom Format RegEx is Case Insensitive",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.CustomFormats.SizeSpecification.max": {
+    "Label": "Maximum Size",
+    "HelpText": "Release must be less than or equal to this size",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.CustomFormats.SizeSpecification.min": {
+    "Label": "Minimum Size",
+    "HelpText": "Release must be greater than this size",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Aria2.Aria2Settings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Aria2.Aria2Settings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Aria2.Aria2Settings.rpcPath": {
+    "Label": "XML RPC Path",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Aria2.Aria2Settings.secretToken": {
+    "Label": "Secret token",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Aria2.Aria2Settings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Blackhole.TorrentBlackholeSettings.magnetFileExtension": {
+    "Label": "Magnet File Extension",
+    "HelpText": "Extension to use for magnet links, defaults to '.magnet'",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Blackhole.TorrentBlackholeSettings.readOnly": {
+    "Label": "Read Only",
+    "HelpText": "Instead of moving files this will instruct Mangarr to Copy or Hardlink (depending on settings/system configuration)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Blackhole.TorrentBlackholeSettings.saveMagnetFiles": {
+    "Label": "Save Magnet Files",
+    "HelpText": "Save the magnet link if no .torrent file is available (only useful if the download client supports magnets saved to a file)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Blackhole.TorrentBlackholeSettings.torrentFolder": {
+    "Label": "Torrent Folder",
+    "HelpText": "Folder in which Mangarr will store the .torrent file",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Blackhole.TorrentBlackholeSettings.watchFolder": {
+    "Label": "Watch Folder",
+    "HelpText": "Folder from which Mangarr should import completed downloads",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Blackhole.UsenetBlackholeSettings.nzbFolder": {
+    "Label": "Nzb Folder",
+    "HelpText": "Folder in which Mangarr will store the .nzb file",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Blackhole.UsenetBlackholeSettings.watchFolder": {
+    "Label": "Watch Folder",
+    "HelpText": "Folder from which Mangarr should import completed downloads",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.addPaused": {
+    "Label": "Add Paused",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.completedDirectory": {
+    "Label": "Move When Completed Directory",
+    "HelpText": "Optional location to move completed downloads to, leave blank to use the default Deluge location",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.downloadDirectory": {
+    "Label": "Download Directory",
+    "HelpText": "Optional location to put downloads in, leave blank to use the default Deluge location",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.musicCategory": {
+    "Label": "Category",
+    "HelpText": "Adding a category specific to Mangarr avoids conflicts with unrelated non-Mangarr downloads. Using a category is optional, but strongly recommended.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.musicImportedCategory": {
+    "Label": "Post-Import Category",
+    "HelpText": "Category for Mangarr to set after it has imported the download. Mangarr will not remove torrents in that category even if seeding finished. Leave blank to keep same category.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.olderTvPriority": {
+    "Label": "Older Priority",
+    "HelpText": "Priority to use when grabbing books that were released over 14 days ago",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.recentTvPriority": {
+    "Label": "Recent Priority",
+    "HelpText": "Priority to use when grabbing books that were released within the last 14 days",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.urlBase": {
+    "Label": "Url Base",
+    "HelpText": "Adds a prefix to the deluge json url, see http://[host]:[port]/[urlBase]/json",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Deluge.DelugeSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use secure connection when connecting to Deluge",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.DownloadStation.DownloadStationSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.DownloadStation.DownloadStationSettings.musicCategory": {
+    "Label": "Category",
+    "HelpText": "Adding a category specific to Mangarr avoids conflicts with unrelated non-Mangarr downloads. Using a category is optional, but strongly recommended. Creates a [category] subdirectory in the output directory.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.DownloadStation.DownloadStationSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.DownloadStation.DownloadStationSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.DownloadStation.DownloadStationSettings.tvDirectory": {
+    "Label": "Directory",
+    "HelpText": "Optional shared folder to put downloads into, leave blank to use the default Download Station location",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.DownloadStation.DownloadStationSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use secure connection when connecting to Download Station",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.DownloadStation.DownloadStationSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.addPaused": {
+    "Label": "Add Paused",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.additionalTags": {
+    "Label": "Additional Tags",
+    "HelpText": "Adds properties of media as tags. Hints are examples.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.destination": {
+    "Label": "Destination",
+    "HelpText": "Manually specifies download destination",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.postImportTags": {
+    "Label": "Post-Import Tags",
+    "HelpText": "Appends tags after a download is imported.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.tags": {
+    "Label": "Tags",
+    "HelpText": "Initial tags of a download. To be recognized, a download must have all initial tags. This avoids conflicts with unrelated downloads.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.urlBase": {
+    "Label": "Url Base",
+    "HelpText": "Optionally adds a prefix to Flood API, such as [protocol]://[host]:[port]/[urlBase]api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use secure connection when connecting to Flood",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Flood.FloodSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Hadouken.HadoukenSettings.category": {
+    "Label": "Category",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Hadouken.HadoukenSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Hadouken.HadoukenSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Hadouken.HadoukenSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Hadouken.HadoukenSettings.urlBase": {
+    "Label": "Url Base",
+    "HelpText": "Adds a prefix to the Hadouken url, e.g. http://[host]:[port]/[urlBase]/api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Hadouken.HadoukenSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use secure connection when connecting to Hadouken",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Hadouken.HadoukenSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.NzbVortex.NzbVortexSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.NzbVortex.NzbVortexSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.NzbVortex.NzbVortexSettings.musicCategory": {
+    "Label": "Group",
+    "HelpText": "Adding a category specific to Mangarr avoids conflicts with unrelated non-Mangarr downloads. Using a category is optional, but strongly recommended.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.NzbVortex.NzbVortexSettings.olderTvPriority": {
+    "Label": "Older Priority",
+    "HelpText": "Priority to use when grabbing books released over 14 days ago",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.NzbVortex.NzbVortexSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.NzbVortex.NzbVortexSettings.recentTvPriority": {
+    "Label": "Recent Priority",
+    "HelpText": "Priority to use when grabbing books released within the last 14 days",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.NzbVortex.NzbVortexSettings.urlBase": {
+    "Label": "Url Base",
+    "HelpText": "Adds a prefix to the NZBVortex url, e.g. http://[host]:[port]/[urlBase]/api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Nzbget.NzbgetSettings.addPaused": {
+    "Label": "Add Paused",
+    "HelpText": "This option requires at least NzbGet version 16.0",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Nzbget.NzbgetSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Nzbget.NzbgetSettings.musicCategory": {
+    "Label": "Category",
+    "HelpText": "Adding a category specific to Mangarr avoids conflicts with unrelated non-Mangarr downloads. Using a category is optional, but strongly recommended.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Nzbget.NzbgetSettings.olderTvPriority": {
+    "Label": "Older Priority",
+    "HelpText": "Priority to use when grabbing books released over 14 days ago",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Nzbget.NzbgetSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Nzbget.NzbgetSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Nzbget.NzbgetSettings.recentTvPriority": {
+    "Label": "Recent Priority",
+    "HelpText": "Priority to use when grabbing books released within the last 14 days",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Nzbget.NzbgetSettings.urlBase": {
+    "Label": "Url Base",
+    "HelpText": "Adds a prefix to the nzbget url, e.g. http://[host]:[port]/[urlBase]/jsonrpc",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Nzbget.NzbgetSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use secure connection when connecting to NZBGet",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Nzbget.NzbgetSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Pneumatic.PneumaticSettings.nzbFolder": {
+    "Label": "Nzb Folder",
+    "HelpText": "This folder will need to be reachable from XBMC",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Pneumatic.PneumaticSettings.strmFolder": {
+    "Label": "Strm Folder",
+    "HelpText": ".strm files in this folder will be import by drone",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.contentLayout": {
+    "Label": "Content Layout",
+    "HelpText": "Whether to use qBittorrent's configured content layout, the original layout from the torrent or always create a subfolder (qBittorrent 4.3.2+)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.firstAndLast": {
+    "Label": "First and Last First",
+    "HelpText": "Download first and last pieces first (qBittorrent 4.1.0+)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.initialState": {
+    "Label": "Initial State",
+    "HelpText": "Initial state for torrents added to qBittorrent. Note that Forced Torrents do not abide by seed restrictions",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.musicCategory": {
+    "Label": "Category",
+    "HelpText": "Adding a category specific to Mangarr avoids conflicts with unrelated non-Mangarr downloads. Using a category is optional, but strongly recommended.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.musicImportedCategory": {
+    "Label": "Post-Import Category",
+    "HelpText": "Category for Mangarr to set after it has imported the download. Mangarr will not remove the torrent if seeding has finished. Leave blank to keep same category.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.olderTvPriority": {
+    "Label": "Older Priority",
+    "HelpText": "Priority to use when grabbing books released over 14 days ago",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.recentTvPriority": {
+    "Label": "Recent Priority",
+    "HelpText": "Priority to use when grabbing books released within the last 14 days",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.sequentialOrder": {
+    "Label": "Sequential Order",
+    "HelpText": "Download in sequential order (qBittorrent 4.1.0+)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.urlBase": {
+    "Label": "Url Base",
+    "HelpText": "Adds a prefix to the qBittorrent url, e.g. http://[host]:[port]/[urlBase]/api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use a secure connection. See Options -> Web UI -> 'Use HTTPS instead of HTTP' in qBittorrent.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.QBittorrent.QBittorrentSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.addStopped": {
+    "Label": "Add Stopped",
+    "HelpText": "Enabling will add torrents and magnets to rTorrent in a stopped state. This may break magnet files.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.musicCategory": {
+    "Label": "Category",
+    "HelpText": "Adding a category specific to Mangarr avoids conflicts with unrelated non-Mangarr downloads. Using a category is optional, but strongly recommended.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.musicDirectory": {
+    "Label": "Directory",
+    "HelpText": "Optional location to put downloads in, leave blank to use the default rTorrent location",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.musicImportedCategory": {
+    "Label": "Post-Import Category",
+    "HelpText": "Category for Mangarr to set after it has imported the download. Mangarr will not remove torrents in that category even if seeding finished. Leave blank to keep same category.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.olderTvPriority": {
+    "Label": "Older Priority",
+    "HelpText": "Priority to use when grabbing books released over 14 days ago",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.recentTvPriority": {
+    "Label": "Recent Priority",
+    "HelpText": "Priority to use when grabbing books released within the last 14 days",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.urlBase": {
+    "Label": "Url Path",
+    "HelpText": "Path to the XMLRPC endpoint, see http(s)://[host]:[port]/[urlPath]. This is usually RPC2 or [path to ruTorrent]/plugins/rpc/rpc.php when using ruTorrent.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use secure connection when connecting to rTorrent",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.RTorrent.RTorrentSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Sabnzbd.SabnzbdSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Sabnzbd.SabnzbdSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Sabnzbd.SabnzbdSettings.musicCategory": {
+    "Label": "Category",
+    "HelpText": "Adding a category specific to Mangarr avoids conflicts with unrelated non-Mangarr downloads. Using a category is optional, but strongly recommended.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Sabnzbd.SabnzbdSettings.olderTvPriority": {
+    "Label": "Older Priority",
+    "HelpText": "Priority to use when grabbing books released over 14 days ago",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Sabnzbd.SabnzbdSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Sabnzbd.SabnzbdSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Sabnzbd.SabnzbdSettings.recentTvPriority": {
+    "Label": "Recent Priority",
+    "HelpText": "Priority to use when grabbing books released within the last 14 days",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Sabnzbd.SabnzbdSettings.urlBase": {
+    "Label": "Url Base",
+    "HelpText": "Adds a prefix to the Sabnzbd url, e.g. http://[host]:[port]/[urlBase]/api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Sabnzbd.SabnzbdSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use secure connection when connecting to Sabnzbd",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Sabnzbd.SabnzbdSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.addPaused": {
+    "Label": "Add Paused",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.musicCategory": {
+    "Label": "Category",
+    "HelpText": "Adding a category specific to Mangarr avoids conflicts with unrelated non-Mangarr downloads. Using a category is optional, but strongly recommended.. Creates a [category] subdirectory in the output directory.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.olderTvPriority": {
+    "Label": "Older Priority",
+    "HelpText": "Priority to use when grabbing books released over 14 days ago",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.recentTvPriority": {
+    "Label": "Recent Priority",
+    "HelpText": "Priority to use when grabbing books released within the last 14 days",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.tvDirectory": {
+    "Label": "Directory",
+    "HelpText": "Optional location to put downloads in, leave blank to use the default Transmission location",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.urlBase": {
+    "Label": "Url Base",
+    "HelpText": "Adds a prefix to the transmission rpc url, eg http://[host]:[port]/[urlBase]/rpc, defaults to '/transmission/'",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use secure connection when connecting to Transmission",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.Transmission.TransmissionSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.intialState": {
+    "Label": "Initial State",
+    "HelpText": "Initial state for torrents added to uTorrent",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.musicCategory": {
+    "Label": "Category",
+    "HelpText": "Adding a category specific to Mangarr avoids conflicts with unrelated non-Mangarr downloads. Using a category is optional, but strongly recommended.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.musicImportedCategory": {
+    "Label": "Post-Import Category",
+    "HelpText": "Category for Mangarr to set after it has imported the download. Mangarr will not remove the torrent if seeding has finished. Leave blank to keep same category.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.olderTvPriority": {
+    "Label": "Older Priority",
+    "HelpText": "Priority to use when grabbing books released over 14 days ago",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.recentTvPriority": {
+    "Label": "Recent Priority",
+    "HelpText": "Priority to use when grabbing books released within the last 14 days",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.urlBase": {
+    "Label": "Url Base",
+    "HelpText": "Adds a prefix to the uTorrent url, e.g. http://[host]:[port]/[urlBase]/api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use secure connection when connecting to uTorrent",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Download.Clients.UTorrent.UTorrentSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsBookshelfImportListSettings.accessToken": {
+    "Label": "Access Token",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsBookshelfImportListSettings.accessTokenSecret": {
+    "Label": "Access Token Secret",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsBookshelfImportListSettings.bookshelfIds": {
+    "Label": "Bookshelves",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsBookshelfImportListSettings.requestTokenSecret": {
+    "Label": "Request Token Secret",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsBookshelfImportListSettings.signIn": {
+    "Label": "Authenticate with Goodreads",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsBookshelfImportListSettings.userId": {
+    "Label": "User Id",
+    "HelpText": "User Id to import from. Leave blank to use the authenticated Goodreads user.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsBookshelfImportListSettings.userName": {
+    "Label": "User Name",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsListImportListSettings.listId": {
+    "Label": "List ID",
+    "HelpText": "Goodreads list ID",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsOwnedBooksImportListSettings.accessToken": {
+    "Label": "Access Token",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsOwnedBooksImportListSettings.accessTokenSecret": {
+    "Label": "Access Token Secret",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsOwnedBooksImportListSettings.requestTokenSecret": {
+    "Label": "Request Token Secret",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsOwnedBooksImportListSettings.signIn": {
+    "Label": "Authenticate with Goodreads",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsOwnedBooksImportListSettings.userId": {
+    "Label": "User Id",
+    "HelpText": "User Id to import from. Leave blank to use the authenticated Goodreads user.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsOwnedBooksImportListSettings.userName": {
+    "Label": "User Name",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Goodreads.GoodreadsSeriesImportListSettings.seriesId": {
+    "Label": "Series ID",
+    "HelpText": "Goodreads series ID",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.LazyLibrarianImport.LazyLibrarianImportSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.LazyLibrarianImport.LazyLibrarianImportSettings.baseUrl": {
+    "Label": "Url",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.MangaDex.MangaDexSettings.authUrl": {
+    "Label": "Auth URL",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.MangaDex.MangaDexSettings.baseUrl": {
+    "Label": "API URL",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.MangaDex.MangaDexSettings.clientId": {
+    "Label": "Client ID",
+    "HelpText": "Personal API client ID (MangaDex Settings -> API Clients; the client must be approved)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.MangaDex.MangaDexSettings.clientSecret": {
+    "Label": "Client Secret",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.MangaDex.MangaDexSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.MangaDex.MangaDexSettings.username": {
+    "Label": "Username",
+    "HelpText": "MangaDex username; the follows of this account are imported",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Readarr.ReadarrSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": "Apikey of the Readarr instance to import from",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Readarr.ReadarrSettings.baseUrl": {
+    "Label": "Full URL",
+    "HelpText": "URL, including port, of the Readarr instance to import from",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Readarr.ReadarrSettings.profileIds": {
+    "Label": "Profiles",
+    "HelpText": "Profiles from the source instance to import from",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Readarr.ReadarrSettings.rootFolderPaths": {
+    "Label": "Root Folders",
+    "HelpText": "Root Folders from the source instance to import from",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.ImportLists.Readarr.ReadarrSettings.tagIds": {
+    "Label": "Tags",
+    "HelpText": "Tags from the source instance to import from",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.FileList.FileListSettings.baseUrl": {
+    "Label": "API URL",
+    "HelpText": "Do not change this unless you know what you're doing. Since your API key will be sent to that host.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.FileList.FileListSettings.categories": {
+    "Label": "Categories",
+    "HelpText": "Categories for use in search and feeds",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.FileList.FileListSettings.earlyReleaseLimit": {
+    "Label": "Early Download Limit",
+    "HelpText": "Time before release date Mangarr will download from this indexer, empty is no limit",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.FileList.FileListSettings.minimumSeeders": {
+    "Label": "Minimum Seeders",
+    "HelpText": "Minimum number of seeders required.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.FileList.FileListSettings.passkey": {
+    "Label": "Passkey",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.FileList.FileListSettings.rejectBlocklistedTorrentHashesWhileGrabbing": {
+    "Label": "Reject Blocklisted Torrent Hashes While Grabbing",
+    "HelpText": "If a torrent is blocked by hash it may not properly be rejected during RSS/Search for some indexers, enabling this will allow it to be rejected after the torrent is grabbed, but before it is sent to the client.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.FileList.FileListSettings.seedCriteria.discographySeedTime": {
+    "Label": "Discography Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty is download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.FileList.FileListSettings.seedCriteria.seedRatio": {
+    "Label": "Seed Ratio",
+    "HelpText": "The ratio a torrent should reach before stopping, empty uses the download client's default. Ratio should be at least 1.0 and follow the indexers rules",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.FileList.FileListSettings.seedCriteria.seedTime": {
+    "Label": "Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty uses the download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.FileList.FileListSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Gazelle.GazelleSettings.baseUrl": {
+    "Label": "URL",
+    "HelpText": "Do not change this unless you know what you're doing. Since your cookie will be sent to that host.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Gazelle.GazelleSettings.earlyReleaseLimit": {
+    "Label": "Early Download Limit",
+    "HelpText": "Time before release date Mangarr will download from this indexer, empty is no limit",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Gazelle.GazelleSettings.minimumSeeders": {
+    "Label": "Minimum Seeders",
+    "HelpText": "Minimum number of seeders required.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Gazelle.GazelleSettings.password": {
+    "Label": "Password",
+    "HelpText": "Password",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Gazelle.GazelleSettings.rejectBlocklistedTorrentHashesWhileGrabbing": {
+    "Label": "Reject Blocklisted Torrent Hashes While Grabbing",
+    "HelpText": "If a torrent is blocked by hash it may not properly be rejected during RSS/Search for some indexers, enabling this will allow it to be rejected after the torrent is grabbed, but before it is sent to the client.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Gazelle.GazelleSettings.seedCriteria.discographySeedTime": {
+    "Label": "Discography Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty is download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Gazelle.GazelleSettings.seedCriteria.seedRatio": {
+    "Label": "Seed Ratio",
+    "HelpText": "The ratio a torrent should reach before stopping, empty uses the download client's default. Ratio should be at least 1.0 and follow the indexers rules",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Gazelle.GazelleSettings.seedCriteria.seedTime": {
+    "Label": "Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty uses the download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Gazelle.GazelleSettings.useFreeleechToken": {
+    "Label": "Use Freeleech Token",
+    "HelpText": "Will cause grabbing to fail if you do not have any tokens available",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Gazelle.GazelleSettings.username": {
+    "Label": "Username",
+    "HelpText": "Username",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.IPTorrents.IPTorrentsSettings.baseUrl": {
+    "Label": "Feed URL",
+    "HelpText": "The full RSS feed url generated by IPTorrents, using only the categories you selected (HD, SD, x264, etc ...)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.IPTorrents.IPTorrentsSettings.earlyReleaseLimit": {
+    "Label": "Early Download Limit",
+    "HelpText": "Time before release date Mangarr will download from this indexer, empty is no limit",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.IPTorrents.IPTorrentsSettings.minimumSeeders": {
+    "Label": "Minimum Seeders",
+    "HelpText": "Minimum number of seeders required.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.IPTorrents.IPTorrentsSettings.rejectBlocklistedTorrentHashesWhileGrabbing": {
+    "Label": "Reject Blocklisted Torrent Hashes While Grabbing",
+    "HelpText": "If a torrent is blocked by hash it may not properly be rejected during RSS/Search for some indexers, enabling this will allow it to be rejected after the torrent is grabbed, but before it is sent to the client.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.IPTorrents.IPTorrentsSettings.seedCriteria.discographySeedTime": {
+    "Label": "Discography Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty is download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.IPTorrents.IPTorrentsSettings.seedCriteria.seedRatio": {
+    "Label": "Seed Ratio",
+    "HelpText": "The ratio a torrent should reach before stopping, empty uses the download client's default. Ratio should be at least 1.0 and follow the indexers rules",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.IPTorrents.IPTorrentsSettings.seedCriteria.seedTime": {
+    "Label": "Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty uses the download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Newznab.NewznabSettings.additionalParameters": {
+    "Label": "Additional Parameters",
+    "HelpText": "Additional Newznab parameters",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Newznab.NewznabSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Newznab.NewznabSettings.apiPath": {
+    "Label": "API Path",
+    "HelpText": "Path to the api, usually /api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Newznab.NewznabSettings.baseUrl": {
+    "Label": "URL",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Newznab.NewznabSettings.categories": {
+    "Label": "Categories",
+    "HelpText": "Drop down list; at least one category must be selected.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Newznab.NewznabSettings.earlyReleaseLimit": {
+    "Label": "Early Download Limit",
+    "HelpText": "Time before release date Mangarr will download from this indexer, empty is no limit",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Nyaa.NyaaSettings.additionalParameters": {
+    "Label": "Additional Parameters",
+    "HelpText": "Please note if you change the category you will have to add required/restricted rules about the subgroups to avoid foreign language releases.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Nyaa.NyaaSettings.baseUrl": {
+    "Label": "Website URL",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Nyaa.NyaaSettings.earlyReleaseLimit": {
+    "Label": "Early Download Limit",
+    "HelpText": "Time before release date Mangarr will download from this indexer, empty is no limit",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Nyaa.NyaaSettings.minimumSeeders": {
+    "Label": "Minimum Seeders",
+    "HelpText": "Minimum number of seeders required.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Nyaa.NyaaSettings.rejectBlocklistedTorrentHashesWhileGrabbing": {
+    "Label": "Reject Blocklisted Torrent Hashes While Grabbing",
+    "HelpText": "If a torrent is blocked by hash it may not properly be rejected during RSS/Search for some indexers, enabling this will allow it to be rejected after the torrent is grabbed, but before it is sent to the client.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Nyaa.NyaaSettings.seedCriteria.discographySeedTime": {
+    "Label": "Discography Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty is download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Nyaa.NyaaSettings.seedCriteria.seedRatio": {
+    "Label": "Seed Ratio",
+    "HelpText": "The ratio a torrent should reach before stopping, empty uses the download client's default. Ratio should be at least 1.0 and follow the indexers rules",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Nyaa.NyaaSettings.seedCriteria.seedTime": {
+    "Label": "Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty uses the download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.SeedCriteriaSettings.discographySeedTime": {
+    "Label": "Discography Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty is download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.SeedCriteriaSettings.seedRatio": {
+    "Label": "Seed Ratio",
+    "HelpText": "The ratio a torrent should reach before stopping, empty uses the download client's default. Ratio should be at least 1.0 and follow the indexers rules",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.SeedCriteriaSettings.seedTime": {
+    "Label": "Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty uses the download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.TorrentRss.TorrentRssIndexerSettings.allowZeroSize": {
+    "Label": "Allow Zero Size",
+    "HelpText": "Enabling this will allow you to use feeds that don't specify release size, but be careful, size related checks will not be performed.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.TorrentRss.TorrentRssIndexerSettings.baseUrl": {
+    "Label": "Full RSS Feed URL",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.TorrentRss.TorrentRssIndexerSettings.cookie": {
+    "Label": "Cookie",
+    "HelpText": "If you site requires a login cookie to access the rss, you'll have to retrieve it via a browser.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.TorrentRss.TorrentRssIndexerSettings.earlyReleaseLimit": {
+    "Label": "Early Download Limit",
+    "HelpText": "Time before release date Mangarr will download from this indexer, empty is no limit",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.TorrentRss.TorrentRssIndexerSettings.minimumSeeders": {
+    "Label": "Minimum Seeders",
+    "HelpText": "Minimum number of seeders required.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.TorrentRss.TorrentRssIndexerSettings.rejectBlocklistedTorrentHashesWhileGrabbing": {
+    "Label": "Reject Blocklisted Torrent Hashes While Grabbing",
+    "HelpText": "If a torrent is blocked by hash it may not properly be rejected during RSS/Search for some indexers, enabling this will allow it to be rejected after the torrent is grabbed, but before it is sent to the client.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.TorrentRss.TorrentRssIndexerSettings.seedCriteria.discographySeedTime": {
+    "Label": "Discography Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty is download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.TorrentRss.TorrentRssIndexerSettings.seedCriteria.seedRatio": {
+    "Label": "Seed Ratio",
+    "HelpText": "The ratio a torrent should reach before stopping, empty uses the download client's default. Ratio should be at least 1.0 and follow the indexers rules",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.TorrentRss.TorrentRssIndexerSettings.seedCriteria.seedTime": {
+    "Label": "Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty uses the download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torrentleech.TorrentleechSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torrentleech.TorrentleechSettings.baseUrl": {
+    "Label": "Website URL",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torrentleech.TorrentleechSettings.earlyReleaseLimit": {
+    "Label": "Early Download Limit",
+    "HelpText": "Time before release date Mangarr will download from this indexer, empty is no limit",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torrentleech.TorrentleechSettings.minimumSeeders": {
+    "Label": "Minimum Seeders",
+    "HelpText": "Minimum number of seeders required.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torrentleech.TorrentleechSettings.rejectBlocklistedTorrentHashesWhileGrabbing": {
+    "Label": "Reject Blocklisted Torrent Hashes While Grabbing",
+    "HelpText": "If a torrent is blocked by hash it may not properly be rejected during RSS/Search for some indexers, enabling this will allow it to be rejected after the torrent is grabbed, but before it is sent to the client.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torrentleech.TorrentleechSettings.seedCriteria.discographySeedTime": {
+    "Label": "Discography Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty is download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torrentleech.TorrentleechSettings.seedCriteria.seedRatio": {
+    "Label": "Seed Ratio",
+    "HelpText": "The ratio a torrent should reach before stopping, empty uses the download client's default. Ratio should be at least 1.0 and follow the indexers rules",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torrentleech.TorrentleechSettings.seedCriteria.seedTime": {
+    "Label": "Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty uses the download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.additionalParameters": {
+    "Label": "Additional Parameters",
+    "HelpText": "Additional Newznab parameters",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.apiPath": {
+    "Label": "API Path",
+    "HelpText": "Path to the api, usually /api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.baseUrl": {
+    "Label": "URL",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.categories": {
+    "Label": "Categories",
+    "HelpText": "Drop down list; at least one category must be selected.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.earlyReleaseLimit": {
+    "Label": "Early Download Limit",
+    "HelpText": "Time before release date Mangarr will download from this indexer, empty is no limit",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.minimumSeeders": {
+    "Label": "Minimum Seeders",
+    "HelpText": "Minimum number of seeders required.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.rejectBlocklistedTorrentHashesWhileGrabbing": {
+    "Label": "Reject Blocklisted Torrent Hashes While Grabbing",
+    "HelpText": "If a torrent is blocked by hash it may not properly be rejected during RSS/Search for some indexers, enabling this will allow it to be rejected after the torrent is grabbed, but before it is sent to the client.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.seedCriteria.discographySeedTime": {
+    "Label": "Discography Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty is download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.seedCriteria.seedRatio": {
+    "Label": "Seed Ratio",
+    "HelpText": "The ratio a torrent should reach before stopping, empty uses the download client's default. Ratio should be at least 1.0 and follow the indexers rules",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Indexers.Torznab.TorznabSettings.seedCriteria.seedTime": {
+    "Label": "Seed Time",
+    "HelpText": "The time a torrent should be seeded before stopping, empty uses the download client's default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Apprise.AppriseSettings.authPassword": {
+    "Label": "Password",
+    "HelpText": "HTTP Basic Auth Password",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Apprise.AppriseSettings.authUsername": {
+    "Label": "Username",
+    "HelpText": "HTTP Basic Auth Username",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Apprise.AppriseSettings.configurationKey": {
+    "Label": "Apprise Configuration Key",
+    "HelpText": "Configuration Key for the Persistent Storage Solution. Leave empty if Stateless URLs is used.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Apprise.AppriseSettings.notificationType": {
+    "Label": "Apprise Notification Type",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Apprise.AppriseSettings.serverUrl": {
+    "Label": "Apprise Server URL",
+    "HelpText": "Apprise server URL, including http(s):// and port if needed",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Apprise.AppriseSettings.statelessUrls": {
+    "Label": "Apprise Stateless URLs",
+    "HelpText": "One or more URLs separated by commas identifying where the notification should be sent to. Leave empty if Persistent Storage is used.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Apprise.AppriseSettings.tags": {
+    "Label": "Apprise Tags",
+    "HelpText": "Optionally notify only those tagged accordingly.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.CustomScript.CustomScriptSettings.arguments": {
+    "Label": "Arguments",
+    "HelpText": "Arguments to pass to the script",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.CustomScript.CustomScriptSettings.path": {
+    "Label": "Path",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Discord.DiscordSettings.author": {
+    "Label": "Host",
+    "HelpText": "Override the Host that shows for this notification, Blank is machine name",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Discord.DiscordSettings.avatar": {
+    "Label": "Avatar",
+    "HelpText": "Change the avatar that is used for messages from this integration",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Discord.DiscordSettings.username": {
+    "Label": "Username",
+    "HelpText": "The username to post as, defaults to Discord webhook default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Discord.DiscordSettings.webHookUrl": {
+    "Label": "Webhook URL",
+    "HelpText": "Discord channel webhook url",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Email.EmailSettings.attachFiles": {
+    "Label": "Attach Books",
+    "HelpText": "Add books as an attachment on import",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Email.EmailSettings.bcc": {
+    "Label": "BCC Address(es)",
+    "HelpText": "Comma seperated list of email bcc recipients",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Email.EmailSettings.cc": {
+    "Label": "CC Address(es)",
+    "HelpText": "Comma seperated list of email cc recipients",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Email.EmailSettings.from": {
+    "Label": "From Address",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Email.EmailSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Email.EmailSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Email.EmailSettings.requireEncryption": {
+    "Label": "Require Encryption",
+    "HelpText": "Require SSL (Port 465 only) or StartTLS (any other port)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Email.EmailSettings.server": {
+    "Label": "Server",
+    "HelpText": "Hostname or IP of Email server",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Email.EmailSettings.to": {
+    "Label": "Recipient Address(es)",
+    "HelpText": "Comma seperated list of email recipients",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Email.EmailSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsBookshelfNotificationSettings.accessToken": {
+    "Label": "Access Token",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsBookshelfNotificationSettings.accessTokenSecret": {
+    "Label": "Access Token Secret",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsBookshelfNotificationSettings.addIds": {
+    "Label": "Add to Bookshelves",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsBookshelfNotificationSettings.removeIds": {
+    "Label": "Remove from Bookshelves",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsBookshelfNotificationSettings.requestTokenSecret": {
+    "Label": "Request Token Secret",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsBookshelfNotificationSettings.signIn": {
+    "Label": "Authenticate with Goodreads",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsBookshelfNotificationSettings.userId": {
+    "Label": "User Id",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsBookshelfNotificationSettings.userName": {
+    "Label": "User Name",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsOwnedBooksNotificationSettings.accessToken": {
+    "Label": "Access Token",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsOwnedBooksNotificationSettings.accessTokenSecret": {
+    "Label": "Access Token Secret",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsOwnedBooksNotificationSettings.condition": {
+    "Label": "Condition",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsOwnedBooksNotificationSettings.description": {
+    "Label": "Condition Description",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsOwnedBooksNotificationSettings.location": {
+    "Label": "Purchase Location",
+    "HelpText": "Will be displayed on Goodreads website",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsOwnedBooksNotificationSettings.requestTokenSecret": {
+    "Label": "Request Token Secret",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsOwnedBooksNotificationSettings.signIn": {
+    "Label": "Authenticate with Goodreads",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsOwnedBooksNotificationSettings.userId": {
+    "Label": "User Id",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Goodreads.GoodreadsOwnedBooksNotificationSettings.userName": {
+    "Label": "User Name",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Gotify.GotifySettings.appToken": {
+    "Label": "App Token",
+    "HelpText": "The Application Token generated by Gotify",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Gotify.GotifySettings.priority": {
+    "Label": "Priority",
+    "HelpText": "Priority of the notification",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Gotify.GotifySettings.server": {
+    "Label": "Gotify Server",
+    "HelpText": "Gotify server URL, including http(s):// and port if needed",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Join.JoinSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": "The API Key from your Join account settings (click Join API button).",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Join.JoinSettings.deviceIds": {
+    "Label": "Device IDs",
+    "HelpText": "Deprecated, use Device Names instead. Comma separated list of Device IDs you'd like to send notifications to. If unset, all devices will receive notifications.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Join.JoinSettings.deviceNames": {
+    "Label": "Device Names",
+    "HelpText": "Comma separated list of full or partial device names you'd like to send notifications to. If unset, all devices will receive notifications.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Join.JoinSettings.priority": {
+    "Label": "Notification Priority",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Kavita.KavitaSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Kavita.KavitaSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Kavita.KavitaSettings.notify": {
+    "Label": "Update Library",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Kavita.KavitaSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Kavita.KavitaSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Connect to Kavita over HTTPS instead of HTTP",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Mailgun.MailgunSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": "The API key generated from MailGun",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Mailgun.MailgunSettings.from": {
+    "Label": "From Address",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Mailgun.MailgunSettings.recipients": {
+    "Label": "Recipient Address(es)",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Mailgun.MailgunSettings.senderDomain": {
+    "Label": "Sender Domain",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Mailgun.MailgunSettings.useEuEndpoint": {
+    "Label": "Use EU Endpoint?",
+    "HelpText": "You can choose to use the EU MailGun endpoint with this",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Notifiarr.NotifiarrSettings.aPIKey": {
+    "Label": "API Key",
+    "HelpText": "Your API key from your profile",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Ntfy.NtfySettings.accessToken": {
+    "Label": "Access Token",
+    "HelpText": "Optional token-based authorization. Takes priority over username/password",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Ntfy.NtfySettings.clickUrl": {
+    "Label": "Click URL",
+    "HelpText": "Optional link when user clicks notification",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Ntfy.NtfySettings.password": {
+    "Label": "Password",
+    "HelpText": "Optional Password",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Ntfy.NtfySettings.priority": {
+    "Label": "Priority",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Ntfy.NtfySettings.serverUrl": {
+    "Label": "Server Url",
+    "HelpText": "Leave blank to use public server (https://ntfy.sh)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Ntfy.NtfySettings.tags": {
+    "Label": "Ntfy Tags and Emojis",
+    "HelpText": "Optional list of tags or emojis to use",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Ntfy.NtfySettings.topics": {
+    "Label": "Topics",
+    "HelpText": "List of Topics to send notifications to",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Ntfy.NtfySettings.userName": {
+    "Label": "User Name",
+    "HelpText": "Optional Authorization",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Plex.Server.PlexServerSettings.authToken": {
+    "Label": "Auth Token",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Plex.Server.PlexServerSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Plex.Server.PlexServerSettings.mapFrom": {
+    "Label": "Map Paths From",
+    "HelpText": "Mangarr path, used to modify series paths when Plex sees library path location differently from Mangarr (Requires 'Update Library')",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Plex.Server.PlexServerSettings.mapTo": {
+    "Label": "Map Paths To",
+    "HelpText": "Plex path, used to modify series paths when Plex sees library path location differently from Mangarr (Requires 'Update Library')",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Plex.Server.PlexServerSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Plex.Server.PlexServerSettings.signIn": {
+    "Label": "Authenticate with Plex.tv",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Plex.Server.PlexServerSettings.updateLibrary": {
+    "Label": "Update Library",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Plex.Server.PlexServerSettings.urlBase": {
+    "Label": "URL Base",
+    "HelpText": "Adds a prefix to the Plex url, such as http://[host]:[port]/[urlBase]/plex",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Plex.Server.PlexServerSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Connect to Plex over HTTPS instead of HTTP",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Prowl.ProwlSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Prowl.ProwlSettings.priority": {
+    "Label": "Priority",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.PushBullet.PushBulletSettings.apiKey": {
+    "Label": "Access Token",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.PushBullet.PushBulletSettings.channelTags": {
+    "Label": "Channel Tags",
+    "HelpText": "List of Channel Tags to send notifications to",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.PushBullet.PushBulletSettings.deviceIds": {
+    "Label": "Device IDs",
+    "HelpText": "List of device IDs (leave blank to send to all devices)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.PushBullet.PushBulletSettings.senderId": {
+    "Label": "Sender ID",
+    "HelpText": "The device ID to send notifications from, use device_iden in the device's URL on pushbullet.com (leave blank to send from yourself)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Pushover.PushoverSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Pushover.PushoverSettings.devices": {
+    "Label": "Devices",
+    "HelpText": "List of device names (leave blank to send to all devices)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Pushover.PushoverSettings.expire": {
+    "Label": "Expire",
+    "HelpText": "Maximum time to retry Emergency alerts, maximum 86400 seconds",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Pushover.PushoverSettings.priority": {
+    "Label": "Priority",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Pushover.PushoverSettings.retry": {
+    "Label": "Retry",
+    "HelpText": "Interval to retry Emergency alerts, minimum 30 seconds",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Pushover.PushoverSettings.sound": {
+    "Label": "Sound",
+    "HelpText": "Notification sound, leave blank to use the default",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Pushover.PushoverSettings.userKey": {
+    "Label": "User Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.SendGrid.SendGridSettings.apiKey": {
+    "Label": "API Key",
+    "HelpText": "The API Key generated by SendGrid",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.SendGrid.SendGridSettings.from": {
+    "Label": "From Address",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.SendGrid.SendGridSettings.recipients": {
+    "Label": "Recipient Address(es)",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Signal.SignalSettings.authPassword": {
+    "Label": "Password",
+    "HelpText": "Password used to authenticate requests toward signal-api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Signal.SignalSettings.authUsername": {
+    "Label": "Login",
+    "HelpText": "Username used to authenticate requests toward signal-api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Signal.SignalSettings.host": {
+    "Label": "Host",
+    "HelpText": "localhost",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Signal.SignalSettings.port": {
+    "Label": "Port",
+    "HelpText": "8080",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Signal.SignalSettings.receiverId": {
+    "Label": "Group ID / PhoneNumber",
+    "HelpText": "GroupID / PhoneNumber of the receiver",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Signal.SignalSettings.senderNumber": {
+    "Label": "Sender Number",
+    "HelpText": "Phone number of the sender register in signal-api",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Signal.SignalSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Use a secure connection.",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Simplepush.SimplepushSettings.event": {
+    "Label": "Event",
+    "HelpText": "Customize the behavior of push notifications",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Simplepush.SimplepushSettings.key": {
+    "Label": "Key",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Slack.SlackSettings.channel": {
+    "Label": "Channel",
+    "HelpText": "Overrides the default channel for the incoming webhook (#other-channel)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Slack.SlackSettings.icon": {
+    "Label": "Icon",
+    "HelpText": "Change the icon that is used for messages from this integration (Emoji or URL)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Slack.SlackSettings.username": {
+    "Label": "Username",
+    "HelpText": "Choose the username that this integration will post as",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Slack.SlackSettings.webHookUrl": {
+    "Label": "Webhook URL",
+    "HelpText": "Slack channel webhook url",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Subsonic.SubsonicSettings.host": {
+    "Label": "Host",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Subsonic.SubsonicSettings.notify": {
+    "Label": "Notify with Chat Message",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Subsonic.SubsonicSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Subsonic.SubsonicSettings.port": {
+    "Label": "Port",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Subsonic.SubsonicSettings.updateLibrary": {
+    "Label": "Update Library",
+    "HelpText": "Update Library on Download & Rename?",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Subsonic.SubsonicSettings.urlBase": {
+    "Label": "Url Base",
+    "HelpText": "Adds a prefix to the Subsonic url, e.g. http://[host]:[port]/[urlBase]/rest",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Subsonic.SubsonicSettings.useSsl": {
+    "Label": "Use SSL",
+    "HelpText": "Connect to Subsonic over HTTPS instead of HTTP",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Subsonic.SubsonicSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Synology.SynologyIndexerSettings.updateLibrary": {
+    "Label": "Update Library",
+    "HelpText": "Call synoindex on localhost to update a library file",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Telegram.TelegramSettings.botToken": {
+    "Label": "Bot Token",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Telegram.TelegramSettings.chatId": {
+    "Label": "Chat ID",
+    "HelpText": "You must start a conversation with the bot or add it to your group to receive messages",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Telegram.TelegramSettings.sendSilently": {
+    "Label": "Send Silently",
+    "HelpText": "Sends the message silently. Users will receive a notification with no sound",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Telegram.TelegramSettings.topicId": {
+    "Label": "Topic ID",
+    "HelpText": "Specify a Topic ID to send notifications to that topic. Leave blank to use the general topic (Supergroups only)",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Twitter.TwitterSettings.accessToken": {
+    "Label": "Access Token",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Twitter.TwitterSettings.accessTokenSecret": {
+    "Label": "Access Token Secret",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Twitter.TwitterSettings.authorizeNotification": {
+    "Label": "Connect to Twitter",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Twitter.TwitterSettings.consumerKey": {
+    "Label": "Consumer Key",
+    "HelpText": "Consumer key from a Twitter application",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Twitter.TwitterSettings.consumerSecret": {
+    "Label": "Consumer Secret",
+    "HelpText": "Consumer secret from a Twitter application",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Twitter.TwitterSettings.directMessage": {
+    "Label": "Direct Message",
+    "HelpText": "Send a direct message instead of a public message",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Twitter.TwitterSettings.mention": {
+    "Label": "Mention",
+    "HelpText": "Mention this user in sent tweets",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Webhook.WebhookSettings.method": {
+    "Label": "Method",
+    "HelpText": "Which HTTP method to use submit to the Webservice",
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Webhook.WebhookSettings.password": {
+    "Label": "Password",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Webhook.WebhookSettings.url": {
+    "Label": "URL",
+    "HelpText": null,
+    "HelpTextWarning": null
+  },
+  "NzbDrone.Core.Notifications.Webhook.WebhookSettings.username": {
+    "Label": "Username",
+    "HelpText": null,
+    "HelpTextWarning": null
+  }
+}

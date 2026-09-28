@@ -1,0 +1,184 @@
+[
+  { "task": "typos", "enKey": "CountAuthorsSelected", "why": "spec §3 T1: series(s) -> series" },
+  { "task": "typos", "enKey": "SelectedCountAuthorsSelectedInterp", "why": "spec §3 T2: Series(s) -> Series" },
+  { "task": "typos", "enKey": "IsInUseCantDeleteAMetadataProfileThatIsAttachedToAnAuthorOrImportList", "why": "spec §3 T3: an series -> a series" },
+  { "task": "typos", "enKey": "IsInUseCantDeleteAQualityProfileThatIsAttachedToAnAuthorOrImportList", "why": "spec §3 T4: an series -> a series" },
+  { "task": "typos", "enKey": "MountCheckMessage", "why": "spec §3 T5: an series -> a series" },
+  { "task": "typos", "enKey": "ImportExtraFilesHelpText", "why": "spec §3 T6: an volume -> a volume" },
+  { "task": "typos", "enKey": "CopyUsingHardlinksHelpText", "why": "spec §3 T7: the the -> the" },
+  {
+    "task": "typos",
+    "file": "frontend/src/InteractiveImport/Edition/SelectEditionModalContent.js",
+    "base": ["Overrriding an edition here will ", " for that book in future."],
+    "head": ["Overriding an edition here will <b> for that book in future."],
+    "why": "spec §3 T8: Overrriding -> Overriding; the sentence as it renders since Task 6 made it one translateElements key (SelectEditionOverrideWarning) around the bold run"
+  },
+  {
+    "task": "typos",
+    "file": "frontend/src/Settings/MediaManagement/Naming/NamingModal.js",
+    "base": ["Series's Name", "Series's Name, The", "Seriess Name"],
+    "head": ["Series' Name", "Series' Name, The", "Series Name"],
+    "why": "spec §3 T9: the CleanName example chain (Series' Name -> Series Name)"
+  },
+  {
+    "task": "shared",
+    "file": "frontend/src/Utilities/Number/formatAge.js",
+    "base": ["minute", "minutes", "hour", "hours", "day", "days"],
+    "head": ["{…} minute", "{…} minutes", "{…} hour", "{…} hours", "{age} day", "{age} days"],
+    "why": "formatAge: `${n} ${unit}` became whole-phrase keys '{age} <unit>'; same '<n> <unit>' output (spec §4)"
+  },
+  {
+    "task": "library",
+    "file": "frontend/src/Author/Edition/ChangeEditionModalContent.js",
+    "base": ["ReResolveEdition"],
+    "head": [],
+    "why": "wire identifier moved to a commandNames constant, not UI text"
+  },
+  {
+    "task": "library",
+    "file": "frontend/src/Collections/CollectionsConnector.js",
+    "base": ["MissingBookSearch"],
+    "head": [],
+    "why": "wire identifier moved to a commandNames constant, not UI text"
+  },
+  {
+    "task": "library",
+    "file": "frontend/src/Book/Editor/Delete/DeleteBookModalContent.js",
+    "base": ["Delete File{…}", "s"],
+    "head": ["Delete Files", "Delete File"],
+    "why": "`Delete File${n > 1 ? 's' : ''}` became whole keys DeleteFiles/DeleteFile; same 'Delete File'/'Delete Files' output"
+  },
+  {
+    "task": "library",
+    "file": "frontend/src/Calendar/Header/CalendarHeaderViewButton.js",
+    "base": [],
+    "head": ["Day", "Week", "Month", "Forecast", "Agenda"],
+    "why": "the view button label was titleCase(view), English built from the view id; now one key per view, same Day/Week/Month/Forecast/Agenda"
+  },
+  {
+    "task": "library",
+    "file": "frontend/src/Calendar/Legend/Legend.js",
+    "base": [],
+    "head": ["Downloading", "Downloaded", "Unreleased", "Partial", "Unmonitored", "Missing"],
+    "why": "LegendItem's label fell back to titleCase(status), English built from the status id; Legend now passes a translated name, same text"
+  },
+  {
+    "task": "library",
+    "file": "frontend/src/Author/Index/Table/AuthorIndexHeader.js",
+    "base": [],
+    "head": ["function"],
+    "why": "typeof label === 'function': the header now calls a store column's label function (as Table.js does); a code literal, not UI text"
+  },
+  {
+    "task": "library",
+    "file": "frontend/src/Book/Index/Table/BookIndexHeader.js",
+    "base": [],
+    "head": ["function"],
+    "why": "typeof label === 'function': the header now calls a store column's label function (as Table.js does); a code literal, not UI text"
+  },
+  {
+    "task": "library",
+    "file": "frontend/src/UnmappedFiles/UnmappedFilesTableHeader.js",
+    "base": [],
+    "head": ["function"],
+    "why": "typeof label === 'function': the header now calls a store column's label function (as Table.js does); a code literal, not UI text"
+  },
+  {
+    "task": "activity",
+    "file": "frontend/src/Activity/Queue/QueueStatusCell.js",
+    "base": [" - Waiting to Import", " - Importing", " - Waiting to Process"],
+    "head": ["Downloaded - Waiting to Import", "Downloaded - Importing", "Downloaded - Waiting to Process"],
+    "why": "title = 'Downloaded' then += ' - X' became one key per state; same rendered title"
+  },
+  {
+    "task": "activity",
+    "file": "frontend/src/System/Logs/LogsNavMenu.js",
+    "base": [],
+    "head": ["Log Files", "Log Files", "Updater Log Files"],
+    "why": "the menu button showed currentLogView, an identifier that doubles as its label; it now compares it ('Log Files') and shows translate('LogFiles') or translate('UpdaterLogFiles'), the same two texts"
+  },
+  {
+    "task": "activity",
+    "file": "frontend/src/System/Status/Health/Health.js",
+    "base": [],
+    "head": ["notice", "Notice", "warning", "Warning", "error", "Error"],
+    "why": "the type icon's title was titleCase(item.type); getTypeTitle() switches on the HealthCheckResult name (the lowercase case labels are code) to one key per type, same text, titleCase() kept for an unknown type"
+  },
+  {
+    "task": "import",
+    "file": "frontend/src/InteractiveSearch/Peers.js",
+    "base": ["Unknown {peersUnit}s", "{peers} {peersUnit}s", "seeder", "leecher"],
+    "head": ["Unknown seeders", "1 seeder", "{seeders} seeders", "Unknown leechers", "1 leecher", "{leechers} leechers"],
+    "why": "getPeersTooltipPart(n, unit) built `Unknown ${unit}s` / `1 ${unit}` / `${n} ${unit}s` from 'seeder'/'leecher'; now whole-phrase keys per unit, same 'Unknown seeders', '1 seeder', '<n> seeders' (and leechers) output"
+  },
+  {
+    "task": "settings",
+    "file": "frontend/src/Settings/CustomFormats/CustomFormats/Specifications/EditSpecificationModalContent.js",
+    "base": ["{…} Condition - {implementationName}", "Edit", "Add"],
+    "head": ["Edit Condition - {implementationName}", "Add Condition - {implementationName}"],
+    "why": "the header was `${id ? 'Edit' : 'Add'} Condition - ${implementationName}`; now one whole-phrase key per mode (EditConditionImplementation / AddConditionImplementation), same text"
+  },
+  {
+    "task": "settings",
+    "file": "frontend/src/Settings/DownloadClients/DownloadClients/EditDownloadClientModalContent.js",
+    "base": ["{…} Download Client - {implementationName}", "Edit", "Add"],
+    "head": ["Edit Download Client - {implementationName}", "Add Download Client - {implementationName}"],
+    "why": "the header was `${id ? 'Edit' : 'Add'} Download Client - ${implementationName}`; now one whole-phrase key per mode (EditDownloadClientImplementation / AddDownloadClientImplementation), same text"
+  },
+  {
+    "task": "settings",
+    "file": "frontend/src/Settings/Indexers/Indexers/EditIndexerModalContent.js",
+    "base": ["{…} Indexer - {implementationName}", "Edit", "Add"],
+    "head": ["Edit Indexer - {implementationName}", "Add Indexer - {implementationName}"],
+    "why": "the header was `${id ? 'Edit' : 'Add'} Indexer - ${implementationName}`; now one whole-phrase key per mode (EditIndexerImplementation / AddIndexerImplementation), same text"
+  },
+  {
+    "task": "settings",
+    "file": "frontend/src/Settings/Notifications/Notifications/EditNotificationModalContent.js",
+    "base": ["{…} Connection - {implementationName}", "Edit", "Add"],
+    "head": ["Edit Connection - {implementationName}", "Add Connection - {implementationName}"],
+    "why": "the header was `${id ? 'Edit' : 'Add'} Connection - ${implementationName}`; now one whole-phrase key per mode (EditConnectionImplementation / AddConnectionImplementation), same text"
+  },
+  {
+    "task": "settings",
+    "file": "frontend/src/Settings/ImportLists/ImportLists/AddImportListModalContent.js",
+    "base": [],
+    "head": ["program", "Program List", "other", "Other List"],
+    "why": "the group legend was `${titleCase(key)} List`; getListGroupTitle() switches on the ImportListType name (the lowercase case labels are code) to one key per type the picker shows, same 'Program List' / 'Other List' text, '{type} List' with titleCase() kept for any other type"
+  },
+  {
+    "task": "settings",
+    "file": "frontend/src/Settings/UI/UISettings.js",
+    "base": [],
+    "head": ["auto", "Auto", "light", "Light", "dark", "Dark"],
+    "why": "the Theme option text was titleCase(theme); getThemeName() switches on the Styles/Themes key (the lowercase case labels are code) to one key per theme, same 'Auto' / 'Light' / 'Dark' text, titleCase() kept for an unknown theme"
+  },
+  {
+    "task": "settings",
+    "file": "frontend/src/Settings/Tags/Tag.js",
+    "base": ["{delayProfileIds.length} delay profile{…}", "{importListIds.length} import list{…}", "{notificationIds.length} connection{…}", "{restrictionIds.length} restriction{…}", "{indexerIds.length} indexer{…}", "s", "s", "s", "s", "s"],
+    "head": ["{delayProfileIds.length} delay profiles", "{delayProfileIds.length} delay profile", "{importListIds.length} import lists", "{importListIds.length} import list", "{notificationIds.length} connections", "{notificationIds.length} connection", "{restrictionIds.length} restrictions", "{restrictionIds.length} restriction", "{indexerIds.length} indexers", "{indexerIds.length} indexer"],
+    "why": "each usage line built its plural by concatenation (`{n} delay profile{n > 1 && 's'}`); now a singular and a plural key per thing, chosen by the same n > 1 test, same output"
+  },
+  {
+    "task": "settings",
+    "file": "frontend/src/Settings/Tags/Tag.js",
+    "base": ["{downloadClientIds.length} download client{…}", "s"],
+    "head": ["{downloadClientIds.length} download clients", "{downloadClientIds.length} download client"],
+    "why": "pre-existing bug: the download-client line pluralised from indexerIds.length; the singular/plural keys now follow downloadClientIds.length (controller ruling, Task 7 pre-review fix)"
+  },
+  {
+    "task": "settings",
+    "file": "frontend/src/Settings/Tags/Tags.js",
+    "base": ["No tags have been added yet. Add tags to link series with delay profiles, restrictions, or notifications. Click {wikiLink} to find out more about tags in Mangarr."],
+    "head": ["No tags have been added yet. Add tags to link series with delay profiles, restrictions, or notifications. Click <Link> to find out more about tags in Mangarr."],
+    "why": "pre-existing bug: rendered [object Object] (translate() stringified the link element passed as {0}); translateElements now renders the 'here' link in its place (controller ruling, Task 7 pre-review fix)"
+  },
+  {
+    "task": "bugfix",
+    "file": "frontend/src/Search/Author/AddNewAuthorSearchResult.js",
+    "base": ["Deceased"],
+    "head": ["Ended"],
+    "why": "pre-existing bug: series status shown as the author status 'Deceased'; an ended series now shows StatusEndedEnded 'Ended' (controller ruling, Task 14)"
+  }
+]

@@ -1,0 +1,150 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Download.TrackedDownloads;
+using NzbDrone.Core.History;
+using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Parser.Model;
+
+namespace NzbDrone.Core.Download
+{
+    public interface IFailedDownloadService
+    {
+        void MarkAsFailed(int historyId, bool skipRedownload = false);
+        void MarkAsFailed(string downloadId, bool skipRedownload = false, string message = "Manually marked as failed");
+        void Check(TrackedDownload trackedDownload);
+        void ProcessFailed(TrackedDownload trackedDownload);
+    }
+
+    public class FailedDownloadService : IFailedDownloadService
+    {
+        private readonly IHistoryService _historyService;
+        private readonly ITrackedDownloadService _trackedDownloadService;
+        private readonly IEventAggregator _eventAggregator;
+
+        public FailedDownloadService(IHistoryService historyService,
+                                     ITrackedDownloadService trackedDownloadService,
+                                     IEventAggregator eventAggregator)
+        {
+            _historyService = historyService;
+            _trackedDownloadService = trackedDownloadService;
+            _eventAggregator = eventAggregator;
+        }
+
+        public void MarkAsFailed(int historyId, bool skipRedownload = false)
+        {
+            var history = _historyService.Get(historyId);
+
+            var downloadId = history.DownloadId;
+            if (downloadId.IsNullOrWhiteSpace())
+            {
+                PublishDownloadFailedEvent(new List<EntityHistory> { history }, "Manually marked as failed", skipRedownload: skipRedownload);
+            }
+            else
+            {
+                var grabbedHistory = _historyService.Find(downloadId, EntityHistoryEventType.Grabbed).ToList();
+                PublishDownloadFailedEvent(grabbedHistory, "Manually marked as failed");
+            }
+        }
+
+        public void MarkAsFailed(string downloadId, bool skipRedownload = false, string message = "Manually marked as failed")
+        {
+            var history = _historyService.Find(downloadId, EntityHistoryEventType.Grabbed);
+
+            if (history.Any())
+            {
+                var trackedDownload = _trackedDownloadService.Find(downloadId);
+
+                PublishDownloadFailedEvent(history, message, trackedDownload, skipRedownload);
+            }
+        }
+
+        public void Check(TrackedDownload trackedDownload)
+        {
+            // Only process tracked downloads that are still downloading
+            if (trackedDownload.State != TrackedDownloadState.Downloading)
+            {
+                return;
+            }
+
+            if (trackedDownload.DownloadItem.IsEncrypted ||
+                trackedDownload.DownloadItem.Status == DownloadItemStatus.Failed)
+            {
+                var grabbedItems = _historyService
+                                   .Find(trackedDownload.DownloadItem.DownloadId, EntityHistoryEventType.Grabbed)
+                                   .ToList();
+
+                if (grabbedItems.Empty())
+                {
+                    trackedDownload.Warn("Download wasn't grabbed by Mangarr, skipping");
+                    return;
+                }
+
+                trackedDownload.State = TrackedDownloadState.DownloadFailedPending;
+            }
+        }
+
+        public void ProcessFailed(TrackedDownload trackedDownload)
+        {
+            if (trackedDownload.State != TrackedDownloadState.DownloadFailedPending)
+            {
+                return;
+            }
+
+            var grabbedItems = _historyService
+                               .Find(trackedDownload.DownloadItem.DownloadId, EntityHistoryEventType.Grabbed)
+                               .ToList();
+
+            if (grabbedItems.Empty())
+            {
+                return;
+            }
+
+            var failure = "Failed download detected";
+
+            if (trackedDownload.DownloadItem.IsEncrypted)
+            {
+                failure = "Encrypted download detected";
+            }
+            else if (trackedDownload.DownloadItem.Status == DownloadItemStatus.Failed && trackedDownload.DownloadItem.Message.IsNotNullOrWhiteSpace())
+            {
+                failure = trackedDownload.DownloadItem.Message;
+            }
+
+            trackedDownload.State = TrackedDownloadState.DownloadFailed;
+            PublishDownloadFailedEvent(grabbedItems, failure, trackedDownload);
+        }
+
+        private void PublishDownloadFailedEvent(List<EntityHistory> historyItems, string message, TrackedDownload trackedDownload = null, bool skipRedownload = false)
+        {
+            var historyItem = historyItems.Last();
+            Enum.TryParse(historyItem.Data.GetValueOrDefault(EntityHistory.RELEASE_SOURCE, ReleaseSourceType.Unknown.ToString()), out ReleaseSourceType releaseSource);
+
+            var downloadFailedEvent = new DownloadFailedEvent
+            {
+                AuthorId = historyItem.AuthorId,
+                BookIds = historyItems.Select(h => h.BookId).Distinct().ToList(),
+                Quality = historyItem.Quality,
+                SourceTitle = historyItem.SourceTitle,
+                DownloadClient = historyItem.Data.GetValueOrDefault(EntityHistory.DOWNLOAD_CLIENT),
+                DownloadId = historyItem.DownloadId,
+                Message = message,
+
+                // Server messages (2026-09-26, plan ruling R5): the template of the warning this failure repeats
+                // (CompletedDownloadService warns, then marks as failed with the same English), so History stores
+                // its key. A download client's own message has none and is matched whole.
+                MessageText = trackedDownload?.StatusMessages?
+                    .Where(s => s.MessageTexts != null)
+                    .SelectMany(s => s.MessageTexts.Where(t => t != null && t.English == message))
+                    .FirstOrDefault(),
+                Data = historyItem.Data,
+                TrackedDownload = trackedDownload,
+                SkipRedownload = skipRedownload,
+                ReleaseSource = releaseSource
+            };
+
+            _eventAggregator.PublishEvent(downloadFailedEvent);
+        }
+    }
+}

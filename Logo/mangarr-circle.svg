@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Mangarr">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a4fd0"/>
+      <stop offset="1" stop-color="#6a35a5"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="256" fill="url(#bg)"/>
+  <!-- three book spines, mirror-symmetric about the vertical axis -->
+  <rect x="106" y="166" width="84" height="180" rx="14" fill="#efe9f9"/>
+  <rect x="120" y="196" width="56" height="20" rx="10" fill="#7a43b6"/>
+  <rect x="214" y="126" width="84" height="260" rx="14" fill="#ffffff"/>
+  <rect x="228" y="158" width="56" height="20" rx="10" fill="#7a43b6"/>
+  <rect x="322" y="166" width="84" height="180" rx="14" fill="#efe9f9"/>
+  <rect x="336" y="196" width="56" height="20" rx="10" fill="#7a43b6"/>
+</svg>

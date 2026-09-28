@@ -1,0 +1,27 @@
+.path {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  flex: 4 0 400px;
+  font-size: 13px;
+  font-family: $monoSpaceFontFamily;
+}
+
+.adopted {
+  composes: label from '~Components/Label.css';
+
+  margin-left: 8px;
+  font-family: $defaultFontFamily;
+}
+
+.size {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 100px;
+}
+
+.quality,
+.dateAdded {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 120px;
+}

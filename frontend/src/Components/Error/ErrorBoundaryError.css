@@ -1,0 +1,57 @@
+.container {
+  text-align: center;
+}
+
+.message {
+  margin: 50px 0;
+  text-align: center;
+  font-weight: 300;
+  font-size: 36px;
+}
+
+.imageContainer {
+  display: flex;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.card {
+  display: inline-block;
+  padding: 40px 60px;
+  border: 2px solid var(--purple);
+  border-radius: 12px;
+  color: var(--purple);
+}
+
+.kaomoji {
+  font-weight: 300;
+  font-size: 96px;
+  line-height: 1;
+}
+
+.caption {
+  margin-top: 16px;
+  color: var(--textColor);
+  font-weight: 300;
+  font-size: 24px;
+}
+
+.details {
+  margin: 20px;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+.version {
+  margin-top: 20px;
+}
+
+@media only screen and (max-width: $breakpointSmall) {
+  .card {
+    padding: 24px 20px;
+  }
+
+  .kaomoji {
+    font-size: 64px;
+  }
+}

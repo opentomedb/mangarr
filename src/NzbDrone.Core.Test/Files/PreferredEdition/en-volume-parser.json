@@ -1,0 +1,82 @@
+[
+  {
+    "Name": "Attack on Titan Vol. 5",
+    "Parsed": true,
+    "Series": "Attack on Titan",
+    "Volume": 5.0,
+    "Single": 5.0,
+    "Token": true
+  },
+  {
+    "Name": "Attack on Titan - Vol 005",
+    "Parsed": true,
+    "Series": "Attack on Titan",
+    "Volume": 5.0,
+    "Single": 5.0,
+    "Token": true
+  },
+  {
+    "Name": "Attack on Titan Tome 5",
+    "Parsed": false,
+    "Series": null,
+    "Volume": 0.0,
+    "Single": 0.0,
+    "Token": false
+  },
+  {
+    "Name": "L'Attaque des Titans T05",
+    "Parsed": false,
+    "Series": null,
+    "Volume": 0.0,
+    "Single": 0.0,
+    "Token": false
+  },
+  {
+    "Name": "Brass Band 2",
+    "Parsed": false,
+    "Series": null,
+    "Volume": 0.0,
+    "Single": 0.0,
+    "Token": false
+  },
+  {
+    "Name": "Angriff der Titanen Bd. 3",
+    "Parsed": false,
+    "Series": null,
+    "Volume": 0.0,
+    "Single": 0.0,
+    "Token": false
+  },
+  {
+    "Name": "Kaiju No. 8 v03.5",
+    "Parsed": true,
+    "Series": "Kaiju No 8",
+    "Volume": 3.5,
+    "Single": 3.5,
+    "Token": true
+  },
+  {
+    "Name": "進撃の巨人 第5巻",
+    "Parsed": true,
+    "Series": "進撃の巨人",
+    "Volume": 5.0,
+    "Single": 5.0,
+    "Token": true
+  },
+  {
+    "Name": "進撃の巨人 5巻",
+    "Parsed": false,
+    "Series": null,
+    "Volume": 0.0,
+    "Single": 0.0,
+    "Token": false
+  },
+  {
+    "Name": "Chainsaw Man - Vol. 13 (2023)",
+    "Parsed": true,
+    "Series": "Chainsaw Man",
+    "Volume": 13.0,
+    "Single": 13.0,
+    "Token": true
+  }
+]

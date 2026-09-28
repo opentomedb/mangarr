@@ -1,0 +1,144 @@
+[
+  {
+    "ForeignAuthorId": "local-kaiju-no-8",
+    "Name": "Kaiju No. 8",
+    "CleanName": "kaijuno8",
+    "AniListId": 108556,
+    "TomeLineId": "rl_kaiju8_en",
+    "EditionLanguage": null,
+    "AnchorName": null,
+    "Aliases": [
+      "Kaiju No. 8 alias"
+    ],
+    "TotalVolumes": 12,
+    "Overview": "About Kaiju No. 8.",
+    "Books": [
+      {
+        "ForeignBookId": "local-kaiju-no-8-v1",
+        "Title": "Kaiju No. 8 Vol. 1",
+        "Subtitle": null,
+        "VolumeNumber": 1.0,
+        "ReleaseDate": "2021-12-21T06:00:00Z",
+        "ReleaseDatePrecision": null,
+        "CleanTitle": "kaijuno8vol1",
+        "Editions": [
+          {
+            "ForeignEditionId": "local-kaiju-no-8-v1-ed",
+            "Title": "Kaiju No. 8 Vol. 1",
+            "Language": "eng",
+            "Isbn13": "9781974725984",
+            "Format": "Paperback",
+            "MediaType": 0,
+            "Monitored": true,
+            "PageCount": 200,
+            "Overview": "Volume one."
+          }
+        ]
+      },
+      {
+        "ForeignBookId": "local-kaiju-no-8-v2",
+        "Title": "Kaiju No. 8 Vol. 2",
+        "Subtitle": null,
+        "VolumeNumber": 2.0,
+        "ReleaseDate": null,
+        "ReleaseDatePrecision": null,
+        "CleanTitle": "kaijuno8vol2",
+        "Editions": [
+          {
+            "ForeignEditionId": "local-kaiju-no-8-v2-ed",
+            "Title": "Kaiju No. 8 Vol. 2",
+            "Language": "eng",
+            "Isbn13": null,
+            "Format": "Paperback",
+            "MediaType": 0,
+            "Monitored": true,
+            "PageCount": 0,
+            "Overview": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ForeignAuthorId": "local-sword-art-online~ln",
+    "Name": "Sword Art Online",
+    "CleanName": "swordartonline~ln",
+    "AniListId": 86302,
+    "TomeLineId": "rl_sao_en",
+    "EditionLanguage": null,
+    "AnchorName": null,
+    "Aliases": [
+      "Sword Art Online alias"
+    ],
+    "TotalVolumes": 12,
+    "Overview": "About Sword Art Online.",
+    "Books": [
+      {
+        "ForeignBookId": "local-sword-art-online~ln-v1",
+        "Title": "Sword Art Online Vol. 1",
+        "Subtitle": "Aincrad",
+        "VolumeNumber": 1.0,
+        "ReleaseDate": "2021-12-21T06:00:00Z",
+        "ReleaseDatePrecision": null,
+        "CleanTitle": "swordartonlinevol1",
+        "Editions": [
+          {
+            "ForeignEditionId": "local-sword-art-online~ln-v1-ed",
+            "Title": "Sword Art Online Vol. 1",
+            "Language": "eng",
+            "Isbn13": "9781974725984",
+            "Format": "ebook",
+            "MediaType": 1,
+            "Monitored": true,
+            "PageCount": 200,
+            "Overview": "Volume one."
+          },
+          {
+            "ForeignEditionId": "local-sword-art-online~ln-v1-audio-ed",
+            "Title": "Sword Art Online Vol. 1",
+            "Language": "eng",
+            "Isbn13": "9781974725984",
+            "Format": "Audiobook",
+            "MediaType": 2,
+            "Monitored": true,
+            "PageCount": 200,
+            "Overview": "Volume one."
+          }
+        ]
+      },
+      {
+        "ForeignBookId": "local-sword-art-online~ln-v2",
+        "Title": "Sword Art Online Vol. 2",
+        "Subtitle": null,
+        "VolumeNumber": 2.0,
+        "ReleaseDate": null,
+        "ReleaseDatePrecision": null,
+        "CleanTitle": "swordartonlinevol2",
+        "Editions": [
+          {
+            "ForeignEditionId": "local-sword-art-online~ln-v2-ed",
+            "Title": "Sword Art Online Vol. 2",
+            "Language": "eng",
+            "Isbn13": null,
+            "Format": "ebook",
+            "MediaType": 1,
+            "Monitored": true,
+            "PageCount": 0,
+            "Overview": ""
+          },
+          {
+            "ForeignEditionId": "local-sword-art-online~ln-v2-audio-ed",
+            "Title": "Sword Art Online Vol. 2",
+            "Language": "eng",
+            "Isbn13": null,
+            "Format": "Audiobook",
+            "MediaType": 2,
+            "Monitored": true,
+            "PageCount": 0,
+            "Overview": ""
+          }
+        ]
+      }
+    ]
+  }
+]

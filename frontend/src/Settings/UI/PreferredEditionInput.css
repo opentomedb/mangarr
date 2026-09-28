@@ -1,0 +1,48 @@
+/* Preferred Edition (2026-09-24): the wrapper grows like FormInputGroup's container, so the list and
+   its help text take the input column on desktop and the full width once FormGroup stacks. */
+.container {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  max-width: 420px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  min-height: 35px;
+}
+
+.name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lines {
+  color: var(--helpTextColor);
+  white-space: nowrap;
+}
+
+/* IconButton is 22px wide; the input height (35px) keeps the move/remove targets usable by touch. */
+.button {
+  composes: button from '~Components/Link/IconButton.css';
+
+  flex: 0 0 auto;
+  margin: 0;
+  width: 35px;
+  height: 35px;
+  line-height: 35px;
+}
+
+.otherSeries {
+  margin-top: 5px;
+}

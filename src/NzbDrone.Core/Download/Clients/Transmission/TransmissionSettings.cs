@@ -1,0 +1,76 @@
+using System.Text.RegularExpressions;
+using FluentValidation;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Annotations;
+using NzbDrone.Core.ThingiProvider;
+using NzbDrone.Core.Validation;
+
+namespace NzbDrone.Core.Download.Clients.Transmission
+{
+    public class TransmissionSettingsValidator : AbstractValidator<TransmissionSettings>
+    {
+        public TransmissionSettingsValidator()
+        {
+            RuleFor(c => c.Host).ValidHost();
+            RuleFor(c => c.Port).InclusiveBetween(1, 65535);
+
+            RuleFor(c => c.UrlBase).ValidUrlBase();
+
+            RuleFor(c => c.MusicCategory).Matches(@"^\.?[-a-z]*$", RegexOptions.IgnoreCase).WithMessage("Allowed characters a-z and -");
+
+            RuleFor(c => c.MusicCategory).Empty()
+                .When(c => c.TvDirectory.IsNotNullOrWhiteSpace())
+                .WithMessage("Cannot use Category and Directory");
+        }
+    }
+
+    public class TransmissionSettings : IProviderConfig
+    {
+        private static readonly TransmissionSettingsValidator Validator = new TransmissionSettingsValidator();
+
+        public TransmissionSettings()
+        {
+            Host = "localhost";
+            Port = 9091;
+            UrlBase = "/transmission/";
+        }
+
+        [FieldDefinition(0, Label = "Host", Type = FieldType.Textbox)]
+        public string Host { get; set; }
+
+        [FieldDefinition(1, Label = "Port", Type = FieldType.Textbox)]
+        public int Port { get; set; }
+
+        [FieldDefinition(2, Label = "UseSSL", Type = FieldType.Checkbox, HelpText = "TransmissionUseSslHelpText")]
+        public bool UseSsl { get; set; }
+
+        [FieldDefinition(3, Label = "DelugeUrlBase", Type = FieldType.Textbox, Advanced = true, HelpText = "TransmissionUrlBaseHelpText")]
+        public string UrlBase { get; set; }
+
+        [FieldDefinition(4, Label = "Username", Type = FieldType.Textbox, Privacy = PrivacyLevel.UserName)]
+        public string Username { get; set; }
+
+        [FieldDefinition(5, Label = "Password", Type = FieldType.Password, Privacy = PrivacyLevel.Password)]
+        public string Password { get; set; }
+
+        [FieldDefinition(6, Label = "Category", Type = FieldType.Textbox, HelpText = "TransmissionMusicCategoryHelpText")]
+        public string MusicCategory { get; set; }
+
+        [FieldDefinition(7, Label = "Directory", Type = FieldType.Textbox, Advanced = true, HelpText = "TransmissionTvDirectoryHelpText")]
+        public string TvDirectory { get; set; }
+
+        [FieldDefinition(8, Label = "RecentPriority", Type = FieldType.Select, SelectOptions = typeof(TransmissionPriority), HelpText = "NzbVortexRecentTvPriorityHelpText")]
+        public int RecentTvPriority { get; set; }
+
+        [FieldDefinition(9, Label = "OlderPriority", Type = FieldType.Select, SelectOptions = typeof(TransmissionPriority), HelpText = "NzbVortexOlderTvPriorityHelpText")]
+        public int OlderTvPriority { get; set; }
+
+        [FieldDefinition(10, Label = "AddPaused", Type = FieldType.Checkbox)]
+        public bool AddPaused { get; set; }
+
+        public NzbDroneValidationResult Validate()
+        {
+            return new NzbDroneValidationResult(Validator.Validate(this));
+        }
+    }
+}

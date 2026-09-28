@@ -1,0 +1,79 @@
+.collection {
+  margin-bottom: 30px;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--borderColor);
+  gap: 12px;
+}
+
+.name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 300;
+}
+
+.counts {
+  color: var(--dimColor);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  margin-left: auto;
+  gap: 8px;
+}
+
+.members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.card {
+  width: 140px;
+  text-align: center;
+}
+
+.posterLink {
+  display: block;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: 0 0 6px 1px var(--cardShadowColor);
+}
+
+.poster {
+  width: 140px;
+  height: 210px;
+  background-color: var(--defaultColor);
+}
+
+.missing .poster {
+  opacity: 0.6;
+}
+
+.root .posterLink {
+  outline: 2px solid var(--themeDarkColor);
+}
+
+.title {
+  overflow: hidden;
+  margin-top: 6px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.sub {
+  color: var(--dimColor);
+  font-size: 12px;
+}
+
+.addButton {
+  margin-top: 6px;
+}

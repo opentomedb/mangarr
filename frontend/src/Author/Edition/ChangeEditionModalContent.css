@@ -1,0 +1,32 @@
+.previews {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 15px;
+}
+
+.row,
+.blockedRow {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 3fr 1fr;
+  gap: 8px;
+}
+
+.blockedRow {
+  color: var(--dangerColor);
+}
+
+.series {
+  overflow-wrap: anywhere;
+}
+
+@media only screen and (max-width: $breakpointSmall) {
+  .previews {
+    gap: 12px;
+  }
+
+  .row,
+  .blockedRow {
+    grid-template-columns: 1fr;
+  }
+}

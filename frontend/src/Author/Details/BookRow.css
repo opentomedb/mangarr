@@ -1,0 +1,61 @@
+.title {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+}
+
+/* The table's cells do not wrap below $breakpointMedium; on a phone the title does, so a long
+   light-novel subtitle cannot push the status and search buttons off screen. */
+
+@media only screen and (max-width: $breakpointSmall) {
+  .title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+.monitored {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 42px;
+}
+
+.position,
+.rating,
+.status {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 100px;
+}
+
+.releaseDate {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 120px;
+}
+
+.pageCount {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 80px;
+}
+
+.indexerFlags {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 50px;
+}
+
+/* Matches the BookSearchCell (actions) width so PlaceholderBookRow's empty actions cell keeps
+   the fixed-column layout aligned with the real rows. */
+.actions {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 100px;
+}
+
+/* Upcoming (future-dated) volumes recede so they don't read like a grabbable "Missing" row.
+   Composes the base TableRow class because TableRow's className prop REPLACES its default. */
+.unreleased {
+  composes: row from '~Components/Table/TableRow.css';
+
+  opacity: 0.55;
+}

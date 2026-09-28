@@ -1,0 +1,5 @@
+.subtitle {
+  margin-left: 6px;
+  color: var(--helpTextColor);
+  font-size: $smallFontSize;
+}

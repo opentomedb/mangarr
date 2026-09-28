@@ -1,0 +1,126 @@
+{
+  "exceptions": {
+    "^(Writer|ByWriter|PinWriter\\w*)$": "the real writer of a series: auteur / Autor / 著者 is right here",
+    "^Bookshelf$": "a Goodreads shelf: Bücherregal is right",
+    "^(Bookshelves|AddToBookshelves|RemoveFromBookshelves|Bookshelf\\w+)$": "Goodreads shelves, as Bookshelf: Bücherregale is right",
+    "^Goodreads": "the Goodreads provider speaks of books and shelves",
+    "^GoogleBooks": "a product name",
+    "^(ConvertLightNovelFormatConfirm|PreferredLightNovelFormatHelpText|ServerProgressLightNovelsConverted|ServerProgressLightNovelsConvertedSkipped)$": "calibre's own unit is the book",
+    "^(NamingTokensNote|ServerValidationValidStandardTrackFormat)$": "names the Readarr tokens {Author ...}/{Book ...} verbatim",
+    "^(CopyUsingHardlinksHelpText|RemotePathMappingCheckDockerFolderMissing|CalibreRootFolderCheckDockerFolderMissing)$": "volume here is a disk or container volume, not a book volume",
+    "^ServerTestGoodreads": "the Goodreads provider speaks of books and shelves",
+    "^ServerTestIndexerQueryUnsupported$": "the indexer's own TV search types (seasons/episodes), as the English names them",
+    "^ServerTestPlexMusicLibraryRequired$": "Plex's own library type (Music), not Mangarr media",
+    "^ServerTestCalibre(NotContentServer|WebNotContentServer|WriteAccessRequired)$": "the manual.calibre-ebook.com link, not the word ebook"
+  },
+  "fr": {
+    "terms": [
+      {"name": "series", "en": "\\bseries\\b", "target": "séries?"},
+      {"name": "volume", "en": "\\bvolumes?\\b", "target": "tomes?"},
+      {"name": "light-novel", "en": "\\blight[ -]novels?\\b", "target": "light novels?"},
+      {"name": "manga", "en": "\\bmangas?\\b", "target": "mangas?"},
+      {"name": "edition", "en": "\\beditions?\\b", "target": "éditions?"},
+      {"name": "ebook", "en": "\\bebooks?\\b", "target": "livres? numériques?"},
+      {"name": "audiobook", "en": "\\baudiobooks?\\b", "target": "livres? audio"},
+      {"name": "writer", "en": "\\bwriters?\\b", "target": "auteurs?"},
+      {"name": "monitored", "en": "\\b(Monitored|Unmonitored)\\b", "case": true, "target": "surveill"},
+      {"name": "missing", "en": "\\bMissing\\b", "case": true, "target": "manquant"},
+      {"name": "cutoff-unmet", "en": "\\bCutoff Unmet\\b", "case": true, "target": "seuil non atteint"}
+    ],
+    "exact": {
+      "Writer": "Auteur",
+      "Monitored": "Surveillé",
+      "Unmonitored": "Non surveillé",
+      "Missing": "Manquant",
+      "Wanted": "Recherché",
+      "CutoffUnmet": "Seuil non atteint",
+      "Edition": "Édition"
+    },
+    "forbidden": [
+      "\\blivres?\\b(?! (audio|numériques?))",
+      "\\bauteurs?\\b",
+      "\\bartistes?\\b",
+      "\\balbums?\\b",
+      "\\bfilms?\\b",
+      "\\bépisodes?\\b",
+      "\\bmusique\\b",
+      "\\bvidéos?\\b"
+    ]
+  },
+  "de": {
+    "terms": [
+      {"name": "series", "en": "\\bseries\\b", "target": "serie"},
+      {"name": "volume", "en": "\\bvolumes?\\b", "target": "b[aä]nd"},
+      {"name": "light-novel", "en": "\\blight[ -]novels?\\b", "target": "light novels?"},
+      {"name": "manga", "en": "\\bmangas?\\b", "target": "manga"},
+      {"name": "edition", "en": "\\beditions?\\b", "target": "ausgabe"},
+      {"name": "ebook", "en": "\\bebooks?\\b", "target": "e-books?"},
+      {"name": "audiobook", "en": "\\baudiobooks?\\b", "target": "hörb[uü]ch"},
+      {"name": "writer", "en": "\\bwriters?\\b", "target": "autor"},
+      {"name": "monitored", "en": "\\b(Monitored|Unmonitored)\\b", "case": true, "target": "überwach"},
+      {"name": "missing", "en": "\\bMissing\\b", "case": true, "target": "fehlend"},
+      {"name": "cutoff-unmet", "en": "\\bCutoff Unmet\\b", "case": true, "target": "schwelle nicht erreicht"}
+    ],
+    "exact": {
+      "Writer": "Autor",
+      "Monitored": "Überwacht",
+      "Unmonitored": "Nicht überwacht",
+      "Missing": "Fehlend",
+      "Wanted": "Gesucht",
+      "CutoffUnmet": "Schwelle nicht erreicht",
+      "Edition": "Ausgabe"
+    },
+    "forbidden": [
+      "(?<!hör)b[uü]ch",
+      "autor(?!isier)",
+      "film",
+      "künstler",
+      "\\balbum",
+      "\\balben\\b",
+      "episode",
+      "video"
+    ]
+  },
+  "ja": {
+    "terms": [
+      {"name": "series", "en": "\\bseries\\b", "target": "シリーズ"},
+      {"name": "volume", "en": "\\bvolumes?\\b", "target": "巻"},
+      {"name": "light-novel", "en": "\\blight[ -]novels?\\b", "target": "ライトノベル"},
+      {"name": "manga", "en": "\\bmangas?\\b", "target": "マンガ"},
+      {"name": "edition", "en": "\\beditions?\\b", "target": "版|エディション"},
+      {"name": "ebook", "en": "\\bebooks?\\b", "target": "電子書籍"},
+      {"name": "audiobook", "en": "\\baudiobooks?\\b", "target": "オーディオブック"},
+      {"name": "writer", "en": "\\bwriters?\\b", "target": "著者"},
+      {"name": "monitored", "en": "\\b(Monitored|Unmonitored)\\b", "case": true, "target": "監視"},
+      {"name": "missing", "en": "\\bMissing\\b", "case": true, "target": "欠落"},
+      {"name": "cutoff-unmet", "en": "\\bCutoff Unmet\\b", "case": true, "target": "カットオフ未達"}
+    ],
+    "exact": {
+      "Writer": "著者",
+      "Monitored": "監視中",
+      "Unmonitored": "未監視",
+      "Missing": "欠落",
+      "Wanted": "ウォンテッド",
+      "CutoffUnmet": "カットオフ未達",
+      "Edition": "エディション",
+      "Yes": "はい",
+      "No": "いいえ",
+      "Path": "パス",
+      "History": "履歴",
+      "Search": "検索",
+      "Title": "タイトル",
+      "Overview": "概要"
+    },
+    "forbidden": [
+      "映画",
+      "ムービー",
+      "著者",
+      "作者",
+      "アーティスト",
+      "アルバム",
+      "エピソード",
+      "(?<!オーディオ)ブック(?!マーク)",
+      "動画"
+    ]
+  }
+}

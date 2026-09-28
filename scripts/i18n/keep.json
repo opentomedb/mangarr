@@ -1,0 +1,143 @@
+{
+  "frontend/src/Components/Page/ErrorPage.js": [
+    { "text": "*", "why": "shows when the translations failed to load" }
+  ],
+  "frontend/src/Components/Loading/LoadingMessage.js": [
+    { "text": "*", "why": "renders while the page and the translations load (spec §1)" }
+  ],
+  "frontend/src/Helpers/Props/calibreProfiles.js": [
+    { "text": "*", "why": "calibre's own option text" }
+  ],
+  "frontend/src/Store/Actions/appActions.js": [
+    { "text": "Failed to load translations from API", "why": "shows when the translations failed to load" }
+  ],
+  "frontend/src/Utilities/Book/mediaTypes.js": [
+    { "text": "Unknown Audio", "why": "quality or format name, compared in logic" },
+    { "text": "Ebook PDF", "why": "quality or format name, compared in logic" }
+  ],
+  "frontend/src/Diag/ConsoleApi.js": [
+    { "text": "Invalid resource", "why": "developer error" }
+  ],
+  "frontend/src/Author/Details/AuthorDetailsHeader.js": [
+    { "text": "AniList", "why": "brand, URL or code" },
+    { "text": "EbookQualityProfileNamed", "why": "a translate() key held as data" },
+    { "text": "QualityProfileNamed", "why": "a translate() key held as data" }
+  ],
+  "frontend/src/Author/Editor/Delete/DeleteAuthorModalContent.js": [
+    { "text": "DeleteSelectedSeriesWithFilesMessageText", "why": "a translate() key held as data" },
+    { "text": "DeleteSelectedSeriesMessageText", "why": "a translate() key held as data" }
+  ],
+  "frontend/src/Book/BookSearchCell.js": [
+    { "text": "SearchVolumeTooltip", "why": "a translate() key held as data" }
+  ],
+  "frontend/src/Book/Details/BookDetailsHeader.js": [
+    { "text": "Audible", "why": "brand, URL or code" }
+  ],
+  "frontend/src/Book/Edit/EditBookModalContent.js": [
+    { "text": "EbookEdition", "why": "a translate() key held as data" },
+    { "text": "AudiobookEdition", "why": "a translate() key held as data" }
+  ],
+  "frontend/src/Book/Editor/Delete/DeleteBookModalContent.js": [
+    { "text": "DeleteSelectedVolumesWithFilesMessageText", "why": "a translate() key held as data" },
+    { "text": "DeleteSelectedVolumesMessageText", "why": "a translate() key held as data" }
+  ],
+  "frontend/src/Book/MetadataPin/MetadataPinModal.js": [
+    { "text": "Reki Kawahara", "why": "example writer name in a placeholder, a proper name in every language" }
+  ],
+  "frontend/src/Store/Actions/blocklistActions.js": [
+    { "text": "authorMetadata.sortName", "why": "compared in logic (a column name: the API sort key)" }
+  ],
+  "frontend/src/Store/Actions/historyActions.js": [
+    { "text": "authorMetadata.sortName", "why": "compared in logic (a column name: the API sort key)" },
+    { "text": "books.title", "why": "compared in logic (a column name: the API sort key)" }
+  ],
+  "frontend/src/Store/Actions/queueActions.js": [
+    { "text": "authorMetadata.sortName", "why": "compared in logic (a column name: the API sort key)" },
+    { "text": "books.title", "why": "compared in logic (a column name: the API sort key)" },
+    { "text": "books.releaseDate", "why": "compared in logic (a column name: the API sort key)" }
+  ],
+  "frontend/src/Store/Actions/wantedActions.js": [
+    { "text": "authorMetadata.sortName", "why": "compared in logic (a column name: the API sort key)" },
+    { "text": "books.title", "why": "compared in logic (a column name: the API sort key)" },
+    { "text": "books.lastSearchTime", "why": "compared in logic (a column name: the API sort key)" },
+    { "text": "authorMetadata.sortName", "why": "compared in logic (a column name: the API sort key)" },
+    { "text": "books.title", "why": "compared in logic (a column name: the API sort key)" },
+    { "text": "books.lastSearchTime", "why": "compared in logic (a column name: the API sort key)" }
+  ],
+  "frontend/src/System/Logs/Files/LogFiles.js": [
+    { "text": "Log Files", "why": "compared in logic (currentLogView)" }
+  ],
+  "frontend/src/System/Logs/Files/LogFilesConnector.js": [
+    { "text": "Log Files", "why": "compared in logic (currentLogView)" }
+  ],
+  "frontend/src/System/Logs/Updates/UpdateLogFilesConnector.js": [
+    { "text": "Updater Log Files", "why": "compared in logic (currentLogView)" }
+  ],
+  "frontend/src/System/Logs/LogsNavMenu.js": [
+    { "text": "Log Files", "why": "compared in logic (currentLogView)" }
+  ],
+  "frontend/src/System/Status/MoreInfo/MoreInfo.js": [
+    { "text": "github.com/DrAwesome441/mangarr", "why": "brand, URL or code" },
+    { "text": "github.com/DrAwesome441/mangarr", "why": "brand, URL or code" },
+    { "text": "github.com/DrAwesome441/mangarr/issues", "why": "brand, URL or code" }
+  ],
+  "frontend/src/System/Tasks/Scheduled/ScheduledTaskRowConnector.js": [
+    { "text": "EmbedMetadata", "why": "a translate() key held as data" },
+    { "text": "EmbedMetadataConfirm", "why": "a translate() key held as data" }
+  ],
+  "frontend/src/InteractiveImport/InteractiveImportModal.js": [
+    { "text": "Manual Import", "why": "never rendered: a defaultProps modalTitle that no component reads" }
+  ],
+  "frontend/src/Retag/RetagPreviewRow.js": [
+    { "text": "Image Size", "why": "compared in logic (the backend's retag field name)" }
+  ],
+  "frontend/src/Search/Author/AddNewAuthorModalContentConnector.js": [
+    { "text": "Light Novel EPUB", "why": "compared in logic (a quality profile name the app creates)" },
+    { "text": "Light Novel Audio", "why": "compared in logic (a quality profile name the app creates)" }
+  ],
+  "frontend/src/Search/Author/AddNewAuthorSearchResult.js": [
+    { "text": "AniList", "why": "brand, URL or code" }
+  ],
+  "frontend/src/Search/Import/libraryImportDefaults.js": [
+    { "text": "Light Novel EPUB", "why": "compared in logic (a quality profile name the app creates)" },
+    { "text": "Light Novel Audio", "why": "compared in logic (a quality profile name the app creates)" }
+  ],
+  "frontend/src/Store/Actions/interactiveImportActions.js": [
+    { "text": "`downloadId` or `folder` is required.", "why": "developer error" }
+  ],
+  "frontend/src/Settings/General/ProxySettings.js": [
+    { "text": "HTTP(S)", "why": "brand, URL or code (a proxy protocol name)" },
+    { "text": "Socks4", "why": "brand, URL or code (a proxy protocol name)" }
+  ],
+  "frontend/src/Settings/MediaManagement/Naming/NamingModal.js": [
+    { "text": "Series Name - Volume Title - CBZ Proper", "why": "naming-token example of an English file name" },
+    { "text": "Series Name - Volume Title (2)", "why": "naming-token example of an English file name" },
+    { "text": "Series Name - Volume Title (2/10)", "why": "naming-token example of an English file name" },
+    { "text": "Series' Name", "why": "naming-token example of an English file name" },
+    { "text": "Series' Name, The", "why": "naming-token example of an English file name" },
+    { "text": "Series Name", "why": "naming-token example of an English file name" },
+    { "text": "The Volume's Title!: Subtitle!", "why": "naming-token example of an English file name" },
+    { "text": "Volume's Title!, The: Subtitle!", "why": "naming-token example of an English file name" },
+    { "text": "The Volumes Title!: Subtitle", "why": "naming-token example of an English file name" },
+    { "text": "The Volume's Title!", "why": "naming-token example of an English file name" },
+    { "text": "Volume's Title!, The", "why": "naming-token example of an English file name" },
+    { "text": "The Volumes Title!", "why": "naming-token example of an English file name" },
+    { "text": "Series Title", "why": "naming-token example of an English file name" },
+    { "text": "Series Title #1", "why": "naming-token example of an English file name" },
+    { "text": "Rls Grp", "why": "naming-token example of an English file name" }
+  ],
+  "frontend/src/Settings/MetadataSource/MetadataSource.js": [
+    { "text": "Grand Comics Database", "why": "brand, URL or code (the source's proper name)" }
+  ],
+  "frontend/src/Settings/UI/UISettings.js": [
+    { "text": "Tue 3/25", "why": "date format sample (moment stays English in v1)" },
+    { "text": "Tue 03/25", "why": "date format sample (moment stays English in v1)" },
+    { "text": "Tue 25/3", "why": "date format sample (moment stays English in v1)" },
+    { "text": "Tue 25/03", "why": "date format sample (moment stays English in v1)" },
+    { "text": "Mar 25 2014", "why": "date format sample (moment stays English in v1)" },
+    { "text": "25 Mar 2014", "why": "date format sample (moment stays English in v1)" },
+    { "text": "Tuesday, March 25, 2014", "why": "date format sample (moment stays English in v1)" },
+    { "text": "Tuesday, 25 March, 2014", "why": "date format sample (moment stays English in v1)" },
+    { "text": "5pm/5:30pm", "why": "date format sample (moment stays English in v1)" }
+  ]
+}

@@ -1,0 +1,33 @@
+# Mangarr: example Docker Compose file.
+# Copy it to docker-compose.yml, change the host paths on the left of each volume, then run
+#   docker compose up -d
+# and open http://<your-server>:8787. The README's "First steps" walks through the setup.
+services:
+  mangarr:
+    image: ghcr.io/drawesome441/mangarr:beta
+    container_name: mangarr
+    environment:
+      # The user and group Mangarr runs as. Use the owner of your media and download folders
+      # (`id` on the host shows yours; 1000/1000 on most Linux hosts). The image's own default is
+      # 99/100, Unraid's nobody:users, so on Unraid you can drop these two lines.
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      # Your time zone (a tz database name).
+      - TZ=America/Chicago
+      # Optional: a Google Books API key raises the lookup quota (README: "Google Books key").
+      # The key in Settings -> Metadata Source wins over this variable when both are set.
+      # - GOOGLE_BOOKS_API_KEY=your-key-here
+    volumes:
+      # Settings, database, logs, backups and the downloaded catalogue.
+      - ./config:/config
+      # One root folder per library (Settings -> Media Management -> Root Folders).
+      - /path/to/manga:/data/manga
+      - /path/to/lightnovels:/data/lightnovels
+      # The download client's download folder, mounted at the same path the download client
+      # uses inside its own container (otherwise add a Remote Path Mapping).
+      - /path/to/downloads:/downloads
+    ports:
+      # Web UI. If Readarr already uses 8787 on this host, change the left side, e.g. "8788:8787".
+      - "8787:8787"
+    restart: unless-stopped

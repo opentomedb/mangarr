@@ -1,0 +1,44 @@
+{
+  "Display": [
+    "Sword Art Online: Aincrad (Vol. 1)",
+    "Rascal Does Not Dream of Petite Devil Kohai (Vol. 2)",
+    "Overlord (Vol. 3.5)",
+    "Tokyo Ghoul: Days (Vol. 1)",
+    "Overlord: Tome 4 (Vol. 4)"
+  ],
+  "Sort": [
+    "Sword Art Online 0011.5",
+    "Overlord 0003"
+  ],
+  "Junk": [
+    {
+      "Candidate": "Tome 3",
+      "Junk": false
+    },
+    {
+      "Candidate": "Band 2",
+      "Junk": false
+    },
+    {
+      "Candidate": "Vol. 1",
+      "Junk": true
+    },
+    {
+      "Candidate": "Aincrad",
+      "Junk": false
+    },
+    {
+      "Candidate": "Light Novel, Vol. 5",
+      "Junk": true
+    },
+    {
+      "Candidate": "第3巻",
+      "Junk": false
+    },
+    {
+      "Candidate": "Roman",
+      "Junk": false
+    }
+  ],
+  "FullTitle": true
+}

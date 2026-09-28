@@ -1,0 +1,66 @@
+name: Bug report
+description: Something in Mangarr doesn't work the way it should.
+labels: ['bug']
+body:
+- type: markdown
+  attributes:
+    value: |
+      Thanks for testing Mangarr. Please search the [existing issues](https://github.com/DrAwesome441/mangarr/issues?q=is%3Aissue) first.
+      A wrong date, volume count, ISBN or title for one series is usually a **catalogue** problem, not a Mangarr bug: use **Suggest a Correction** on the series page instead.
+- type: input
+  attributes:
+    label: Mangarr version
+    description: System → Status → Version (for example 10.0.0.798).
+  validations:
+    required: true
+- type: dropdown
+  attributes:
+    label: How do you run it?
+    options:
+      - Docker Compose
+      - docker run
+      - Unraid
+      - Other (say which below)
+  validations:
+    required: true
+- type: dropdown
+  attributes:
+    label: Which library?
+    options:
+      - Manga
+      - Light novels (ebook)
+      - Light novels (audiobook)
+      - Both / not library-specific
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: What happened?
+    description: What you saw, and what you expected instead.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Steps to reproduce
+    placeholder: |
+      1. Add the series "..." to the manga library
+      2. Run an Interactive Search on Vol. 3
+      3. See ...
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Trace log
+    description: |
+      1. Settings → General → Logging → Log Level: **Trace**, then Save.
+      2. Reproduce the problem.
+      3. System → Log Files, open `mangarr.trace.txt` (or copy it from `/config/logs/`) and attach the lines around the problem. Drag the file into this box to attach it.
+      4. Set the Log Level back to Info.
+
+      **Read the log before you attach it.** It contains your series names, folder paths and indexer names. API keys and passwords are masked, but check anyway.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Anything else?
+    description: Screenshots, your indexer or download client, a reverse proxy, the browser (for UI problems).

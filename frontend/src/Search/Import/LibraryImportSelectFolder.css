@@ -1,0 +1,34 @@
+.helpText {
+  margin-bottom: 10px;
+  color: var(--helpTextColor);
+}
+
+.row {
+  composes: row from '~Components/Table/TableRowButton.css';
+}
+
+/* The tab's own root folder (the one its Add defaults use) reads as preselected. */
+.suggestedRow {
+  composes: row;
+
+  background-color: var(--tableRowHoverBackgroundColor);
+  font-weight: bold;
+}
+
+.path {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+}
+
+.freeSpace,
+.unmappedFolders {
+  composes: cell from '~Components/Table/Cells/TableRowCell.css';
+
+  width: 150px;
+}
+
+.message {
+  margin-top: 40px;
+  text-align: center;
+  font-weight: 300;
+  font-size: $largeFontSize;
+}

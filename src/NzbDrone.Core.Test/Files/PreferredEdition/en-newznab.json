@@ -1,0 +1,11 @@
+[
+  [
+    "t=search&cat=7030&extended=1&apikey=abcd&offset=0&limit=100&q=Kaiju%20No%208%20v05",
+    "t=search&cat=7030&extended=1&apikey=abcd&offset=0&limit=100&q=Kaiju%20No%208%20v5"
+  ],
+  [
+    "t=search&cat=7030&extended=1&apikey=abcd&offset=0&limit=100&q=Kaiju%20No%208%2005",
+    "t=search&cat=7030&extended=1&apikey=abcd&offset=0&limit=100&q=Kaijuu%208%20gou%20v05",
+    "t=search&cat=7030&extended=1&apikey=abcd&offset=0&limit=100&q=Monster%208%20v05"
+  ]
+]

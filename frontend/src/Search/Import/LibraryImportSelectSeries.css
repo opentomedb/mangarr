@@ -1,0 +1,67 @@
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  width: 100%;
+  min-height: 35px;
+  border: 1px solid var(--inputBorderColor);
+  border-radius: 4px;
+  background-color: var(--inputBackgroundColor);
+  gap: 8px;
+}
+
+.caret {
+  flex: 0 0 auto;
+}
+
+.year {
+  color: var(--helpTextColor);
+}
+
+.noMatch {
+  color: var(--dangerColor);
+}
+
+.existing {
+  color: var(--warningColor);
+  font-size: $smallFontSize;
+}
+
+.loading {
+  margin: 0;
+  text-align: left;
+}
+
+.searchInput {
+  composes: input from '~Components/Form/TextInput.css';
+
+  margin-bottom: 15px;
+}
+
+.message {
+  margin-top: 20px;
+  text-align: center;
+  font-weight: 300;
+  font-size: $largeFontSize;
+}
+
+.result {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 10px;
+  width: 100%;
+  border-top: 1px solid var(--borderColor);
+  gap: 10px;
+
+  &:hover {
+    background-color: var(--tableRowHoverBackgroundColor);
+  }
+}
+
+.currentResult {
+  composes: result;
+
+  font-weight: bold;
+}

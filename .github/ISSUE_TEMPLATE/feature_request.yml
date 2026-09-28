@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest something Mangarr should do.
+labels: ['enhancement']
+body:
+- type: markdown
+  attributes:
+    value: |
+      Please search the [existing issues](https://github.com/DrAwesome441/mangarr/issues?q=is%3Aissue) first. Missing series or volumes in the catalogue belong on OpenTome, not here (see the links on the previous page).
+- type: textarea
+  attributes:
+    label: What problem would this solve?
+    description: What you are trying to do, and what gets in the way today.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: What would you like to happen?
+  validations:
+    required: true
+- type: dropdown
+  attributes:
+    label: Which library?
+    options:
+      - Manga
+      - Light novels
+      - Both / not library-specific
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Anything else?
+    description: How Sonarr, Radarr or Readarr handle it, mockups, links.
