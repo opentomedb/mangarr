@@ -84,6 +84,15 @@
   pointer-events: all;
 }
 
+/* Line safety (2026-09-28): the catalogue line's count, publisher and "Spin-off of" -- one short line. */
+.lineFacts {
+  overflow: hidden;
+  margin-bottom: 10px;
+  color: var(--helpTextColor);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .overview {
   overflow: hidden;
   margin-top: 20px;

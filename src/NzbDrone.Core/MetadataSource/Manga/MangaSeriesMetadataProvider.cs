@@ -59,6 +59,10 @@ namespace NzbDrone.Core.MetadataSource.Manga
         // Preferred Edition (2026-09-24): the languages the line's work has a line in -- the Add form's
         // Edition picker and Edit Series. Empty without a tome id (older artifact / never bound).
         List<EditionOption> EditionOptions(string tomeLineId, LibraryType library);
+
+        // Line safety (2026-09-28): the bound line's count, publisher and "Spin-off of" name for an Add
+        // result. Null without a tome id or an artifact. Local catalogue reads only.
+        CatalogueLineFacts CatalogueLine(string tomeLineId, LibraryType library);
     }
 
     public class MangaSeriesMetadataProvider : IMangaSeriesMetadataProvider
@@ -2012,6 +2016,18 @@ namespace NzbDrone.Core.MetadataSource.Manga
             }
 
             return _editionResolver.Options(_gcdMetadataService.FindSeriesByTomeId(tomeLineId), library) ?? new List<EditionOption>();
+        }
+
+        public CatalogueLineFacts CatalogueLine(string tomeLineId, LibraryType library)
+        {
+            if (tomeLineId.IsNullOrWhiteSpace() || !_gcdMetadataService.Available)
+            {
+                return null;
+            }
+
+            var line = _gcdMetadataService.FindSeriesByTomeId(tomeLineId);
+
+            return line == null ? null : WorkLines.Facts(line, WorkLines.Of(_gcdMetadataService, line), library);
         }
 
         private class ProviderLookup

@@ -85,6 +85,7 @@ class AddNewAuthorSearchResult extends Component {
       aniListId,
       editionLanguage,
       editionOptions,
+      catalogueLine,
       isExistingAuthor,
       isSmallScreen
     } = this.props;
@@ -98,6 +99,15 @@ class AddNewAuthorSearchResult extends Component {
     const endedString = translate('StatusEndedEnded');
 
     const height = calculateHeight(230, isSmallScreen);
+
+    // Line safety (2026-09-28): one short line under the title for a catalogue-backed result.
+    const lineFacts = catalogueLine ?
+      [
+        catalogueLine.volumeCount ? translate('CountVolumes', { count: catalogueLine.volumeCount }) : null,
+        catalogueLine.publisher || null,
+        catalogueLine.spinOffOf ? translate('SpinOffOf', { name: catalogueLine.spinOffOf }) : null
+      ].filter(Boolean).join(' · ') :
+      null;
 
     return (
       <div className={styles.searchResult}>
@@ -170,6 +180,17 @@ class AddNewAuthorSearchResult extends Component {
                 }
               </div>
             </div>
+
+            {
+              lineFacts ?
+                <div
+                  className={styles.lineFacts}
+                  title={lineFacts}
+                >
+                  {lineFacts}
+                </div> :
+                null
+            }
 
             <div>
               {
@@ -253,6 +274,7 @@ AddNewAuthorSearchResult.propTypes = {
   aniListId: PropTypes.number,
   editionLanguage: PropTypes.string,
   editionOptions: PropTypes.arrayOf(PropTypes.object),
+  catalogueLine: PropTypes.object,
   isExistingAuthor: PropTypes.bool.isRequired,
   isSmallScreen: PropTypes.bool.isRequired
 };

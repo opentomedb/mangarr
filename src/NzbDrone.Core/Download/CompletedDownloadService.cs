@@ -128,21 +128,8 @@ namespace NzbDrone.Core.Download
                 mediaFiles.None(f => MangaVolumeParser.ParseSingleVolume(Path.GetFileNameWithoutExtension(f)) > 0))
             {
                 var reason = new ServerText("Chapter-numbered rip: {0} of {1} comic files are per-chapter, no volume files", chapterFiles.Count, mediaFiles.Count);
-                _logger.Warn("Download {0}: {1}, marking as failed", trackedDownload.DownloadItem.Title, reason.English);
                 trackedDownload.Warn(reason);
-
-                if (HasGrabbedHistory(trackedDownload))
-                {
-                    trackedDownload.State = TrackedDownloadState.DownloadFailed;
-                    _failedDownloadService.MarkAsFailed(trackedDownload.DownloadItem.DownloadId, false, reason.English);
-                    RemoveFailedFromClient(trackedDownload);
-                }
-                else
-                {
-                    // MarkAsFailed silently no-ops without a Grabbed history row; don't let
-                    // in-memory state diverge from what a restart would restore.
-                    trackedDownload.State = TrackedDownloadState.ImportPending;
-                }
+                FailUnusablePayload(trackedDownload, reason.English);
 
                 return;
             }
@@ -197,21 +184,8 @@ namespace NzbDrone.Core.Download
                     reason = new ServerText("Download contains only audiobook files, which no monitored edition of the grabbed volume(s) can hold");
                 }
 
-                _logger.Warn("Download {0}: {1}, marking as failed", trackedDownload.DownloadItem.Title, reason.English);
                 trackedDownload.Warn(reason);
-
-                if (HasGrabbedHistory(trackedDownload))
-                {
-                    trackedDownload.State = TrackedDownloadState.DownloadFailed;
-                    _failedDownloadService.MarkAsFailed(trackedDownload.DownloadItem.DownloadId, false, reason.English);
-                    RemoveFailedFromClient(trackedDownload);
-                }
-                else
-                {
-                    // MarkAsFailed silently no-ops without a Grabbed history row; don't let
-                    // in-memory state diverge from what a restart would restore.
-                    trackedDownload.State = TrackedDownloadState.ImportPending;
-                }
+                FailUnusablePayload(trackedDownload, reason.English);
 
                 return;
             }
@@ -577,6 +551,30 @@ namespace NzbDrone.Core.Download
             var library = remoteBook?.Author?.Library ?? LibraryType.Manga;
 
             return library == LibraryType.LightNovel ? payloadType != MediaType.Archive : payloadType == MediaType.Archive;
+        }
+
+        // A payload that can never import (chapter rip, wrong class). A grab is marked as failed:
+        // blocklist, re-search, removal per the client's Remove Failed Downloads. A download Mangarr
+        // did not grab (added to its category by hand) has no Grabbed row, so MarkAsFailed would do
+        // nothing; it is parked as ImportFailed with the warning, where the queue offers Manual
+        // Import and DownloadProcessingService never runs Import again. It used to go back to
+        // ImportPending, which re-ran Import and re-logged "marking as failed" on every queue
+        // refresh for hours without failing anything (2026-09-25; beta polish 2026-09-28). A restart
+        // re-evaluates it once and parks it again. It is never removed from the client: it isn't
+        // Mangarr's download.
+        private void FailUnusablePayload(TrackedDownload trackedDownload, string reason)
+        {
+            if (HasGrabbedHistory(trackedDownload))
+            {
+                _logger.Warn("Download {0}: {1}, marking as failed", trackedDownload.DownloadItem.Title, reason);
+                trackedDownload.State = TrackedDownloadState.DownloadFailed;
+                _failedDownloadService.MarkAsFailed(trackedDownload.DownloadItem.DownloadId, false, reason);
+                RemoveFailedFromClient(trackedDownload);
+                return;
+            }
+
+            _logger.Warn("Download {0}: {1}. Mangarr did not grab it, so it is not marked as failed or removed; use Manual Import or remove it from the download client", trackedDownload.DownloadItem.Title, reason);
+            trackedDownload.State = TrackedDownloadState.ImportFailed;
         }
 
         // The fork fails unusable payloads (chapter rips, ebook-only, audiobook-only) itself.

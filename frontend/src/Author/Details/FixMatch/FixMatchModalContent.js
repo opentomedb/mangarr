@@ -13,13 +13,15 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import { icons, kinds } from 'Helpers/Props';
 import translate from 'Utilities/String/translate';
 import FixMatchCandidate from './FixMatchCandidate';
+import SwitchLine from './SwitchLine';
 import styles from './FixMatchModalContent.css';
 
 // Fix Match: AniList's ranked candidates for a free-text term (seeded with the series
 // name). Select stores the chosen id on the series and queues a refresh; Unbind clears the
 // id so the ranked title search chooses again on the next refresh. Until one of those two
 // buttons is pressed the modal only reads. Below the candidates, a manga series can re-run its
-// volume lookups without changing the binding (Re-resolve Metadata, moved off the toolbar, SD-5).
+// volume lookups without changing the binding (Re-resolve Metadata, moved off the toolbar, SD-5), and any
+// series bound to a catalogue line can switch to another line of its work (Switch Line, 2026-09-28).
 class FixMatchModalContent extends Component {
 
   //
@@ -46,6 +48,7 @@ class FixMatchModalContent extends Component {
 
   render() {
     const {
+      authorId,
       authorName,
       aniListId,
       isLightNovel,
@@ -170,6 +173,12 @@ class FixMatchModalContent extends Component {
                 </SpinnerButton>
               </div>
           }
+
+          {/* Line safety (2026-09-28): both libraries; renders nothing when the work has no other line here. */}
+          <SwitchLine
+            authorId={authorId}
+            authorName={authorName}
+          />
         </ModalBody>
 
         <ModalFooter>
@@ -196,6 +205,7 @@ class FixMatchModalContent extends Component {
 }
 
 FixMatchModalContent.propTypes = {
+  authorId: PropTypes.number.isRequired,
   authorName: PropTypes.string.isRequired,
   aniListId: PropTypes.number,
   isLightNovel: PropTypes.bool.isRequired,

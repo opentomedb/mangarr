@@ -42,6 +42,8 @@ namespace Readarr.Api.V1.Collections
         [HttpGet]
         public List<CollectionResource> All()
         {
+            var workLines = new Dictionary<string, List<GcdSeries>>();
+
             var authors = _authorService.GetAllAuthors();
 
             // A library series is found by the id this app would give the name IN ITS LIBRARY, else
@@ -111,7 +113,7 @@ namespace Readarr.Api.V1.Collections
                     foreach (var child in _gcd.GetChildren(line.GcdSeriesId))
                     {
                         var member = Find(child.Name, library);
-                        AddMember(c, child.Name, member, child, member == null ? _posters.PosterFor(child) : null);
+                        AddMember(c, child.Name, member, child, member == null ? _posters.PosterFor(child) : null, member == null ? SpinOffOf(child, library, workLines) : null);
                     }
                 }
 
@@ -159,7 +161,26 @@ namespace Readarr.Api.V1.Collections
             return collections.Values.OrderBy(c => c.Name).ToList();
         }
 
-        private static void AddMember(CollectionResource c, string name, NzbDrone.Core.Books.Author author, GcdSeries line, string remotePoster = null)
+        // Line safety (2026-09-28): a member outside the library says "Spin-off of <main line>" when its
+        // line is another story of its work in that market and medium (WorkLines.SpinOffOf, the Add results' rule).
+        // One work read per work per request (the cache is the request's own).
+        private string SpinOffOf(GcdSeries line, LibraryType library, Dictionary<string, List<GcdSeries>> workLines)
+        {
+            if (line.TomeWorkId.IsNullOrWhiteSpace() || line.IsMain)
+            {
+                return null;
+            }
+
+            if (!workLines.TryGetValue(line.TomeWorkId, out var work))
+            {
+                work = WorkLines.Of(_gcd, line);
+                workLines[line.TomeWorkId] = work;
+            }
+
+            return WorkLines.SpinOffOf(line, work, library);
+        }
+
+        private static void AddMember(CollectionResource c, string name, NzbDrone.Core.Books.Author author, GcdSeries line, string remotePoster = null, string spinOffOf = null)
         {
             // Members are keyed in the collection's library, so "Add missing" on a light-novel
             // collection posts "~ln" ids and the adds resolve as light novels.
@@ -186,6 +207,8 @@ namespace Readarr.Api.V1.Collections
             {
                 member.RemotePoster = remotePoster;
             }
+
+            member.SpinOffOf = author == null ? spinOffOf ?? member.SpinOffOf : null;
         }
     }
 
@@ -212,6 +235,7 @@ namespace Readarr.Api.V1.Collections
         public int VolumeCount { get; set; }
         public string Publisher { get; set; }
         public string RemotePoster { get; set; }    // catalogue / AniList cover for a member NOT in the library
+        public string SpinOffOf { get; set; }       // line safety (2026-09-28): the main line's name, for a member NOT in the library whose line is not it
     }
 
     // What "add the missing members" should use: the root folder and profiles of a sibling

@@ -47,6 +47,9 @@ The first public beta. Everything below is new compared with Readarr.
 
 ### Files
 
+- **Flat volume names.** New installs rename every volume into its series folder as
+  `<Series> - Vol. 01.cbz`, the layout Komga and Kavita read as one series. Light-novel volumes
+  keep a `<Series> - Vol. N` folder each for the ebook and audiobook.
 - **ComicInfo.xml** is written into downloaded CBZ files (Settings → Metadata → Write ComicInfo
   To: New Downloads, All Imports or Never).
 - **PDF to CBZ.** Downloaded manga PDFs are converted to CBZ on import; an optional daily task
@@ -66,6 +69,9 @@ The first public beta. Everything below is new compared with Readarr.
   speakers), including server messages: rejection reasons, queue warnings, task progress.
 - Series and volume pages rebuilt around volumes, with per-volume covers and badges, and a
   phone-friendly layout.
+- **New release notice.** System → Status shows a warning when a newer Mangarr release is out on
+  GitHub, with a link to it. Nothing is downloaded or installed. Settings → General → Updates →
+  **Check for New Releases** turns the check off.
 
 ### Privacy
 

@@ -14,8 +14,9 @@ namespace NzbDrone.Core.Books
     // Preferred Edition (2026-09-24, spec §4): change a series' edition. Re-previews each series (the
     // catalogue may have moved since the user looked), skips blocked ones (D9), writes the binding from a
     // copy (as Fix Match / the rebind pass do), and queues a refresh -- which fetches the new line by id:
-    // ISBNs, dates, covers and blurbs change, files stay attached, nothing is searched (a "replace with
-    // the French file" search would drain a private tracker). A rename (manga only, plan A7) moves the pins keyed by
+    // ISBNs, dates, covers and blurbs change, files stay attached, no file is re-searched (a "replace with
+    // the French file" search would drain a private tracker) -- volumes the new line adds are handled as any refresh's new
+    // volumes: BookAddedService searches the monitored, released ones (line safety review, 2026-09-28). A rename (manga only, plan A7) moves the pins keyed by
     // the display name and the folder.
     // Fix round 1 (2026-09-24): nothing is written for a series a refresh is already refreshing (I1), or
     // whose rename destination is taken (I2, checked again here -- the preview may be stale); the writes

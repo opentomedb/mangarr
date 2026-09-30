@@ -6,6 +6,7 @@ interface CssExports {
   'aniListLinkIcon': string;
   'content': string;
   'icons': string;
+  'lineFacts': string;
   'name': string;
   'nameContainer': string;
   'nameRow': string;

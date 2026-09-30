@@ -259,6 +259,43 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             series.DisplayName.Should().Be(AniListTitle);
         }
 
+        // Line safety (2026-09-28): Switch Line writes the line's name and AniList id and nothing else holds an
+        // English series to a line -- the refresh resolves it again. Proven both ways and twice (a second
+        // refresh must not drift back): a light novel binds the line its name finds, even when AniList's
+        // (manga) title names the other line.
+        [TestCase(Gcd.OtomeLines.MainName, Gcd.OtomeLines.MainId)]
+        [TestCase(Gcd.OtomeLines.SpinOffName, Gcd.OtomeLines.SpinOffId)]
+        public void a_switched_light_novel_binds_its_new_line_on_every_refresh(string name, string tomeLineId)
+        {
+            GivenCatalogueLine(Gcd.OtomeLines.MainName, LibraryType.LightNovel, Gcd.OtomeLines.MainLine());
+            GivenCatalogueLine(Gcd.OtomeLines.SpinOffName, LibraryType.LightNovel, Gcd.OtomeLines.SpinOff());
+            Mocker.GetMock<IAniListService>().Setup(s => s.GetById(It.IsAny<int>())).Returns(Bound(101, "id", Gcd.OtomeLines.SpinOffName));
+
+            var first = Subject.GetSeries(name, 0, resolveVolumeDetails: false, LibraryType.LightNovel, anilistId: 101);
+            var second = Subject.GetSeries(name, 0, resolveVolumeDetails: false, LibraryType.LightNovel, anilistId: 101);
+
+            first.TomeLineId.Should().Be(tomeLineId);
+            second.TomeLineId.Should().Be(tomeLineId);
+        }
+
+        // A manga series is resolved through its AniList title first: the switch writes the line's AniList id,
+        // whose title finds the line.
+        [Test]
+        public void a_switched_manga_binds_its_new_line_through_the_lines_anilist_id()
+        {
+            var main = new GcdSeries { GcdSeriesId = 1, Name = "Kaiju No. 8", Language = "en", VolumeCount = 12, TomeId = "rl_kaiju" };
+            var relax = new GcdSeries { GcdSeriesId = 2, Name = "Kaiju No. 8: Relax", Language = "en", VolumeCount = 2, TomeId = "rl_relax" };
+            GivenCatalogueLine("Kaiju No. 8", LibraryType.Manga, main);
+            GivenCatalogueLine("Kaiju No. 8: Relax", LibraryType.Manga, relax);
+            Mocker.GetMock<IAniListService>().Setup(s => s.GetById(1002)).Returns(Bound(1002, "id", "Kaiju No. 8: Relax"));
+
+            var first = Subject.GetSeries("Kaiju No. 8: Relax", 0, resolveVolumeDetails: false, LibraryType.Manga, anilistId: 1002);
+            var second = Subject.GetSeries("Kaiju No. 8: Relax", 0, resolveVolumeDetails: false, LibraryType.Manga, anilistId: 1002);
+
+            first.TomeLineId.Should().Be("rl_relax");
+            second.TomeLineId.Should().Be("rl_relax");
+        }
+
         // ---- binding (D1-D4) ----
 
         [Test]

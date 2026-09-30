@@ -587,6 +587,21 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             author.Metadata.Value.EditionOptions.Should().ContainSingle(o => o.Language == "fr");
         }
 
+        // Line safety (2026-09-28): the same bound candidate carries its line's facts for the Add result's one line.
+        [Test]
+        public void a_search_candidate_carries_its_lines_facts()
+        {
+            Mocker.GetMock<IMangaSeriesMetadataProvider>().Setup(s => s.CatalogueLine("rl_fr", LibraryType.Manga))
+                  .Returns(new CatalogueLineFacts { VolumeCount = 20, Publisher = "Pika", SpinOffOf = null });
+
+            var author = Subject.SearchForNewAuthor("attaque des titans", LibraryType.Manga).Single();
+            var entity = Subject.SearchForNewEntity("attaque des titans", LibraryType.Manga).OfType<Author>().Single();
+
+            author.Metadata.Value.CatalogueLine.VolumeCount.Should().Be(20);
+            author.Metadata.Value.CatalogueLine.Publisher.Should().Be("Pika");
+            entity.Metadata.Value.CatalogueLine.VolumeCount.Should().Be(20);
+        }
+
         // The Add page's own search (/search) serialises the author of each volume row too -- the same metadata.
         [Test]
         public void an_add_page_search_result_carries_the_languages_its_work_has()
@@ -631,6 +646,7 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             Subject.SearchForNewEntity("attack on titan", LibraryType.Manga);
 
             Mocker.GetMock<IMangaSeriesMetadataProvider>().Verify(s => s.EditionOptions(It.IsAny<string>(), It.IsAny<LibraryType>()), Times.Never());
+            Mocker.GetMock<IMangaSeriesMetadataProvider>().Verify(s => s.CatalogueLine(It.IsAny<string>(), It.IsAny<LibraryType>()), Times.Never());
         }
 
         // Identification (manual import, queue refresh) and an add or refresh never read the options.
@@ -643,6 +659,7 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             Subject.GetAuthorInfo("local-attack-on-titan");
 
             Mocker.GetMock<IMangaSeriesMetadataProvider>().Verify(s => s.EditionOptions(It.IsAny<string>(), It.IsAny<LibraryType>()), Times.Never());
+            Mocker.GetMock<IMangaSeriesMetadataProvider>().Verify(s => s.CatalogueLine(It.IsAny<string>(), It.IsAny<LibraryType>()), Times.Never());
         }
     }
 }

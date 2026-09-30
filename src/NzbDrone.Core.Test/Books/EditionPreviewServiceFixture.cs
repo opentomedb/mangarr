@@ -74,6 +74,46 @@ namespace NzbDrone.Core.Test.BookTests
             p.BlockedReason.Should().Be("Volume numbering differs between the two editions and 3 file(s) are attached");
         }
 
+        // Line safety review fixes (M2): a light novel is collected by its omnibus flag or composition only --
+        // its single volumes run past the manga page-count tell (EditionResolver.IsCollected's median >= 320).
+        private void GivenLightNovel()
+        {
+            _author.Metadata.Value.ForeignAuthorId = "local-attack-on-titan~ln";
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.FindSeriesByTitle("Attack on Titan", LibraryType.LightNovel)).Returns(English);
+            Mocker.GetMock<IEditionResolver>()
+                  .Setup(r => r.Resolve(English, It.Is<EditionRequest>(q => q.Language == "fr"), LibraryType.LightNovel, "Attack on Titan"))
+                  .Returns(new EditionResolution { Line = French, Language = "fr" });
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.GetVolumes(It.IsAny<int>()))
+                  .Returns(Enumerable.Range(1, 34).Select(n => new GcdVolume { VolumeNumber = n, PageCount = 420 }).ToList());
+        }
+
+        [Test]
+        public void a_light_novels_page_counts_do_not_block_the_change()
+        {
+            GivenLightNovel();
+            GivenCollected(French);
+
+            var p = Subject.Preview(_author, "fr");
+
+            p.Compatible.Should().BeTrue();
+            p.BlockedReason.Should().BeNull();
+        }
+
+        [Test]
+        public void a_light_novel_omnibus_line_with_files_is_blocked()
+        {
+            GivenLightNovel();
+            var omnibus = new GcdSeries { GcdSeriesId = 1005, Name = "Attack on Titan", Language = "fr", VolumeCount = 17, TomeId = "rl_fr_omni", IsOmnibus = true };
+            Mocker.GetMock<IEditionResolver>()
+                  .Setup(r => r.Resolve(English, It.Is<EditionRequest>(q => q.Language == "fr"), LibraryType.LightNovel, "Attack on Titan"))
+                  .Returns(new EditionResolution { Line = omnibus, Language = "fr" });
+
+            var p = Subject.Preview(_author, "fr");
+
+            p.Compatible.Should().BeFalse();
+            p.BlockedReason.Should().Be("Volume numbering differs between the two editions and 3 file(s) are attached");
+        }
+
         [Test]
         public void different_numbering_without_files_is_allowed()
         {

@@ -1,8 +1,11 @@
-# Mangarr
+<p align="center"><img src="Logo/256.png" width="120" alt=""></p>
+<h1 align="center">Mangarr</h1>
 
 Mangarr finds, downloads and organises **manga** and **light novels** the way Sonarr does for TV.
 You add a series, choose which volumes you want, and Mangarr searches your indexers, sends
 releases to your download client, imports the files and names them.
+
+![The manga library: a grid of series posters](docs/screenshots/manga-library.jpg)
 
 It is a fork of [Readarr](https://github.com/Readarr/Readarr), so the screens, settings and
 workflow are the ones you know from Sonarr, Radarr and Readarr. In Mangarr's terms a Readarr
@@ -20,6 +23,23 @@ author is a **series** and a book is a **volume**.
 - **Light-novel storage.** Ebooks and audiobooks can go into the series folder, or straight into
   a Calibre library and an Audiobookshelf library.
 - **UI in English, French, German and Japanese.**
+
+## Screenshots
+
+![A manga series: its volumes with release dates, page counts and what's on disk](docs/screenshots/series-manga.jpg)
+
+A series page. The volume list comes from the OpenTome catalogue, with release dates and page
+counts; each row shows what's on disk.
+
+![A light-novel series: the same volumes as ebook and audiobook editions](docs/screenshots/series-light-novel.jpg)
+
+A light novel. Every volume has an ebook edition and an audiobook edition, tracked separately.
+
+![The light-novel library: each poster shows ebook and audiobook progress](docs/screenshots/light-novel-library.jpg)
+
+![Collections: a franchise's spin-offs, ready to add](docs/screenshots/collections.jpg)
+
+Collections group a franchise's series, so the spin-offs you don't have yet are one click away.
 
 ## Beta status
 
@@ -87,6 +107,8 @@ Mapping under Settings → Download Clients.
 Pull the new image and recreate the container (`docker compose pull && docker compose up -d`).
 On Unraid, use the Docker tab's update. Watchtower works too. Mangarr never updates itself,
 and System → Updates doesn't list these images' changes; the release notes are on GitHub.
+When a newer release is out, System → Status shows a warning with a link to its notes
+(Settings → General → Updates → **Check for New Releases** turns that check off).
 
 ## First steps
 
@@ -120,14 +142,17 @@ Open `http://<your-server>:8787`.
    (for example `mangarr`) and check the [download paths](#download-paths).
 
 5. **Recommended.**
-   - Settings → Media Management → Volume Naming → **Rename Volumes**. Audiobookshelf storage
-     needs it on.
    - A **Recycling Bin** (Settings → Media Management → File Management, under **Show
      Advanced**). Without one, a replaced or deleted file is deleted for good.
-   - If Komga or Kavita reads your manga folder, set **Standard Volume Format** to a flat name,
-     for example `{Author Name} - Vol {Volume:000}`. The default puts each volume in its own
-     subfolder, which those readers can show as separate series. Naming tokens keep Readarr's
-     names: `Author` tokens are the series and `Book` tokens are the volume.
+
+   **Volume naming.** **Rename Volumes** is on and every volume goes flat into its series folder:
+   `Dandadan/Dandadan - Vol. 01.cbz`. That's the layout Komga and Kavita read as one series, and
+   Audiobookshelf storage needs Rename Volumes on. A light-novel volume gets its own folder,
+   `Classroom of the Elite - Vol. 8/Classroom of the Elite - Vol. 08.epub`, so its ebook and
+   audiobook sit together. Settings → Media Management → Volume Naming changes it
+   (**Standard Volume Format**, default `{Author Name} - Vol. {Volume:00}`). Naming tokens keep
+   Readarr's names: `Author` tokens are the series and `Book` tokens are the volume. Files you
+   bring in with Library Import keep their names until you rename them.
 
 Then use Library → **Add New** (with its Manga | Light Novels tabs) to add a series, or Library
 → **Library Import** to bring in folders you already have.
@@ -249,6 +274,9 @@ Mangarr has no telemetry, no analytics and no update server. It talks to:
 - **The catalogue**: `opentomedb.com/catalogue/version.json`, falling back to the same file on
   GitHub, and the catalogue download itself from GitHub releases. A proxy health check probes
   the same address when you use a proxy.
+- **GitHub's API** (`api.github.com`): the new-release check reads Mangarr's latest releases:
+  one request at start-up, then at most one every 12 hours. Settings → General → Updates →
+  **Check for New Releases** turns it off.
 - The image hosts those sources point to, to download covers.
 - Everything you configure yourself: indexers, Prowlarr, download clients, Calibre,
   Audiobookshelf, notifications (Settings → Connect) and import lists such as MangaDex Follows.

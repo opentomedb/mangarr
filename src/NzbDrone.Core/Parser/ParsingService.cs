@@ -405,7 +405,17 @@ namespace NzbDrone.Core.Parser
                     }
                 }
 
-                if (authorClean == parsedBookInfo.AuthorName.CleanAuthorName())
+                // Also the searched entry's own name, not only its stored CleanName: a light novel's
+                // carries "~ln", so the stored form never matched one, and a release the search-criteria
+                // bridge had already attributed by name fell through to FindByName (beta polish
+                // 2026-09-28). The stored-form match stays, so nothing that matched before stops matching.
+                // authorClean above stays the stored form on purpose: switching it would turn on the
+                // "extends the searched series" rejection for light novels.
+                var parsedAuthorClean = parsedBookInfo.AuthorName.CleanAuthorName();
+                var searchedName = searchCriteria.Author.Metadata?.Value?.Name;
+
+                if (authorClean == parsedAuthorClean ||
+                    (parsedAuthorClean.IsNotNullOrWhiteSpace() && searchedName.IsNotNullOrWhiteSpace() && searchedName.CleanAuthorName() == parsedAuthorClean))
                 {
                     return searchCriteria.Author;
                 }

@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NLog;
+using NzbDrone.Core.Books.Commands;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.ProgressMessaging;
 
 namespace NzbDrone.Core.Books
 {
@@ -43,6 +45,15 @@ namespace NzbDrone.Core.Books
 
             _editionService.DeleteMany(delete.Concat(merge.Select(x => x.Item1)).ToList());
             _editionService.UpdateMany(updateList);
+
+            // Review fixes (2026-09-28, I1): the refresh a line switch queues writes no tags (the switch's
+            // prompt does, if the user says yes). The running command is the executor's, as for progress messages.
+            if (ProgressMessageContext.CommandModel?.Body is RefreshAuthorCommand { SkipTagSync: true })
+            {
+                _logger.Debug("Skipping tag sync: the refresh of a line switch");
+
+                return add.Any() || delete.Any() || updateList.Any() || merge.Any();
+            }
 
             var tagsToUpdate = updateList;
             if (forceUpdateFileTags)

@@ -619,10 +619,10 @@ namespace NzbDrone.Core.Test.Localization
 
             text.English.Should().Be("Already the French edition");
 
-            var french = new PreferredEditionController(Mock.Of<IGcdMetadataService>(), authorService.Object, Mock.Of<IMangaSeriesMetadataProvider>(), previewService.Object, ServerMessageTestLocalization.Create(Path.Combine(TempFolder, "fr"), Language.French, keys).Localizer);
+            var french = new PreferredEditionController(Mock.Of<IGcdMetadataService>(), authorService.Object, Mock.Of<IMangaSeriesMetadataProvider>(), previewService.Object, ServerMessageTestLocalization.Create(Path.Combine(TempFolder, "fr"), Language.French, keys).Localizer, Mock.Of<ILineSwitchService>());
             french.Preview(request).Single().BlockedReason.Should().Be("Déjà l'édition en français");
 
-            var english = new PreferredEditionController(Mock.Of<IGcdMetadataService>(), authorService.Object, Mock.Of<IMangaSeriesMetadataProvider>(), previewService.Object, ServerMessageTestLocalization.Create(Path.Combine(TempFolder, "en"), Language.English, keys).Localizer);
+            var english = new PreferredEditionController(Mock.Of<IGcdMetadataService>(), authorService.Object, Mock.Of<IMangaSeriesMetadataProvider>(), previewService.Object, ServerMessageTestLocalization.Create(Path.Combine(TempFolder, "en"), Language.English, keys).Localizer, Mock.Of<ILineSwitchService>());
             english.Preview(request).Single().BlockedReason.Should().Be("Already the French edition");
         }
     }

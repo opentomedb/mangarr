@@ -45,6 +45,7 @@ namespace Readarr.Api.V1.Config
         public int BackupInterval { get; set; }
         public int BackupRetention { get; set; }
         public bool TrustCgnatIpAddresses { get; set; }
+        public bool CheckForNewReleases { get; set; }
     }
 
     public static class HostConfigResourceMapper
@@ -88,7 +89,8 @@ namespace Readarr.Api.V1.Config
                 BackupFolder = configService.BackupFolder,
                 BackupInterval = configService.BackupInterval,
                 BackupRetention = configService.BackupRetention,
-                ApplicationUrl = configService.ApplicationUrl
+                ApplicationUrl = configService.ApplicationUrl,
+                CheckForNewReleases = configService.CheckForNewReleases
             };
         }
     }

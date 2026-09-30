@@ -134,7 +134,8 @@ namespace NzbDrone.Core.Datastore
                   .HasOne(l => l.Series, l => l.SeriesId);
 
             Mapper.Entity<AuthorMetadata>("AuthorMetadata").RegisterModel()
-                .Ignore(x => x.EditionOptions);
+                .Ignore(x => x.EditionOptions)
+                .Ignore(x => x.CatalogueLine);
 
             Mapper.Entity<Book>("Books").RegisterModel()
                 .Ignore(x => x.AuthorId)

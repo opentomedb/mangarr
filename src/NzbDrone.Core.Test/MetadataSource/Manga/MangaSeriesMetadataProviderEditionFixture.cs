@@ -368,6 +368,32 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             Subject.EditionOptions(null, LibraryType.Manga).Should().BeEmpty();
         }
 
+        // Line safety (2026-09-28): the Add result's line facts come from the bound line and its work, both
+        // local catalogue reads; a candidate with no line, or no catalogue, has none.
+        [Test]
+        public void catalogue_line_facts_come_from_the_bound_line_and_its_work()
+        {
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.FindSeriesByTomeId(Gcd.OtomeLines.SpinOffId)).Returns(Gcd.OtomeLines.SpinOff());
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.GetWorkLines(Gcd.OtomeLines.WorkId)).Returns(Gcd.OtomeLines.Work());
+
+            var facts = Subject.CatalogueLine(Gcd.OtomeLines.SpinOffId, LibraryType.LightNovel);
+
+            facts.VolumeCount.Should().Be(6);
+            facts.Publisher.Should().Be("Seven Seas Entertainment");
+            facts.SpinOffOf.Should().Be(Gcd.OtomeLines.MainName);
+            Subject.CatalogueLine(null, LibraryType.LightNovel).Should().BeNull();
+            Subject.CatalogueLine("rl_gone", LibraryType.LightNovel).Should().BeNull();
+        }
+
+        [Test]
+        public void catalogue_line_facts_are_null_without_a_catalogue()
+        {
+            Mocker.GetMock<IGcdMetadataService>().SetupGet(s => s.Available).Returns(false);
+
+            Subject.CatalogueLine(Gcd.OtomeLines.SpinOffId, LibraryType.LightNovel).Should().BeNull();
+            Mocker.GetMock<IGcdMetadataService>().Verify(s => s.FindSeriesByTomeId(It.IsAny<string>()), Times.Never());
+        }
+
         // Without a catalogue there is no line to ask about -- and no read is made.
         [Test]
         public void edition_options_are_empty_without_a_catalogue()

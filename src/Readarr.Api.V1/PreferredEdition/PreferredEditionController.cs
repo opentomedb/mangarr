@@ -25,18 +25,21 @@ namespace Readarr.Api.V1.PreferredEdition
         private readonly IMangaSeriesMetadataProvider _mangaMetadataProvider;
         private readonly IEditionPreviewService _previewService;
         private readonly IServerMessageLocalizer _messages;
+        private readonly ILineSwitchService _lineSwitchService;
 
         public PreferredEditionController(IGcdMetadataService gcdMetadataService,
                                           IAuthorService authorService,
                                           IMangaSeriesMetadataProvider mangaMetadataProvider,
                                           IEditionPreviewService previewService,
-                                          IServerMessageLocalizer messages)
+                                          IServerMessageLocalizer messages,
+                                          ILineSwitchService lineSwitchService)
         {
             _gcdMetadataService = gcdMetadataService;
             _authorService = authorService;
             _mangaMetadataProvider = mangaMetadataProvider;
             _previewService = previewService;
             _messages = messages;
+            _lineSwitchService = lineSwitchService;
         }
 
         public class AuthorEditionsResource
@@ -49,6 +52,11 @@ namespace Readarr.Api.V1.PreferredEdition
         {
             public List<int> AuthorIds { get; set; }
             public string Language { get; set; }
+        }
+
+        public class LineSyncRequestResource
+        {
+            public List<int> BookFileIds { get; set; }
         }
 
         [HttpGet("markets")]
@@ -94,6 +102,37 @@ namespace Readarr.Api.V1.PreferredEdition
                 Current = EditionLanguages.Of(author.Metadata.Value),
                 Options = _mangaMetadataProvider.EditionOptions(author.Metadata.Value.TomeLineId, author.Library) ?? new List<EditionOption>()
             };
+        }
+
+        // Line safety (2026-09-28): Fix Match's Switch Line list -- the other lines of the series' work in its
+        // market and library class, each with what a switch would do and why it is blocked (localized here).
+        [HttpGet("author/{id:int}/lines")]
+        public LineSwitchChoices GetAuthorLines(int id)
+        {
+            var choices = _lineSwitchService.Choices(_authorService.GetAuthor(id));
+
+            foreach (var option in choices.Options)
+            {
+                option.BlockedReason = _messages.Localize(option.BlockedReason, option.BlockedReasonText);
+            }
+
+            return choices;
+        }
+
+        // Line safety (2026-09-28): the "Update calibre and Audiobookshelf metadata too?" yes -- RetagFiles for
+        // the switched files and SyncLightNovelTitles for the series. Refused while the series' refresh is
+        // queued or running (the titles would be the old line's).
+        [HttpPost("author/{id:int}/lines/sync")]
+        public IActionResult SyncAuthorLine(int id, [FromBody] LineSyncRequestResource request)
+        {
+            var refused = _lineSwitchService.SyncExternal(_authorService.GetAuthor(id), request?.BookFileIds);
+
+            if (refused != null)
+            {
+                throw new Readarr.Http.REST.BadRequestException(refused);
+            }
+
+            return Accepted();
         }
 
         // The Change Edition preview for one or many series (spec §4). Fix round 1: a series deleted since

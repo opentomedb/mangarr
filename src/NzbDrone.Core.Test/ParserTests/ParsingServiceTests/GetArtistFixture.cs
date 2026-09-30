@@ -95,6 +95,54 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
             remoteBook.Author.Should().Be(author);
         }
 
+        // Beta polish (2026-09-28): a light novel's stored CleanName carries "~ln" (and, before the
+        // refresh fix, could keep interior articles), so it never equalled a parsed name. A release whose
+        // parsed series name is the searched entry's own name now resolves to it without a name lookup.
+        [TestCase("trappedinadatingsimtheworldofotomegamesistoughformobs~ln")]
+        [TestCase("trappedindatingsimworldotomegamesistoughformobs~ln")]
+        public void light_novel_release_named_as_the_searched_series_resolves_to_it(string storedCleanName)
+        {
+            const string name = "Trapped in a Dating Sim: The World of Otome Games Is Tough for Mobs";
+
+            var author = Builder<Author>.CreateNew()
+                                        .With(a => a.Metadata = new AuthorMetadata { Name = name, ForeignAuthorId = "local-trapped-in-a-dating-sim~ln" })
+                                        .With(a => a.CleanName = storedCleanName)
+                                        .Build();
+
+            var parsed = new ParsedBookInfo
+            {
+                AuthorName = name,
+                VolumeStart = 1,
+                VolumeEnd = 11,
+                Quality = new QualityModel()
+            };
+
+            Mocker.GetMock<IBookService>()
+                  .Setup(s => s.GetBooksByAuthor(It.IsAny<int>()))
+                  .Returns(new List<Book>());
+
+            var remoteBook = Subject.Map(parsed, new BookSearchCriteria { Author = author });
+
+            remoteBook.Author.Should().Be(author);
+            Mocker.GetMock<IAuthorService>().Verify(s => s.FindByName(It.IsAny<string>(), It.IsAny<LibraryType>()), Times.Never());
+            Mocker.GetMock<IAuthorService>().Verify(s => s.FindByNameInexact(It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public void a_release_of_another_name_still_goes_to_the_name_lookup()
+        {
+            var author = Builder<Author>.CreateNew()
+                                        .With(a => a.Metadata = new AuthorMetadata { Name = "Classroom of the Elite", ForeignAuthorId = "local-classroom-of-the-elite~ln" })
+                                        .With(a => a.CleanName = "classroomofelite~ln")
+                                        .Build();
+
+            var parsed = new ParsedBookInfo { AuthorName = "Syougo Kinugasa", Quality = new QualityModel() };
+
+            Subject.Map(parsed, new BookSearchCriteria { Author = author });
+
+            Mocker.GetMock<IAuthorService>().Verify(s => s.FindByName("Syougo Kinugasa", It.IsAny<LibraryType>()), Times.AtLeastOnce());
+        }
+
         [Test]
         public void should_reject_sequel_release_whose_series_extends_the_searched_author()
         {

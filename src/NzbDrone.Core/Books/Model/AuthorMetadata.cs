@@ -58,6 +58,11 @@ namespace NzbDrone.Core.Books
         [MemberwiseEqualityIgnore]
         public List<EditionOption> EditionOptions { get; set; }
 
+        // Line safety (2026-09-28): transient like EditionOptions -- the bound line's count, publisher and
+        // "Spin-off of" name, filled on a search candidate only (the Add result's one line). Never stored.
+        [MemberwiseEqualityIgnore]
+        public CatalogueLineFacts CatalogueLine { get; set; }
+
         // One copy each (2026-09-20): the real author of a light novel -- Name stays the series;
         // null for manga.
         public string Writer { get; set; }

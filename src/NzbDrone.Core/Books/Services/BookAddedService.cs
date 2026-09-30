@@ -14,14 +14,20 @@ namespace NzbDrone.Core.Books
     public interface IBookAddedService
     {
         void SearchForRecentlyAdded(int authorId);
+
+        // Review fixes (2026-09-28, I2): the author's next refresh queues no search for the volumes it adds
+        // (Switch Line). One-shot: that refresh consumes it. The volumes stay monitored; the scheduled
+        // missing search picks them up.
+        void SkipNextRefreshSearch(int authorId);
     }
 
-    public class BookAddedService : IHandle<BookInfoRefreshedEvent>, IBookAddedService
+    public class BookAddedService : IHandle<BookInfoRefreshedEvent>, IHandle<AuthorRefreshCompleteEvent>, IBookAddedService
     {
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly IBookService _bookService;
         private readonly Logger _logger;
         private readonly ICached<List<int>> _addedBooksCache;
+        private readonly HashSet<int> _skipNextSearch = new HashSet<int>();
 
         public BookAddedService(ICacheManager cacheManager,
                                    IManageCommandQueue commandQueueManager,
@@ -60,8 +66,30 @@ namespace NzbDrone.Core.Books
             _addedBooksCache.Remove(authorId.ToString());
         }
 
+        public void SkipNextRefreshSearch(int authorId)
+        {
+            lock (_skipNextSearch)
+            {
+                _skipNextSearch.Add(authorId);
+            }
+        }
+
+        private bool TakeSkip(int authorId)
+        {
+            lock (_skipNextSearch)
+            {
+                return _skipNextSearch.Remove(authorId);
+            }
+        }
+
         public void Handle(BookInfoRefreshedEvent message)
         {
+            if (TakeSkip(message.Author.Id))
+            {
+                _logger.Debug("Refresh after a line switch: not searching its new volumes");
+                return;
+            }
+
             if (message.Author.AddOptions == null)
             {
                 if (!message.Author.Monitored)
@@ -92,6 +120,12 @@ namespace NzbDrone.Core.Books
 
                 _addedBooksCache.Set(message.Author.Id.ToString(), previouslyReleased.Select(e => e.Id).ToList());
             }
+        }
+
+        // A refresh that added nothing publishes no BookInfoRefreshedEvent: the flag must not outlive it.
+        public void Handle(AuthorRefreshCompleteEvent message)
+        {
+            TakeSkip(message.Author.Id);
         }
     }
 }

@@ -663,6 +663,56 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
                    .Should().Be(releaseGroup);
         }
 
+        // Beta polish (2026-09-28): a fresh install's default names a manga volume flat in the series
+        // folder, and a light novel keeps its own "<Series> - Vol. N" folder around the same name.
+        private void GivenFreshDefault(double volume)
+        {
+            _namingConfig = NamingConfig.Default;
+            Mocker.GetMock<INamingConfigService>().Setup(c => c.GetConfig()).Returns(_namingConfig);
+            _author.Path = @"C:\manga\Linkin Park".AsOsAgnostic();
+            _book.VolumeNumber = volume;
+        }
+
+        [TestCase(1, "Linkin Park - Vol. 01")]
+        [TestCase(12, "Linkin Park - Vol. 12")]
+        [TestCase(114, "Linkin Park - Vol. 114")]
+        [TestCase(3.5, "Linkin Park - Vol. 03.5")]
+        public void fresh_default_names_a_manga_volume_flat_in_the_series_folder(double volume, string expected)
+        {
+            GivenFreshDefault(volume);
+            _edition.MediaType = MediaType.Archive;
+
+            var fileName = Subject.BuildBookFileName(_author, _edition, _trackFile);
+
+            fileName.Should().Be(expected);
+            Subject.BuildBookFilePath(_author, _edition, fileName, ".cbz")
+                   .Should().Be(Path.Combine(_author.Path, expected + ".cbz"));
+        }
+
+        [Test]
+        public void fresh_default_light_novel_epub_keeps_the_volume_folder()
+        {
+            GivenFreshDefault(8);
+            _author.Metadata.Value.ForeignAuthorId = "local-linkin-park~ln";
+            _edition.MediaType = MediaType.Ebook;
+
+            Subject.BuildBookFileName(_author, _edition, _trackFile)
+                   .Should().Be(Path.Combine("Linkin Park - Vol. 8", "Linkin Park - Vol. 08"));
+        }
+
+        [Test]
+        public void fresh_default_light_novel_split_audio_gets_its_part_number()
+        {
+            GivenFreshDefault(8);
+            _author.Metadata.Value.ForeignAuthorId = "local-linkin-park~ln";
+            _edition.MediaType = MediaType.Audio;
+            _trackFile.Part = 2;
+            _trackFile.PartCount = 3;
+
+            Subject.BuildBookFileName(_author, _edition, _trackFile)
+                   .Should().Be(Path.Combine("Linkin Park - Vol. 8", "Linkin Park - Vol. 08 - Part 02"));
+        }
+
         // Light novels (2026-09): one folder per volume, part numbers on split audio (D6).
 
         private void GivenLightNovel(MediaType editionType)

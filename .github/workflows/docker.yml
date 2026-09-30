@@ -1,9 +1,10 @@
 # Builds, tests and publishes the Mangarr image (ghcr.io/opentomedb/mangarr).
 #
-# Build number: 10.0.0.(.build-base + commit count - 1), see the version job.
+# Build number: 10.0.0.(.build-base + commits since the last export), see the version job.
 #
 #   tag v*            -> core tests, image for amd64 + arm64, a start-up smoke test of each, then
-#                        push :<tag without v> and :beta.
+#                        push :<tag without v> and :beta, and create the GitHub Release (notes from
+#                        CHANGELOG.md plus a "Build: 10.0.0.N" line the in-app release check reads).
 #   workflow_dispatch -> the same checks. It pushes only when run on a v* tag; on a branch it's a
 #                        dry run.
 #
@@ -41,19 +42,22 @@ jobs:
       - id: v
         name: Build number and image tag
         run: |
-          # The public repository starts from one squashed commit. scripts/export-public.sh writes the
-          # private history's commit count into .build-base, so the first public commit carries the
-          # private build number and each later public commit adds one. Without the file (the private
-          # repository) the base is 1, which gives the plain commit count.
-          base=1
+          # The public repository gets one commit per export. scripts/export-public.sh writes the private
+          # history's commit count into .build-base at each export, so the build number is that base plus
+          # the commits made since the export last rewrote .build-base (0 for the exported commit itself):
+          # the public build then equals the private build it was exported from, release after release.
+          # Without the file (the private repository) it is the plain commit count.
           if [ -f .build-base ]; then
             base="$(tr -d '[:space:]' < .build-base)"
             if [[ ! "$base" =~ ^[1-9][0-9]*$ ]]; then
               echo "::error::.build-base must hold a positive integer, found '$base'"
               exit 1
             fi
+            since="$(git rev-list --count "$(git log -1 --format=%H -- .build-base)"..HEAD)"
+            build="10.0.0.$(( base + since ))"
+          else
+            build="10.0.0.$(git rev-list --count HEAD)"
           fi
-          build="10.0.0.$(( base + $(git rev-list --count HEAD) - 1 ))"
           tag=""
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             tag="${GITHUB_REF_NAME#v}"
@@ -218,8 +222,9 @@ jobs:
     if: always() && needs.version.outputs.tag != '' && needs.image.result == 'success' && needs.smoke-amd64.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    # contents: write only for the GitHub Release at the end; every other job keeps the read-only default.
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - uses: actions/checkout@v4
@@ -267,3 +272,40 @@ jobs:
           BUILD: ${{ needs.version.outputs.build }}
         run: |
           echo "Pushed \`${IMAGE}:${TAG}\` and \`${IMAGE}:beta\` (build ${BUILD})." >> "$GITHUB_STEP_SUMMARY"
+
+      # Title "Mangarr <tag>", notes = CHANGELOG.md's "## <tag>" section, then the build number on its
+      # own line. NewReleaseCheck (Mangarr's in-app notice) parses that "Build: 10.0.0.N" line and
+      # ignores a release without it, so keep its shape. A beta tag is marked prerelease. A re-run edits
+      # the release instead of failing on it.
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.version.outputs.tag }}
+          BUILD: ${{ needs.version.outputs.build }}
+          ARM64: ${{ needs.smoke-arm64.result }}
+        run: |
+          notes="$RUNNER_TEMP/release-notes.md"
+          awk -v heading="## $TAG" '
+            $0 == heading || index($0, heading " ") == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > "$notes"
+          if ! grep -q '[^[:space:]]' "$notes"; then
+            echo "::warning title=No changelog section::CHANGELOG.md has no '## $TAG' section; the release notes carry only the build number."
+            : > "$notes"
+          fi
+          if [ "$ARM64" != "success" ]; then
+            printf '\n**amd64 only:** the arm64 image did not pass its checks for this release.\n' >> "$notes"
+          fi
+          printf '\nBuild: %s\n' "$BUILD" >> "$notes"
+          prerelease=()
+          if [[ "$TAG" == *beta* ]]; then
+            prerelease=(--prerelease)
+          fi
+          if gh release view "v$TAG" > /dev/null 2>&1; then
+            gh release edit "v$TAG" --title "Mangarr $TAG" --notes-file "$notes" "${prerelease[@]}"
+          else
+            gh release create "v$TAG" --verify-tag --title "Mangarr $TAG" --notes-file "$notes" "${prerelease[@]}"
+          fi
+          echo "Release **Mangarr $TAG** (build $BUILD)." >> "$GITHUB_STEP_SUMMARY"

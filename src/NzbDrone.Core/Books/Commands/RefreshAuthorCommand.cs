@@ -7,6 +7,10 @@ namespace NzbDrone.Core.Books.Commands
         public int? AuthorId { get; set; }
         public bool IsNewAuthor { get; set; }
 
+        // Review fixes (2026-09-28, I1): the refresh Switch Line queues writes no file tags, even with Write
+        // Audio/Book Tags = Sync (RefreshEditionService); the switch's prompt is the only calibre/ABS/tag write.
+        public bool SkipTagSync { get; set; }
+
         public RefreshAuthorCommand()
         {
         }

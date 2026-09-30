@@ -223,6 +223,37 @@ namespace NzbDrone.Core.Test.Api.PreferredEdition
             single.Single().BlockedReason.Should().BeNull();
         }
 
+        // Line safety (2026-09-28): Switch Line's list localizes each blocked reason from its template.
+        [Test]
+        public void author_lines_localize_each_blocked_reason()
+        {
+            GivenAuthor(1, "local-otome~ln", null, "rl_b816b634db1a");
+            var reason = new ServerText("{0} is already bound to this line", "Mobseka");
+            Mocker.GetMock<ILineSwitchService>().Setup(s => s.Choices(It.IsAny<Author>())).Returns(new LineSwitchChoices
+            {
+                Options = new List<LineSwitchOption> { new LineSwitchOption { TomeLineId = "rl_224c4428cda7", BlockedReason = reason.English, BlockedReasonText = reason } }
+            });
+            Mocker.GetMock<IServerMessageLocalizer>().Setup(m => m.Localize(reason.English, reason)).Returns("Mobseka est déjà liée à cette ligne");
+
+            Subject.GetAuthorLines(1).Options.Single().BlockedReason.Should().Be("Mobseka est déjà liée à cette ligne");
+        }
+
+        // The prompt's yes is refused (400) with the service's reason; accepted (202) otherwise.
+        [Test]
+        public void author_line_sync_is_refused_with_the_services_reason()
+        {
+            GivenAuthor(1, "local-otome~ln", null, "rl_224c4428cda7");
+            Mocker.GetMock<ILineSwitchService>().Setup(s => s.SyncExternal(It.IsAny<Author>(), It.IsAny<List<int>>()))
+                  .Returns(new ServerText("A refresh is running for this series; try again when it finishes"));
+
+            Assert.Throws<Readarr.Http.REST.BadRequestException>(() => Subject.SyncAuthorLine(1, new PreferredEditionController.LineSyncRequestResource { BookFileIds = new List<int> { 5 } }));
+
+            Mocker.GetMock<ILineSwitchService>().Setup(s => s.SyncExternal(It.IsAny<Author>(), It.IsAny<List<int>>())).Returns((ServerText)null);
+
+            Subject.SyncAuthorLine(1, new PreferredEditionController.LineSyncRequestResource { BookFileIds = new List<int> { 5 } })
+                   .Should().BeOfType<Microsoft.AspNetCore.Mvc.AcceptedResult>();
+        }
+
         [Test]
         public void preview_of_nothing_is_empty()
         {

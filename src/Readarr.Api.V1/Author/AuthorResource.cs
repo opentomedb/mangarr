@@ -47,6 +47,10 @@ namespace Readarr.Api.V1.Author
         // qualified like the file's other Core types (this namespace is Readarr.Api.V1.Author).
         public List<NzbDrone.Core.Books.EditionOption> EditionOptions { get; set; }
 
+        // Line safety (2026-09-28): search candidates only (null elsewhere, so a library series' JSON is
+        // unchanged): the bound line's volume count, publisher and "Spin-off of" name.
+        public NzbDrone.Core.Books.CatalogueLineFacts CatalogueLine { get; set; }
+
         // One copy each (2026-09-20): the real author of a light novel (null for manga). Read-only on
         // the wire: set by the writer ladder / a pin, never by a PUT.
         public string Writer { get; set; }
@@ -119,6 +123,7 @@ namespace Readarr.Api.V1.Author
                 EditionLanguage = model.Metadata.Value.EditionLanguage,
                 TomeLineId = model.Metadata.Value.TomeLineId,
                 EditionOptions = model.Metadata.Value.EditionOptions,
+                CatalogueLine = model.Metadata.Value.CatalogueLine,
                 Writer = model.Metadata.Value.Writer,
                 Disambiguation = model.Metadata.Value.Disambiguation,
 

@@ -32,7 +32,10 @@ function MemberCard({ member, author, defaults, isAdding, onAddPress }) {
   const outsideLine = [
     member.volumeCount ? translate('CountVolumes', { count: member.volumeCount }) : null,
     member.publisher || null,
-    member.medium ? titleCase(member.medium.replace('_', ' ')) : null
+    member.medium ? titleCase(member.medium.replace('_', ' ')) : null,
+
+    // Line safety (2026-09-28): the Add results' "Spin-off of" label.
+    member.spinOffOf ? translate('SpinOffOf', { name: member.spinOffOf }) : null
   ].filter(Boolean).join(' · ') || translate('NotInLibrary');
 
   // react-lazyload's default scroll detection is window-based; PageContentBody scrolls its own

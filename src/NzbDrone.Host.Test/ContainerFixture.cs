@@ -15,13 +15,19 @@ using NzbDrone.Common.Composition.Extensions;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Options;
+using NzbDrone.Core.Books;
+using NzbDrone.Core.Books.Commands;
+using NzbDrone.Core.Books.Events;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Datastore.Extensions;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Indexers;
+using NzbDrone.Core.MediaFiles.BookImport;
+using NzbDrone.Core.MediaFiles.BookImport.Specifications;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Host;
 using NzbDrone.SignalR;
 using NzbDrone.Test.Common;
@@ -114,9 +120,34 @@ namespace NzbDrone.App.Test
         [TestCase(typeof(Readarr.Api.V1.Indexers.ReleasePushController))]
         [TestCase(typeof(Readarr.Api.V1.ManualImport.ManualImportController))]
         [TestCase(typeof(Readarr.Api.V1.Queue.QueueDetailsController))]
+        [TestCase(typeof(Readarr.Api.V1.PreferredEdition.PreferredEditionController))]
         public void server_message_consumers_resolve(Type type)
         {
             _container.GetRequiredService(type).Should().NotBeNull();
+        }
+
+        // Line safety review fixes (2026-09-28, M3): Switch Line's executor and the sibling-line import guard.
+        [Test]
+        public void the_switch_line_executor_resolves()
+        {
+            _container.GetRequiredService<IExecute<SwitchLineCommand>>().Should().BeOfType<LineSwitchService>();
+        }
+
+        // The switch's one-shot "no search" flag lives on the BookAddedService instance: the one Switch Line
+        // calls must be the one the refresh's events reach.
+        [Test]
+        public void the_book_added_service_is_one_instance_for_the_switch_and_the_refresh_events()
+        {
+            var called = _container.GetRequiredService<IBookAddedService>();
+
+            _container.GetServices<IHandle<BookInfoRefreshedEvent>>().OfType<BookAddedService>().Single().Should().BeSameAs(called);
+            _container.GetServices<IHandle<AuthorRefreshCompleteEvent>>().OfType<BookAddedService>().Single().Should().BeSameAs(called);
+        }
+
+        [Test]
+        public void the_sibling_line_import_guard_is_registered()
+        {
+            _container.GetServices<IImportDecisionEngineSpecification<LocalEdition>>().OfType<SiblingLineReleaseSpecification>().Should().ContainSingle();
         }
 
         [Test]

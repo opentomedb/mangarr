@@ -24,14 +24,11 @@ function UpdateSettings(props) {
 
   const {
     branch,
+    checkForNewReleases,
     updateAutomatically,
     updateMechanism,
     updateScriptPath
   } = settings;
-
-  if (!advancedSettings) {
-    return null;
-  }
 
   const usingExternalUpdateMechanism = packageUpdateMechanism !== 'builtIn';
 
@@ -50,6 +47,22 @@ function UpdateSettings(props) {
 
   return (
     <FieldSet legend={translate('Updates')}>
+      {/*
+        Beta polish (2026-09-28): the release notice's switch is for everyone, so this fieldset no
+        longer hides without Show Advanced; Readarr's updater settings below still do.
+      */}
+      <FormGroup size={sizes.MEDIUM}>
+        <FormLabel>{translate('CheckForNewReleases')}</FormLabel>
+
+        <FormInputGroup
+          type={inputTypes.CHECK}
+          name="checkForNewReleases"
+          helpText={translate('CheckForNewReleasesHelpText')}
+          onChange={onInputChange}
+          {...checkForNewReleases}
+        />
+      </FormGroup>
+
       <FormGroup
         advancedSettings={advancedSettings}
         isAdvanced={true}

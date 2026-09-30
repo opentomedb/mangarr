@@ -97,6 +97,32 @@ namespace NzbDrone.Core.Books
             return Path.Combine(Path.GetDirectoryName(author.Path.TrimEnd('/', '\\')), fileNameBuilder.GetAuthorFolder(renamed));
         }
 
+        // A collected edition (D9: volume N is not volume N of a single-volume line). For manga,
+        // EditionResolver.IsCollected: the omnibus flag, per-volume composition, or a median page count of
+        // 320+. A light novel is judged by the flag and composition only: its single volumes run 250-450
+        // pages (the Trapped in a Dating Sim main line reads as "collected" by page count on the 2026-09-28
+        // catalogue). Review fixes (2026-09-28, M2): Change Edition and Switch Line both read this.
+        public static bool IsCollected(GcdSeries line, LibraryType library, IEditionResolver resolver, IGcdMetadataService gcd, List<GcdVolume> volumes = null)
+        {
+            if (library != LibraryType.LightNovel)
+            {
+                return resolver.IsCollected(line);
+            }
+
+            volumes ??= gcd.GetVolumes(line.GcdSeriesId) ?? new List<GcdVolume>();
+
+            return line.IsOmnibus || volumes.Any(v => v.Composition != null && v.Composition.Count > 1);
+        }
+
+        // Another series of the library already holding the name (by its clean name, the unique index a
+        // refresh writes); null when none. Line safety (2026-09-28): Switch Line checks the same thing.
+        public static Author Namesake(Author author, string newName, IAuthorService authorService)
+        {
+            var namesake = authorService.FindByName(newName, author.Library);
+
+            return namesake != null && namesake.Id != author.Id ? namesake : null;
+        }
+
         public static string RenameBlockedReason(Author author, string newName, string newPath, IDiskProvider diskProvider, IAuthorService authorService, IMetadataOverridesService metadataOverrides)
         {
             if (newPath.IsNotNullOrWhiteSpace() && !newPath.PathEquals(author.Path))
@@ -112,9 +138,9 @@ namespace NzbDrone.Core.Books
                 }
             }
 
-            var namesake = authorService.FindByName(newName, author.Library);
+            var namesake = Namesake(author, newName, authorService);
 
-            if (namesake != null && namesake.Id != author.Id)
+            if (namesake != null)
             {
                 return $"Another series is already named \"{namesake.Name}\"";
             }
@@ -251,7 +277,9 @@ namespace NzbDrone.Core.Books
 
             // Polish: a rename-only change stays on its line -- no numbering changes, even on a collected edition.
             preview.Compatible = preview.RenameOnly ||
-                                 (current != null && !_editionResolver.IsCollected(current) && !_editionResolver.IsCollected(target));
+                                 (current != null &&
+                                  !EditionChangeChecks.IsCollected(current, author.Library, _editionResolver, _gcdMetadataService) &&
+                                  !EditionChangeChecks.IsCollected(target, author.Library, _editionResolver, _gcdMetadataService));
 
             if (!preview.Compatible && preview.FilesAffected > 0)
             {

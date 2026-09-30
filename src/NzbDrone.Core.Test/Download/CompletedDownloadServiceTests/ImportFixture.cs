@@ -884,16 +884,113 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             _trackedDownload.State.Should().Be(TrackedDownloadState.ImportPending);
         }
 
+        // Line safety (2026-09-28): a pack the sibling-line guard rejects (SiblingLineReleaseSpecification) is
+        // an import rejection like any other: the grab is parked as Import Failed with the reason for Manual
+        // Import -- never failed, blocklisted or removed from the client the way an unusable payload is.
         [Test]
-        public void wrong_class_payload_without_grabbed_history_stays_import_pending()
+        public void a_sibling_line_rejection_is_parked_for_manual_import_not_failed()
         {
-            // MarkAsFailed silently no-ops without a Grabbed row; the state must not diverge.
+            const string reason = "Release covers volumes 1-13; this series' line has 6 — it may belong to Main";
+
+            GivenLightNovelGrab();
+            GivenGrabbedHistory();
+            GivenPayloadFiles("Otome v01.epub", "Otome v02.epub");
+
+            var outputPath = _trackedDownload.DownloadItem.OutputPath.FullPath;
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Setup(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()))
+                .Returns(new[] { "Otome v01.epub", "Otome v02.epub" }.Select(f => new ImportResult(
+                    new ImportDecision<LocalBook>(new LocalBook { Path = Path.Combine(outputPath, f) }, new Rejection(reason)), reason)).ToList());
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IFailedDownloadService>().Verify(v => v.MarkAsFailed(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IDownloadClient>().Verify(v => v.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never());
+            _trackedDownload.State.Should().Be(TrackedDownloadState.ImportFailed);
+            _trackedDownload.StatusMessages.SelectMany(m => m.Messages).Should().Contain(reason);
+        }
+
+        // Beta polish (2026-09-28): a download Mangarr did not grab can't be marked as failed (no
+        // Grabbed row), so it is parked as ImportFailed with the warning. It used to go back to
+        // ImportPending and loop (the 2026-09-25 EPUB: 202 "marking as failed" warnings in two hours).
+        [Test]
+        public void wrong_class_payload_without_grabbed_history_is_parked_as_import_failed()
+        {
             GivenNothingImportedFrom("Series v01.epub");
 
             Subject.Import(_trackedDownload);
 
             Mocker.GetMock<IFailedDownloadService>().Verify(v => v.MarkAsFailed(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never());
-            _trackedDownload.State.Should().Be(TrackedDownloadState.ImportPending);
+            Mocker.GetMock<IDownloadClient>().Verify(v => v.RemoveItem(It.IsAny<DownloadClientItem>(), It.IsAny<bool>()), Times.Never());
+            _trackedDownload.State.Should().Be(TrackedDownloadState.ImportFailed);
+            _trackedDownload.Status.Should().Be(TrackedDownloadStatus.Warning);
+
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        // Two consecutive queue refreshes through the real DownloadProcessingService, which runs Import
+        // only for ImportPending: the unusable payload is judged, and failed, exactly once.
+        private void ProcessMonitoredDownloadsTwice()
+        {
+            Mocker.GetMock<NzbDrone.Core.Configuration.IConfigService>()
+                .SetupGet(c => c.EnableCompletedDownloadHandling)
+                .Returns(true);
+
+            Mocker.GetMock<ITrackedDownloadService>()
+                .Setup(s => s.GetTrackedDownloads())
+                .Returns(new List<TrackedDownload> { _trackedDownload });
+
+            _trackedDownload.IsTrackable = true;
+            _trackedDownload.State = TrackedDownloadState.ImportPending;
+
+            var processor = new DownloadProcessingService(Mocker.GetMock<NzbDrone.Core.Configuration.IConfigService>().Object,
+                                                          Subject,
+                                                          Mocker.GetMock<IFailedDownloadService>().Object,
+                                                          Mocker.GetMock<ITrackedDownloadService>().Object,
+                                                          Mocker.GetMock<IEventAggregator>().Object,
+                                                          TestLogger);
+
+            processor.Execute(new ProcessMonitoredDownloadsCommand());
+            processor.Execute(new ProcessMonitoredDownloadsCommand());
+        }
+
+        private static readonly object[] UnusablePayloads =
+        {
+            new object[] { new[] { "Series v01.epub" } },
+            new object[] { new[] { "Series v01 - v03.m4b" } },
+            new object[] { new[] { "Marriage Toxin Chapter 1.cbz", "Marriage Toxin Chapter 2.cbz", "Marriage Toxin Chapter 3.cbz" } }
+        };
+
+        [TestCaseSource(nameof(UnusablePayloads))]
+        public void unusable_payload_without_grabbed_history_is_judged_once_over_two_refreshes(string[] files)
+        {
+            GivenNothingImportedFrom(files);
+
+            ProcessMonitoredDownloadsTwice();
+
+            var outputPath = _trackedDownload.DownloadItem.OutputPath.FullPath;
+            Mocker.GetMock<IDiskProvider>().Verify(v => v.GetFiles(outputPath, true), Times.Once());
+            Mocker.GetMock<IFailedDownloadService>().Verify(v => v.MarkAsFailed(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never());
+            _trackedDownload.State.Should().Be(TrackedDownloadState.ImportFailed);
+
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [TestCaseSource(nameof(UnusablePayloads))]
+        public void unusable_grabbed_payload_is_failed_and_removed_once_over_two_refreshes(string[] files)
+        {
+            GivenGrabbedHistory();
+            GivenNothingImportedFrom(files);
+
+            Mocker.GetMock<IDownloadClient>()
+                  .SetupGet(c => c.Definition)
+                  .Returns(new DownloadClientDefinition { Id = 1, Name = "testClient", RemoveFailedDownloads = true });
+
+            ProcessMonitoredDownloadsTwice();
+
+            Mocker.GetMock<IFailedDownloadService>().Verify(v => v.MarkAsFailed(_trackedDownload.DownloadItem.DownloadId, false, It.IsAny<string>()), Times.Once());
+            Mocker.GetMock<IDownloadClient>().Verify(v => v.RemoveItem(It.IsAny<DownloadClientItem>(), true), Times.Once());
+            _trackedDownload.State.Should().Be(TrackedDownloadState.DownloadFailed);
 
             ExceptionVerification.IgnoreWarns();
         }

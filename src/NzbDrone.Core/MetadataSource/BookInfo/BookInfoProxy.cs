@@ -165,6 +165,19 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             return title;
         }
 
+        // The stored Authors.CleanName form: the one the add path (AddAuthorService), the daily
+        // housekeeper (UpdateCleanTitleForAuthor) and the name lookup (AuthorService.FindByName) use,
+        // interior a/an/the/and/or/of and accents dropped. A refresh used Clean() here, which keeps
+        // them, so every refresh flipped an article-bearing name to a form FindByName misses until the
+        // next housekeeping -- releases then fell to the inexact match, which gives up on two close
+        // names (Trapped in a Dating Sim main line vs its spin-off: "Unknown Series", beta polish
+        // 2026-09-28). An all-punctuation name keeps Clean()'s "series".
+        private static string StoredCleanName(string displayName)
+        {
+            var cleaned = displayName.CleanAuthorName();
+            return cleaned.IsNullOrWhiteSpace() ? "series" : cleaned;
+        }
+
         private static string Clean(string s)
         {
             var cleaned = new string((s ?? string.Empty).ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
@@ -259,6 +272,9 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             if (meta != null && meta.TomeLineId.IsNotNullOrWhiteSpace())
             {
                 meta.EditionOptions = _mangaMetadataProvider.EditionOptions(meta.TomeLineId, library) ?? new List<EditionOption>();
+
+                // Line safety (2026-09-28): the Add result's one line (count, publisher, "Spin-off of").
+                meta.CatalogueLine = _mangaMetadataProvider.CatalogueLine(meta.TomeLineId, library);
             }
 
             return author;
@@ -460,7 +476,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             var author = new Author
             {
                 Metadata = meta,
-                CleanName = LibraryTypes.CleanNameFor(Clean(displayName), library),
+                CleanName = LibraryTypes.CleanNameFor(StoredCleanName(displayName), library),
                 Monitored = true,
                 Series = new List<Series>()
             };

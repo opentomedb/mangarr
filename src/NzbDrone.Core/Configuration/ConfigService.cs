@@ -357,6 +357,15 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("PdfToCbzSweep", value); }
         }
 
+        // Beta polish (2026-09-28): NewReleaseCheck asks GitHub for the latest Mangarr release (at most
+        // every 12 h) and shows a notice when it is newer than the running build. Off = no request.
+        public bool CheckForNewReleases
+        {
+            get { return GetValueBoolean("CheckForNewReleases", true); }
+
+            set { SetValue("CheckForNewReleases", value); }
+        }
+
         // Beta readiness (2026-09-28, F7): the two light-novel quality profiles are seeded once; a user who
         // deletes or renames one keeps it that way (QualityProfileService). Not a user setting.
         public bool LightNovelProfilesSeeded

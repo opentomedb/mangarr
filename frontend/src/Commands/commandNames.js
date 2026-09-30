@@ -27,6 +27,7 @@ export const CONVERT_BOOK_PDF_TO_CBZ = 'ConvertBookPdfToCbz';
 export const CONVERT_LIGHT_NOVEL_FORMAT = 'ConvertLightNovelFormat';
 export const RE_RESOLVE_METADATA = 'ReResolveMetadata';
 export const RE_RESOLVE_EDITION = 'ReResolveEdition';
+export const SWITCH_LINE = 'SwitchLine';
 export const FLIP_PAGE_ORDER = 'FlipPageOrder';
 export const SEASON_SEARCH = 'BookSearch';
 export const AUTHOR_SEARCH = 'AuthorSearch';

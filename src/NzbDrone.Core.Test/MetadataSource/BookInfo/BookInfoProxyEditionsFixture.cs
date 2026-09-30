@@ -8,6 +8,7 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.MetadataSource.BookInfo;
 using NzbDrone.Core.MetadataSource.Manga;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Test.Framework;
 
 namespace NzbDrone.Core.Test.MetadataSource.BookInfo
@@ -47,6 +48,35 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             Mocker.GetMock<IMangaSeriesMetadataProvider>()
                   .Setup(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), LibraryType.LightNovel, It.IsAny<int?>(), It.IsAny<string>()))
                   .Returns<string, int, bool, LibraryType, int?, string>((name, cap, details, library, anilistId, idName) => new MangaSeriesMetadata { DisplayName = name, NotInCatalogue = true });
+        }
+
+        // Beta polish (2026-09-28): a refresh stores the same CleanName the add path, the daily housekeeper
+        // and FindByName use (interior articles and accents dropped, "~ln" for a light novel), so a
+        // refresh no longer flips an entry to a form the exact name lookup misses.
+        private void GivenDisplayName(string displayName)
+        {
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Setup(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<string>()))
+                  .Returns(new MangaSeriesMetadata { DisplayName = displayName, VolumeCount = 1, Volumes = new List<MangaVolumeMetadata> { new MangaVolumeMetadata { VolumeNumber = 1 } } });
+        }
+
+        [TestCase("local-trapped-in-a-dating-sim", "Trapped in a Dating Sim: The World of Otome Games Is Tough for Mobs", "trappedindatingsimworldotomegamesistoughformobs")]
+        [TestCase("local-trapped-in-a-dating-sim~ln", "Trapped in a Dating Sim: The World of Otome Games Is Tough for Mobs", "trappedindatingsimworldotomegamesistoughformobs~ln")]
+        [TestCase("local-re-zero~ln", "Re:ZERO -Starting Life in Another World-, Chapter 1: A Day in the Capital", "rezerostartinglifeinanotherworldchapter1dayincapital~ln")]
+        [TestCase("local-cafe", "Café Terrace and Its Goddesses", "cafeterraceitsgoddesses")]
+        [TestCase("local-punct", "!!!", "series")]
+        public void a_refresh_stores_the_housekeeping_clean_name(string foreignAuthorId, string displayName, string expected)
+        {
+            GivenDisplayName(displayName);
+
+            var author = Subject.GetAuthorInfo(foreignAuthorId);
+
+            author.CleanName.Should().Be(expected);
+
+            if (expected != "series")
+            {
+                author.CleanName.Should().Be(LibraryTypes.CleanNameFor(author.Name.CleanAuthorName(), author.Library));
+            }
         }
 
         [Test]
