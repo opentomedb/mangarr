@@ -7,7 +7,6 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.MetadataSource.Audible;
-using NzbDrone.Core.MetadataSource.Manga;
 using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.MediaFiles.BookImport.Existing
@@ -108,7 +107,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Existing
                 // One display title (2026-09-23): the subtitle is folded into the title text, so
                 // ABS's own subtitle field is always cleared (null) -- never Book.Subtitle.
                 // Preferred Edition (2026-09-24, D4): the edition label calibre's title carries too.
-                var title = LightNovelTitles.Display(author.Name, book.VolumeNumber, book.Subtitle, author.Metadata.Value.EditionLanguage);
+                var title = LightNovelTitles.Display(author.Name, book.VolumeNumber, book.Subtitle, EditionLanguages.ReleaseLanguage(author.Metadata.Value));
                 var seriesMatches = HasSeries(item.SeriesName, author.Name, sequence);
                 var titleMatches = string.Equals(title, item.Title, StringComparison.Ordinal);
                 var subtitleMatches = item.Subtitle.IsNullOrWhiteSpace();

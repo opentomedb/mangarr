@@ -167,6 +167,11 @@ namespace NzbDrone.Core.MetadataSource
         private static readonly Regex CjkScript = new Regex(@"\p{IsHiragana}|\p{IsKatakana}|\p{IsCJKUnifiedIdeographs}|\p{IsHangulSyllables}", RegexOptions.Compiled);
         private static readonly Regex ProductNote = new Regex(@"\b(notebook|coloring book|colouring book|journal)\b|note: this is", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        internal static bool HasCjkScript(string text)
+        {
+            return CjkScript.IsMatch(text);
+        }
+
         public static bool IsAcceptableDescription(string text, string language, out string reason)
         {
             return IsAcceptableDescription(text, language, "en", out reason);
@@ -869,6 +874,19 @@ namespace NzbDrone.Core.MetadataSource
             }
 
             if (language == "ja" && Regex.IsMatch(lower, $@"第\s*0*{n}\s*巻|(?<!\d)0*{n}\s*巻"))
+            {
+                return true;
+            }
+
+            // KR/CN piece 2 (2026-10-02, M5): the Korean and Chinese labels, zh-TW on the zh rule.
+            var baseLanguage = EditionLanguages.BaseCode(language);
+
+            if (baseLanguage == "ko" && Regex.IsMatch(lower, $@"(?:제\s*)?(?<!\d)0*{n}\s*권"))
+            {
+                return true;
+            }
+
+            if (baseLanguage == "zh" && Regex.IsMatch(lower, $@"第\s*0*{n}\s*[卷册冊集]|(?<!\d)0*{n}\s*[卷册冊集]"))
             {
                 return true;
             }

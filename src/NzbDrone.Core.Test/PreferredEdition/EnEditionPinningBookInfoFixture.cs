@@ -27,7 +27,7 @@ namespace NzbDrone.Core.Test.PreferredEdition
                       DisplayName = library == LibraryType.LightNovel ? "Sword Art Online" : "Kaiju No. 8",
                       Status = AuthorStatusType.Continuing,
                       VolumeCount = 2,
-                      JapaneseTotal = 12,
+                      OriginTotal = 12,
                       Overview = "About the series.",
                       CoverUrl = "https://example.test/poster.jpg",
                       PosterSource = "opentome",

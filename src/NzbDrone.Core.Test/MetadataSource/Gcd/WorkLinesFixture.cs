@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
+using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.MetadataSource.Gcd;
@@ -180,6 +181,29 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
 
             var releasing = MangaWork("Naruto", "Boruto: Naruto Next Generations Released");
             WorkLines.SpinOffOf(releasing[1], releasing, LibraryType.Manga).Should().Be("Naruto");
+        }
+
+        // KR/CN consumer (2026-09-29): the main German line of a Korean work with no original line is not a spin-off.
+        [Test]
+        public void the_main_german_line_of_a_korean_work_is_not_labelled_a_spin_off()
+        {
+            var en = new GcdSeries { GcdSeriesId = 5002, Name = "Overgeared", Language = "en", VolumeCount = 11, IsMain = true, Medium = "manhwa", TomeWorkId = "w_og" };
+            var de = new GcdSeries { GcdSeriesId = 5001, Name = "Overgeared", Language = "de", VolumeCount = 10, IsMain = true, Medium = "manhwa", TomeWorkId = "w_og" };
+
+            WorkLines.SpinOffOf(de, new List<GcdSeries> { en, de }, LibraryType.Manga).Should().BeNull();
+        }
+
+        // KR/CN consumer (2026-09-29, spec §3.4): a series bound to a Japanese line finds its collection root.
+        [Test]
+        public void a_bound_series_is_found_by_its_line_before_its_title()
+        {
+            var ja = new GcdSeries { GcdSeriesId = 8001, Name = "Stand Up Start", Language = "ja", TomeId = "rl_ja_sus" };
+            var gcd = new Mock<IGcdMetadataService>();
+            gcd.Setup(s => s.FindSeriesByTomeId("rl_ja_sus")).Returns(ja);
+            gcd.Setup(s => s.FindSeriesByTitle("Stand Up Start", LibraryType.Manga)).Returns((GcdSeries)null);
+
+            WorkLines.LibraryLine(gcd.Object, "rl_ja_sus", "Stand Up Start", LibraryType.Manga).Should().BeSameAs(ja);
+            WorkLines.LibraryLine(gcd.Object, null, "Stand Up Start", LibraryType.Manga).Should().BeNull();
         }
     }
 }

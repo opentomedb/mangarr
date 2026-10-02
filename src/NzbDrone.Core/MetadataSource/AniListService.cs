@@ -38,6 +38,7 @@ namespace NzbDrone.Core.MetadataSource
         public int? AverageScore { get; set; }  // AniList 0-100 series score (real, series-level)
         public int? Popularity { get; set; }
         public int? StartYear { get; set; }     // JP serialization start — floor for backfilled per-volume dates
+        public string CountryOfOrigin { get; set; }  // KR/CN piece 2 (2026-10-02, M4): AniList's countryOfOrigin (JP / KR / CN / TW); null when absent
         public string MatchedVia { get; set; }  // primary | synonym | article | substring | ceiling | alias | relaxed | catalogue | id
     }
 
@@ -58,6 +59,7 @@ namespace NzbDrone.Core.MetadataSource
         public int? StartYear { get; set; }
         public string CoverUrl { get; set; }
         public string Description { get; set; }
+        public string CountryOfOrigin { get; set; }  // M4: JP / KR / CN / TW, null when AniList sent none
 
         public string DisplayTitle => TitleEnglish ?? TitleRomaji ?? TitleNative;
 
@@ -85,7 +87,10 @@ namespace NzbDrone.Core.MetadataSource
         // line catalogueVolumeCount came from (not an alias or arc title the line was found by) —
         // the ranker's R4 ceiling and R5 substring tiers read the count as the title's and run
         // only then.
-        AniListSeries FindSeries(string title, LibraryType library, int? catalogueVolumeCount, IReadOnlyList<string> aliases, bool relaxed = false, bool titleIsLineName = false);
+        //
+        // expectedOrigin (KR/CN piece 2, 2026-10-02, M4): Origin.OfMedium of the catalogue hint line; a candidate
+        // of another origin is dropped from every pass (title page, alias retries, relaxed). Null = no guard.
+        AniListSeries FindSeries(string title, LibraryType library, int? catalogueVolumeCount, IReadOnlyList<string> aliases, bool relaxed = false, bool titleIsLineName = false, string expectedOrigin = null);
 
         // Media(id:). Null when AniList has no such entry or the call failed. MatchedVia = "id".
         AniListSeries GetById(int anilistId);
@@ -105,7 +110,7 @@ namespace NzbDrone.Core.MetadataSource
         public const int MaxAliasSearches = 3;
 
         private const string MediaFields =
-            "id format status volumes chapters averageScore popularity description(asHtml: false) synonyms " +
+            "id format status volumes chapters averageScore popularity description(asHtml: false) synonyms countryOfOrigin " +
             "startDate { year } title { romaji english native } coverImage { extraLarge large }";
 
         // Page of candidates rather than the single top hit: AniList ranks fuzzily, and for
@@ -133,7 +138,7 @@ namespace NzbDrone.Core.MetadataSource
             return FindSeries(title, LibraryType.Manga, null, Array.Empty<string>(), relaxed);
         }
 
-        public AniListSeries FindSeries(string title, LibraryType library, int? catalogueVolumeCount, IReadOnlyList<string> aliases, bool relaxed = false, bool titleIsLineName = false)
+        public AniListSeries FindSeries(string title, LibraryType library, int? catalogueVolumeCount, IReadOnlyList<string> aliases, bool relaxed = false, bool titleIsLineName = false, string expectedOrigin = null)
         {
             if (title.IsNullOrWhiteSpace())
             {
@@ -156,7 +161,7 @@ namespace NzbDrone.Core.MetadataSource
                 // rules and run here on every call, the search box's included, before the relaxed
                 // pass below; the relaxed pass itself is unchanged and only sees what they left.
                 // R4 and R5 need a catalogue count AND titleIsLineName.
-                var strict = AniListRanker.Pick(candidates, TitleNormalizer.ForSearch(title), catalogueVolumeCount, termIsLineName: titleIsLineName);
+                var strict = AniListRanker.Pick(candidates, TitleNormalizer.ForSearch(title), catalogueVolumeCount, termIsLineName: titleIsLineName, expectedOrigin: expectedOrigin);
 
                 if (strict.Pick != null)
                 {
@@ -186,13 +191,13 @@ namespace NzbDrone.Core.MetadataSource
                     }
 
                     var query = TitleNormalizer.ForSearch(alias);
-                    var byAlias = AniListRanker.Pick(candidates, query, catalogueVolumeCount, ownName: false);
+                    var byAlias = AniListRanker.Pick(candidates, query, catalogueVolumeCount, ownName: false, expectedOrigin: expectedOrigin);
 
                     // The fresh search is for add/refresh; the search box keeps today's latency.
                     if (byAlias.Pick == null && !relaxed && searches < MaxAliasSearches)
                     {
                         searches++;
-                        byAlias = AniListRanker.Pick(Candidates(alias, library), query, catalogueVolumeCount, ownName: false);
+                        byAlias = AniListRanker.Pick(Candidates(alias, library), query, catalogueVolumeCount, ownName: false, expectedOrigin: expectedOrigin);
                     }
 
                     if (byAlias.Pick != null)
@@ -215,7 +220,7 @@ namespace NzbDrone.Core.MetadataSource
                 if (relaxed)
                 {
                     var loose = candidates
-                        .Where(c => c.Format != AniListRanker.OneShot)
+                        .Where(c => c.Format != AniListRanker.OneShot && Origin.Agrees(expectedOrigin, c.CountryOfOrigin))
                         .Select(c => new { Candidate = c, Score = TitleMatcher.SearchScore(title, c.AllTitles) })
                         .Where(x => x.Score >= TitleMatcher.SearchFloor)
                         .OrderByDescending(x => x.Score + (0.3m * PopularityWeight(x.Candidate.Popularity)))
@@ -405,6 +410,7 @@ namespace NzbDrone.Core.MetadataSource
                 AverageScore = c.AverageScore,
                 Popularity = c.Popularity,
                 StartYear = c.StartYear,
+                CountryOfOrigin = c.CountryOfOrigin,
                 MatchedVia = via
             };
         }
@@ -422,6 +428,7 @@ namespace NzbDrone.Core.MetadataSource
                 Status = m.Status,
                 Volumes = m.Volumes,
                 Chapters = m.Chapters,
+                CountryOfOrigin = m.CountryOfOrigin,
                 Popularity = m.Popularity,
                 AverageScore = m.AverageScore,
                 StartYear = m.StartDate?.Year,
@@ -516,6 +523,9 @@ namespace NzbDrone.Core.MetadataSource
 
             [JsonProperty("chapters")]
             public int? Chapters { get; set; }
+
+            [JsonProperty("countryOfOrigin")]
+            public string CountryOfOrigin { get; set; }
 
             [JsonProperty("averageScore")]
             public int? AverageScore { get; set; }

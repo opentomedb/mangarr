@@ -48,7 +48,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             gcd.Setup(s => s.GetAliases(It.IsAny<int>())).Returns(new List<string>());
 
             Mocker.GetMock<IAniListService>()
-                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>()))
                   .Returns(new AniListSeries { Id = 53390, EnglishTitle = "Attack on Titan", RomajiTitle = "Shingeki no Kyojin", Status = "FINISHED", Volumes = 34, MatchedVia = "primary" });
 
             Mocker.GetMock<IAudibleCatalogService>()
@@ -77,7 +77,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
 
             s.VolumeCount.Should().Be(20);
             s.Status.Should().Be(AuthorStatusType.Stalled);
-            s.JapaneseTotal.Should().Be(34);
+            s.OriginTotal.Should().Be(34);
             s.DisplayName.Should().Be("L'Attaque des Titans");
             s.IdentityName.Should().Be("Attack on Titan");
             s.EditionLanguage.Should().Be("fr");
@@ -140,6 +140,36 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
                 .Should().Be("Attack on Titan");
             MangaSeriesMetadataProvider.EditionDisplayName(japanese, "ja", null, "Attack on Titan", LibraryType.Manga)
                 .Should().Be("Attack on Titan");
+        }
+
+        // KR/CN piece 2 (2026-10-02, M5): a Korean or Chinese edition is named like a Japanese one -- AniList's
+        // romanized title, the native-script titles kept as aliases.
+        [Test]
+        public void a_korean_edition_is_named_by_the_romaji_title_and_keeps_native_aliases()
+        {
+            var korean = new GcdSeries { GcdSeriesId = 1007, Name = "Solo Leveling", Language = "ko", VolumeCount = 14, TomeId = "rl_ko", TomeWorkId = "w_sl", Medium = "manhwa", LocalName = "나 혼자만 레벨업" };
+            GivenResolution(korean, "ko");
+            Mocker.GetMock<IAniListService>()
+                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>()))
+                  .Returns(new AniListSeries { Id = 105398, EnglishTitle = "Solo Leveling", RomajiTitle = "Na Honjaman Level Up", NativeTitle = "나 혼자만 레벨업", Status = "FINISHED", Volumes = 14, CountryOfOrigin = "KR", MatchedVia = "primary" });
+
+            var s = Subject.GetSeries("Solo Leveling", 0, false, LibraryType.Manga, null, "Solo Leveling", new EditionRequest { Language = "ko" });
+
+            s.DisplayName.Should().Be("Na Honjaman Level Up");
+            s.EditionLanguage.Should().Be("ko");
+            s.AltTitles.Should().Contain("나 혼자만 레벨업");
+            s.AltTitles.Should().Contain("Solo Leveling");
+        }
+
+        [Test]
+        public void a_chinese_edition_is_named_by_the_romaji_title_else_the_anchor()
+        {
+            var chinese = new GcdSeries { GcdSeriesId = 1008, Language = "zh-TW", LocalName = "霹靂神州" };
+
+            MangaSeriesMetadataProvider.EditionDisplayName(chinese, "zh-TW", new AniListSeries { RomajiTitle = "Pili Shenzhou" }, "Pili Fantasy", LibraryType.Manga)
+                .Should().Be("Pili Shenzhou");
+            MangaSeriesMetadataProvider.EditionDisplayName(chinese, "zh", null, "Pili Fantasy", LibraryType.Manga)
+                .Should().Be("Pili Fantasy");
         }
 
         [Test]
@@ -422,7 +452,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             GivenResolution(FrenchNovel, "fr");
             Mocker.GetMock<IGoogleBooksService>().Setup(s => s.LookupByIsbn(It.IsAny<string>())).Returns(new VolumeDetails());
             Mocker.GetMock<IAniListService>()
-                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>()))
                   .Returns(new AniListSeries { Id = 86302, EnglishTitle = "Sword Art Online", Format = "NOVEL", MatchedVia = "primary" });
         }
 
@@ -614,6 +644,345 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             var s = Subject.GetSeries("Les Carnets de l'apothicaire", 0, false, LibraryType.LightNovel, null, "Les Carnets De L Apothicaire", new EditionRequest { Chain = new[] { "fr" } });
 
             s.NotInCatalogue.Should().BeTrue();
+        }
+
+        // KR/CN consumer (2026-09-29, spec §3.2).
+        private static readonly GcdSeries Japanese = new GcdSeries
+        {
+            GcdSeriesId = 8001, Name = "Stand Up Start", Language = "ja", VolumeCount = 7, Status = "ongoing",
+            TomeId = "rl_ja_sus", TomeWorkId = "w_sus", Medium = "manga", IsMain = true, LocalName = "スタンドUPスタート"
+        };
+
+        private void GivenJapaneseOnlyWork()
+        {
+            var gcd = Mocker.GetMock<IGcdMetadataService>();
+            gcd.Setup(s => s.FindSeriesByTitle("Stand Up Start", LibraryType.Manga)).Returns((GcdSeries)null);
+            gcd.Setup(s => s.FindSeriesByAnilistId(112233, LibraryType.Manga)).Returns(Japanese);
+            gcd.Setup(s => s.Markets()).Returns(new Dictionary<string, int> { { "ja", 1 } });
+            gcd.Setup(s => s.GetVolumes(8001, true)).Returns(new List<GcdVolume> { new GcdVolume { VolumeNumber = 1, ReleaseDate = "2019-03-01" } });
+
+            Mocker.GetMock<IAniListService>()
+                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>()))
+                  .Returns(new AniListSeries { Id = 112233, EnglishTitle = "Stand Up Start", RomajiTitle = "Stand UP Start", Status = "RELEASING", MatchedVia = "primary" });
+
+            Mocker.GetMock<IEditionResolver>()
+                  .Setup(s => s.ResolveFallback(Japanese, It.IsAny<IReadOnlyList<string>>(), LibraryType.Manga))
+                  .Returns(new EditionResolution { Line = Japanese, Language = "ja" });
+        }
+
+        [Test]
+        public void a_new_entry_of_a_japanese_only_work_binds_the_japanese_line_with_an_english_name()
+        {
+            GivenJapaneseOnlyWork();
+
+            MangaSeriesMetadata s;
+            using (MangaSeriesMetadataProvider.NewEntryFallback(new[] { "en" }))
+            {
+                s = Subject.GetSeries("Stand Up Start", 0, false);
+            }
+
+            s.TomeLineId.Should().Be("rl_ja_sus");
+            s.EditionLanguage.Should().Be("ja");
+            s.EditionFallback.Should().BeTrue();
+            s.DisplayName.Should().Be("Stand Up Start");
+            s.VolumeCount.Should().Be(7);
+        }
+
+        // Staging fix S1 (2026-10-01, spec §3.2): a NEW entry whose request carries the chosen line binds it by id,
+        // though the line has no AniList id and a name unlike the AniList title; the fallback re-pick is not what binds it.
+        [Test]
+        public void a_new_entry_carrying_its_chosen_line_binds_it_by_id_without_the_repick()
+        {
+            var noritaka = new GcdSeries
+            {
+                GcdSeriesId = 8101, Name = "Noritaka", Language = "fr", VolumeCount = 18, Status = "ongoing",
+                TomeId = "rl_803b7b82193d", TomeWorkId = "w_noritaka", Medium = "manga", IsMain = true, LocalName = "Noritaka"
+            };
+
+            // Only a request naming the chosen line resolves it (the proxy's request after the fix).
+            Mocker.GetMock<IEditionResolver>()
+                  .Setup(r => r.Resolve(It.IsAny<GcdSeries>(), It.Is<EditionRequest>(e => e.TomeLineId == "rl_803b7b82193d" && e.Language == "fr" && e.Fallback), LibraryType.Manga, It.IsAny<string>()))
+                  .Returns(new EditionResolution { Line = noritaka, Language = "fr", FromBinding = true });
+            var gcd = Mocker.GetMock<IGcdMetadataService>();
+            gcd.Setup(g => g.GetVolumes(8101, true)).Returns(new List<GcdVolume> { new GcdVolume { VolumeNumber = 1, ReleaseDate = "2019-03-01" } });
+            Mocker.GetMock<IAniListService>()
+                  .Setup(a => a.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>()))
+                  .Returns(new AniListSeries { Id = 33301, EnglishTitle = null, RomajiTitle = "Hakaiou Noritaka!", Status = "FINISHED", MatchedVia = "id" });
+
+            MangaSeriesMetadata s;
+            using (MangaSeriesMetadataProvider.NewEntryFallback(new[] { "en" }))
+            {
+                s = Subject.GetSeries("Hakaiou Noritaka", 0, false, LibraryType.Manga, null, "Hakaiou Noritaka!", new EditionRequest { Language = "fr", TomeLineId = "rl_803b7b82193d", Fallback = true });
+            }
+
+            s.TomeLineId.Should().Be("rl_803b7b82193d");
+            s.EditionLanguage.Should().Be("fr");
+            s.EditionFallback.Should().BeTrue();
+            Mocker.GetMock<IEditionResolver>().Verify(r => r.ResolveFallback(It.IsAny<GcdSeries>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<LibraryType>()), Times.Never());
+            gcd.Verify(g => g.FindSeriesByTitle(It.IsAny<string>(), It.IsAny<LibraryType>(), It.Is<IReadOnlyList<string>>(l => l != null)), Times.Never());
+        }
+
+        [Test]
+        public void without_the_scope_nothing_falls_back()
+        {
+            GivenJapaneseOnlyWork();
+
+            var s = Subject.GetSeries("Stand Up Start", 0, false);
+
+            s.TomeLineId.Should().BeNull();
+            s.EditionFallback.Should().BeFalse();
+            Mocker.GetMock<IEditionResolver>().Verify(r => r.ResolveFallback(It.IsAny<GcdSeries>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<LibraryType>()), Times.Never());
+        }
+
+        [Test]
+        public void the_scope_is_cleared_after_dispose()
+        {
+            GivenJapaneseOnlyWork();
+
+            using (MangaSeriesMetadataProvider.NewEntryFallback(new[] { "en" }))
+            {
+                Subject.GetSeries("Stand Up Start", 0, false);
+            }
+
+            Subject.GetSeries("Stand Up Start", 0, false).EditionFallback.Should().BeFalse();
+        }
+
+        [Test]
+        public void an_english_line_found_by_title_never_asks_for_a_fallback()
+        {
+            using (MangaSeriesMetadataProvider.NewEntryFallback(new[] { "en" }))
+            {
+                var s = Subject.GetSeries("Attack on Titan", 0, false);
+
+                s.EditionLanguage.Should().BeNull();
+                s.TomeLineId.Should().Be("rl_en");
+                s.EditionFallback.Should().BeFalse();
+            }
+
+            Mocker.GetMock<IEditionResolver>().Verify(r => r.ResolveFallback(It.IsAny<GcdSeries>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<LibraryType>()), Times.Never());
+        }
+
+        [Test]
+        public void a_fallback_series_refresh_keeps_the_english_name()
+        {
+            GivenResolution(Japanese, "ja");
+
+            // A refresh binds AniList by id (GetById), not by the title search the add path mocks above.
+            Mocker.GetMock<IAniListService>().Setup(a => a.GetById(112233))
+                  .Returns(new AniListSeries { Id = 112233, EnglishTitle = "Stand Up Start", RomajiTitle = "Stand UP Start", Status = "RELEASING", MatchedVia = "id" });
+
+            var request = new EditionRequest { Language = "ja", TomeLineId = "rl_ja_sus", Fallback = true };
+            var s = Subject.GetSeries("Stand Up Start", 0, false, LibraryType.Manga, 112233, "Stand Up Start", request);
+
+            // The English title wins, not the edition rule's romaji ("Stand UP Start") or the native local name.
+            s.DisplayName.Should().Be("Stand Up Start");
+            s.EditionFallback.Should().BeTrue();
+        }
+
+        [Test]
+        public void fallback_display_name_prefers_english_then_romaji_then_the_line_name()
+        {
+            MangaSeriesMetadataProvider.FallbackDisplayName(Japanese, new AniListSeries { EnglishTitle = "Stand Up Start", RomajiTitle = "Stand UP Start" }, "q", LibraryType.Manga).Should().Be("Stand Up Start");
+            MangaSeriesMetadataProvider.FallbackDisplayName(Japanese, new AniListSeries { RomajiTitle = "Stand UP Start" }, "q", LibraryType.Manga).Should().Be("Stand UP Start");
+            MangaSeriesMetadataProvider.FallbackDisplayName(Japanese, null, "q", LibraryType.Manga).Should().Be("Stand Up Start");
+            MangaSeriesMetadataProvider.FallbackDisplayName(new GcdSeries { LocalName = "スタンドUPスタート" }, null, "q", LibraryType.Manga).Should().Be("q");
+        }
+
+        // Final fix wave I6: AniList is queried manga-only, so its title names the manga -- a light-novel fallback
+        // is named after its line, qualifier stripped, else the identity name.
+        [Test]
+        public void a_light_novel_fallback_is_named_after_its_line_without_the_qualifier()
+        {
+            var novel = new GcdSeries { Name = "Overlord (novel series)", LocalName = "オーバーロード", Language = "ja", Medium = "light_novel" };
+            var mangaTitle = new AniListSeries { EnglishTitle = "Overlord: The Undead King Oh!", RomajiTitle = "Overlord" };
+
+            MangaSeriesMetadataProvider.FallbackDisplayName(novel, mangaTitle, "q", LibraryType.LightNovel).Should().Be("Overlord");
+            MangaSeriesMetadataProvider.FallbackDisplayName(new GcdSeries { LocalName = "オーバーロード" }, mangaTitle, "q", LibraryType.LightNovel).Should().Be("q");
+        }
+
+        [Test]
+        public void an_english_line_picked_by_the_fallback_names_the_entry_and_survives_a_refresh()
+        {
+            var german = new GcdSeries { GcdSeriesId = 8100, Name = "Overgeared DE", Language = "de", VolumeCount = 3, TomeId = "rl_de_og", TomeWorkId = "w_og", Medium = "manga", IsMain = true };
+            var english = new GcdSeries { GcdSeriesId = 8101, Name = "Overgeared", Language = "en", VolumeCount = 5, TomeId = "rl_en_og", TomeWorkId = "w_og", Medium = "manga", IsMain = true };
+            var gcd = Mocker.GetMock<IGcdMetadataService>();
+            gcd.Setup(s => s.FindSeriesByTitle("Over Geared", LibraryType.Manga)).Returns((GcdSeries)null);
+            gcd.Setup(s => s.FindSeriesByTitle("Overgeared", LibraryType.Manga)).Returns(english);
+            gcd.Setup(s => s.FindSeriesByAnilistId(445566, LibraryType.Manga)).Returns(german);
+            gcd.Setup(s => s.Markets()).Returns(new Dictionary<string, int> { { "de", 1 }, { "en", 1 } });
+            Mocker.GetMock<IAniListService>()
+                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>()))
+                  .Returns(new AniListSeries { Id = 445566, EnglishTitle = "Over Geared", Status = "RELEASING", MatchedVia = "primary" });
+            Mocker.GetMock<IEditionResolver>()
+                  .Setup(s => s.ResolveFallback(german, It.IsAny<IReadOnlyList<string>>(), LibraryType.Manga))
+                  .Returns(new EditionResolution { Line = english, Language = "en" });
+
+            MangaSeriesMetadata s;
+            using (MangaSeriesMetadataProvider.NewEntryFallback(new[] { "en" }))
+            {
+                s = Subject.GetSeries("Over Geared", 0, false);
+            }
+
+            s.DisplayName.Should().Be("Overgeared");
+            s.IdentityName.Should().Be("Over Geared");
+            s.TomeLineId.Should().Be("rl_en_og");
+            s.EditionFallback.Should().BeFalse();
+
+            Subject.GetSeries("Overgeared", 0, false).TomeLineId.Should().Be("rl_en_og");
+        }
+
+        // Final fix wave I4: an explicit Add-form edition for a new entry whose title finds no line in that language
+        // is looked up by AniList id / any-language title in THAT language before it is refused. The flag says
+        // whether the language is outside the user's configured languages (the scope's chain).
+        private static readonly GcdSeries JapaneseWorkFrench = new GcdSeries
+        {
+            GcdSeriesId = 8004, Name = "Stand Up Start", Language = "fr", VolumeCount = 4, Status = "ongoing",
+            TomeId = "rl_fr_sus", TomeWorkId = "w_sus", Medium = "manga", IsMain = true, OrigSeriesId = 8001, LocalName = "Stand Up Start (FR)"
+        };
+
+        private MangaSeriesMetadata ExplicitAdd(string language, params string[] userChain)
+        {
+            using (MangaSeriesMetadataProvider.NewEntryFallback(userChain))
+            {
+                return Subject.GetSeries("Stand Up Start", 0, false, LibraryType.Manga, null, null, new EditionRequest { Language = language });
+            }
+        }
+
+        [Test]
+        public void an_explicit_japanese_add_of_a_japanese_only_work_binds_the_japanese_line()
+        {
+            GivenJapaneseOnlyWork();
+
+            var s = ExplicitAdd("ja", "en");
+
+            s.TomeLineId.Should().Be("rl_ja_sus");
+            s.EditionLanguage.Should().Be("ja");
+            s.EditionFallback.Should().BeTrue();
+            Mocker.GetMock<IEditionResolver>().Verify(r => r.ResolveFallback(Japanese, It.Is<IReadOnlyList<string>>(c => c.Count == 1 && c[0] == "ja"), LibraryType.Manga), Times.Once());
+        }
+
+        [Test]
+        public void an_explicit_french_add_binds_the_works_french_line()
+        {
+            GivenJapaneseOnlyWork();
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.GetVolumes(8004, true)).Returns(new List<GcdVolume>());
+            Mocker.GetMock<IEditionResolver>()
+                  .Setup(r => r.ResolveFallback(Japanese, It.Is<IReadOnlyList<string>>(c => c.Count == 1 && c[0] == "fr"), LibraryType.Manga))
+                  .Returns(new EditionResolution { Line = JapaneseWorkFrench, Language = "fr" });
+
+            var s = ExplicitAdd("fr", "fr", "en");
+
+            s.TomeLineId.Should().Be("rl_fr_sus");
+            s.EditionLanguage.Should().Be("fr");
+            s.EditionFallback.Should().BeFalse();
+        }
+
+        [Test]
+        public void an_explicit_german_add_with_no_german_line_is_still_refused()
+        {
+            // The fallback lookup's pick is the Japanese line (no German one): not the language asked for.
+            GivenJapaneseOnlyWork();
+
+            Assert.Throws<EditionUnavailableException>(() => ExplicitAdd("de", "en"));
+        }
+
+        [Test]
+        public void an_explicit_edition_without_the_new_entry_scope_is_refused_as_today()
+        {
+            GivenJapaneseOnlyWork();
+
+            Assert.Throws<EditionUnavailableException>(() =>
+                Subject.GetSeries("Stand Up Start", 0, false, LibraryType.Manga, null, null, new EditionRequest { Language = "ja" }));
+        }
+
+        // Description round (KR/CN consumer, the maintainer 2026-09-29 "Go with english"): a fallback series' per-volume blurbs
+        // and subtitles are fetched and gated as English, exactly as for an unbound English entry; covers and the
+        // structure stay the bound line's. Paired with the same binding as a real edition (fallback false).
+        private const string JapaneseBlurb = "\u3053\u306e\u7269\u8a9e\u306f\u3001\u30b9\u30bf\u30f3\u30c9\u30a2\u30c3\u30d7\u3092\u76ee\u6307\u3059\u5c11\u5e74\u305f\u3061\u306e\u9752\u6625\u3067\u3059\u3002" + "\u3053\u306e\u7269\u8a9e\u306f\u3001\u30b9\u30bf\u30f3\u30c9\u30a2\u30c3\u30d7\u3092\u76ee\u6307\u3059\u5c11\u5e74\u305f\u3061\u306e\u9752\u6625\u3067\u3059\u3002";
+        private const string EnglishBlurb = "A group of boys chases a dream of standing up on stage, and the summer that tests them all.";
+
+        private MangaSeriesMetadata RefreshJapaneseLine(bool fallback, LibraryType library = LibraryType.Manga, string artifactTitle = null, string englishBlurb = EnglishBlurb)
+        {
+            var line = library == LibraryType.Manga ? Japanese : new GcdSeries
+            {
+                GcdSeriesId = 8002, Name = "Stand Up Start", Language = "ja", VolumeCount = 1, TomeId = "rl_ja_sus", TomeWorkId = "w_sus", Medium = "light_novel", LocalName = "\u30b9\u30bf\u30f3\u30c9UP\u30b9\u30bf\u30fc\u30c8"
+            };
+            GivenResolution(line, "ja");
+            var gcd = Mocker.GetMock<IGcdMetadataService>();
+            gcd.SetupGet(s => s.Available).Returns(true);
+            gcd.Setup(s => s.GetVolumes(line.GcdSeriesId, true)).Returns(new List<GcdVolume> { new GcdVolume { VolumeNumber = 1, ReleaseDate = "2019-03-01", Isbn13 = "9784000000001", Title = artifactTitle } });
+            Mocker.GetMock<IAniListService>().Setup(a => a.GetById(112233))
+                  .Returns(new AniListSeries { Id = 112233, EnglishTitle = "Stand Up Start", RomajiTitle = "Stand UP Start", Status = "RELEASING", MatchedVia = "id" });
+            var google = Mocker.GetMock<IGoogleBooksService>();
+            google.Setup(g => g.LookupByIsbn("9784000000001")).Returns(new VolumeDetails { Title = "Stand Up Start 1", Language = "ja", Description = JapaneseBlurb, Isbn13 = "9784000000001" });
+            google.Setup(g => g.LookupVolume("Stand Up Start", 1)).Returns(new VolumeDetails { Title = "Stand Up Start, Vol. 1", Language = "en", Description = englishBlurb });
+            google.Setup(g => g.LookupVolume("Stand UP Start", 1, "ja")).Returns(new VolumeDetails { Title = "Stand UP Start 1", Language = "ja", Description = JapaneseBlurb });
+            google.Setup(g => g.LookupVolume("Stand Up Start", 1, "ja")).Returns(new VolumeDetails { Title = "Stand UP Start 1", Language = "ja", Description = JapaneseBlurb });
+
+            return Subject.GetSeries("Stand Up Start", 0, true, library, 112233, "Stand Up Start", new EditionRequest { Language = "ja", TomeLineId = "rl_ja_sus", Fallback = fallback });
+        }
+
+        [Test]
+        public void a_fallback_series_takes_an_english_blurb_by_title_and_rejects_the_japanese_record()
+        {
+            var s = RefreshJapaneseLine(fallback: true);
+
+            s.EditionFallback.Should().BeTrue();
+            s.EditionLanguage.Should().Be("ja");
+            s.Volumes[0].Overview.Should().Be(EnglishBlurb);
+            s.Volumes[0].OverviewSource.Should().Be("title");
+            Mocker.GetMock<IGoogleBooksService>().Verify(g => g.LookupVolume(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public void a_fallback_series_with_no_english_blurb_has_none()
+        {
+            var s = RefreshJapaneseLine(fallback: true, englishBlurb: null);
+
+            s.Volumes[0].Overview.Should().BeNull();
+        }
+
+        [Test]
+        public void the_same_binding_as_an_edition_takes_the_japanese_blurb_in_japanese()
+        {
+            var s = RefreshJapaneseLine(fallback: false);
+
+            s.EditionFallback.Should().BeFalse();
+            s.Volumes[0].Overview.Should().Be(JapaneseBlurb);
+            s.Volumes[0].OverviewSource.Should().Be("isbn");
+        }
+
+        [Test]
+        public void a_fallback_series_keeps_the_bound_lines_structure_and_isbns()
+        {
+            var s = RefreshJapaneseLine(fallback: true);
+
+            s.VolumeCount.Should().Be(7);
+            s.Volumes[0].Isbn13.Should().Be("9784000000001");
+        }
+
+        [Test]
+        public void a_fallback_light_novel_keeps_a_native_script_subtitle_out()
+        {
+            var s = RefreshJapaneseLine(fallback: true, LibraryType.LightNovel, "\u65c5\u7acb\u3061\u306e\u671d");
+
+            s.Volumes[0].Subtitle.Should().BeNull();
+        }
+
+        [Test]
+        public void the_same_binding_as_an_edition_keeps_its_native_script_subtitle()
+        {
+            var s = RefreshJapaneseLine(fallback: false, LibraryType.LightNovel, "\u65c5\u7acb\u3061\u306e\u671d");
+
+            s.Volumes[0].Subtitle.Should().Be("\u65c5\u7acb\u3061\u306e\u671d");
+        }
+
+        [Test]
+        public void a_fallback_light_novel_keeps_an_english_subtitle()
+        {
+            var s = RefreshJapaneseLine(fallback: true, LibraryType.LightNovel, "The Morning of Departure");
+
+            s.Volumes[0].Subtitle.Should().Be("The Morning of Departure");
         }
     }
 }

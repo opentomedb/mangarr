@@ -46,6 +46,13 @@ namespace NzbDrone.Core.Parser
         // middle dot (・, U+30FB) is left out -- Chinese titles copied from Japanese keep it.
         private static readonly Regex Kana = new Regex(@"[\p{IsHiragana}\p{IsKatakana}-[\u30FB]]", RegexOptions.Compiled);
 
+        // KR/CN piece 2 (2026-10-02, M5): Hangul (syllables, jamo, compatibility jamo) is written only in Korean.
+        private static readonly Regex Hangul = new Regex(@"[가-힣ᄀ-ᇿ㄰-㆏]", RegexOptions.Compiled);
+
+        // KR/CN piece 2 (2026-10-02, M5): a digit before 卷 (U+5377), 册 or 冊 is a Chinese volume marker -- Japanese
+        // writes 巻 (U+5DFB). 集 is left out: Japanese numbers collections with it too.
+        private static readonly Regex ChineseVolumeMarker = new Regex(@"\d\s*[卷册冊]", RegexOptions.Compiled);
+
         public static List<string> Parse(string title)
         {
             if (string.IsNullOrWhiteSpace(title))
@@ -55,11 +62,23 @@ namespace NzbDrone.Core.Parser
 
             var found = Tags.Where(t => t.Pattern.IsMatch(title)).Select(t => t.Language).Distinct().ToList();
 
-            // Kana count only when no other language is tagged: "進撃の巨人 第05巻 [ENG]" is an English
-            // release under its native title, not Japanese evidence.
-            if (found.Count == 0 && Kana.IsMatch(title))
+            // Script evidence counts only when no language is tagged: "進撃の巨人 第05巻 [ENG]" is an English
+            // release under its native title. Kana → ja; else Hangul → ko; else a Chinese volume marker → zh
+            // (kanji alone are shared by Japanese and Chinese and prove nothing).
+            if (found.Count == 0)
             {
-                found.Add("ja");
+                if (Kana.IsMatch(title))
+                {
+                    found.Add("ja");
+                }
+                else if (Hangul.IsMatch(title))
+                {
+                    found.Add("ko");
+                }
+                else if (ChineseVolumeMarker.IsMatch(title))
+                {
+                    found.Add("zh");
+                }
             }
 
             return found;

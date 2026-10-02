@@ -7,7 +7,10 @@ using NzbDrone.Common.Disk;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Exceptions;
+using NzbDrone.Core.MetadataSource;
+using NzbDrone.Core.MetadataSource.Audible;
 using NzbDrone.Core.MetadataSource.BookInfo;
+using NzbDrone.Core.MetadataSource.Gcd;
 using NzbDrone.Core.MetadataSource.Manga;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
@@ -98,6 +101,29 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             author.Metadata.Value.TomeLineId.Should().Be("rl_en");
             Mocker.GetMock<IMangaSeriesMetadataProvider>()
                   .Verify(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<string>(), It.IsAny<EditionRequest>()), Times.Never());
+        }
+
+        // Staging fix S1 (2026-10-01, spec §3.2): an add of a fallback candidate carries the line the search chose,
+        // so the resolve binds it by id instead of re-finding the work by a name that may not match.
+        [TestCase("en", true)]
+        [TestCase("fr,en", false)]
+        [TestCase("ja,fr", false)]
+        public void an_add_carrying_the_chosen_line_resolves_it_by_id(string chain, bool fallback)
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(c => c.PreferredEditionLanguages).Returns(chain);
+            EditionRequest seen = null;
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Setup(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<string>(), It.IsAny<EditionRequest>()))
+                  .Callback<string, int, bool, LibraryType, int?, string, EditionRequest>((n, m, r, l, a, i, e) => seen = e)
+                  .Returns(French());
+
+            Subject.GetAuthorInfo("local-hakaiou-noritaka", false, false, "fr", "rl_x");
+
+            seen.Should().NotBeNull();
+            seen.Language.Should().Be("fr");
+            seen.TomeLineId.Should().Be("rl_x");
+            seen.Fallback.Should().Be(fallback);
+            seen.Chain.Should().BeNull();
         }
 
         // 2026-09-26 (migration 058): the bound line's collected flag follows the line the pass bound.
@@ -407,7 +433,7 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
         // when the entry carries an AnchorName; the scope is read during the call.
         private string CaptureScopedPinName()
         {
-            string captured = "(not called)";
+            var captured = "(not called)";
             Mocker.GetMock<IMangaSeriesMetadataProvider>()
                   .Setup(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<string>()))
                   .Callback(() => captured = MangaSeriesMetadataProvider.ScopedEnglishPinName)
@@ -420,6 +446,76 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             MangaSeriesMetadataProvider.ScopedEnglishPinName.Should().BeNull();
 
             return captured;
+        }
+
+        // KR/CN consumer (2026-09-29, spec §3.2): the fallback scope is open only for a NEW entry.
+        private IReadOnlyList<string> CaptureScopedFallbackChain()
+        {
+            IReadOnlyList<string> captured = null;
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Setup(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<string>()))
+                  .Callback(() => captured = MangaSeriesMetadataProvider.ScopedFallbackChain)
+                  .Returns(English());
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Setup(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<string>(), It.IsAny<EditionRequest>()))
+                  .Callback(() => captured = MangaSeriesMetadataProvider.ScopedFallbackChain)
+                  .Returns(French());
+
+            Subject.GetAuthorInfo("local-attack-on-titan");
+
+            MangaSeriesMetadataProvider.ScopedFallbackChain.Should().BeNull();
+
+            return captured;
+        }
+
+        [Test]
+        public void a_refresh_of_an_existing_series_opens_no_fallback_scope()
+        {
+            Mocker.GetMock<IAuthorService>().Setup(s => s.FindById("local-attack-on-titan")).Returns(Existing("Attack on Titan", null, null, null));
+
+            CaptureScopedFallbackChain().Should().BeNull();
+        }
+
+        [Test]
+        public void a_new_add_opens_the_fallback_scope_with_the_chain()
+        {
+            var chain = CaptureScopedFallbackChain();
+
+            chain.Should().NotBeNull();
+            chain.Should().Equal("fr", "en");
+        }
+
+        // Final fix wave I4: an explicit non-English Add-form edition opens the scope too (the user's configured chain
+        // rides in it; the provider tries the requested language); an explicit English add stays as today.
+        private IReadOnlyList<string> CaptureScopedFallbackChain(string requestedEdition)
+        {
+            IReadOnlyList<string> captured = null;
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Setup(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<string>()))
+                  .Callback(() => captured = MangaSeriesMetadataProvider.ScopedFallbackChain)
+                  .Returns(English());
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Setup(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<string>(), It.IsAny<EditionRequest>()))
+                  .Callback(() => captured = MangaSeriesMetadataProvider.ScopedFallbackChain)
+                  .Returns(French());
+
+            Subject.GetAuthorInfo("local-attack-on-titan", false, false, requestedEdition);
+
+            MangaSeriesMetadataProvider.ScopedFallbackChain.Should().BeNull();
+
+            return captured;
+        }
+
+        [Test]
+        public void an_explicit_non_english_add_opens_the_fallback_scope_with_the_chain()
+        {
+            CaptureScopedFallbackChain("ja").Should().Equal("fr", "en");
+        }
+
+        [Test]
+        public void an_explicit_english_add_opens_no_fallback_scope()
+        {
+            CaptureScopedFallbackChain("en").Should().BeNull();
         }
 
         [Test]
@@ -660,6 +756,218 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
 
             Mocker.GetMock<IMangaSeriesMetadataProvider>().Verify(s => s.EditionOptions(It.IsAny<string>(), It.IsAny<LibraryType>()), Times.Never());
             Mocker.GetMock<IMangaSeriesMetadataProvider>().Verify(s => s.CatalogueLine(It.IsAny<string>(), It.IsAny<LibraryType>()), Times.Never());
+        }
+
+        // Final fix wave I5: the real search -> add -> refresh flow for a work whose English line the AniList title
+        // misses (the line is named "Overgeared", AniList says "Over Geared"; the AniList id sits on the German line).
+        // The fallback picks the English line: the candidate keeps the AniList-title identity, the add re-enters the
+        // fallback and stores the line's name, and a refresh finds the line by that stored name.
+        [Test]
+        public void an_english_line_picked_by_the_fallback_survives_search_add_and_refresh()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(c => c.PreferredEditionLanguages).Returns("en");
+
+            var german = new GcdSeries { GcdSeriesId = 8100, Name = "Overgeared DE", Language = "de", VolumeCount = 3, TomeId = "rl_de_og", TomeWorkId = "w_og", Medium = "manga", IsMain = true, AnilistId = 445566 };
+            var english = new GcdSeries { GcdSeriesId = 8101, Name = "Overgeared", Language = "en", VolumeCount = 5, TomeId = "rl_en_og", TomeWorkId = "w_og", Medium = "manga", IsMain = true };
+            var gcd = Mocker.GetMock<IGcdMetadataService>();
+            gcd.SetupGet(g => g.Available).Returns(true);
+            gcd.Setup(g => g.FindSeriesByTitle("Overgeared", LibraryType.Manga)).Returns(english);
+            gcd.Setup(g => g.FindSeriesByAnilistId(445566, LibraryType.Manga)).Returns(german);
+            gcd.Setup(g => g.GetWorkLines("w_og")).Returns(new List<GcdSeries> { german, english });
+            gcd.Setup(g => g.Markets()).Returns(new Dictionary<string, int> { { "de", 1 }, { "en", 1 } });
+            gcd.Setup(g => g.GetVolumes(It.IsAny<int>())).Returns(new List<GcdVolume>());
+            gcd.Setup(g => g.GetVolumes(8101)).Returns(Enumerable.Range(1, 5).Select(n => new GcdVolume { VolumeNumber = n }).ToList());
+            gcd.Setup(g => g.GetAliases(It.IsAny<int>())).Returns(new List<string>());
+
+            var ani = new AniListSeries { Id = 445566, EnglishTitle = "Over Geared", Status = "RELEASING", MatchedVia = "primary" };
+            Mocker.GetMock<IAniListService>()
+                  .Setup(a => a.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>()))
+                  .Returns(ani);
+            Mocker.GetMock<IAniListService>().Setup(a => a.GetById(445566)).Returns(ani);
+            Mocker.GetMock<IAudibleCatalogService>().Setup(a => a.GetSeries(It.IsAny<string>(), It.IsAny<IEnumerable<string>>())).Returns(new List<AudibleProduct>());
+
+            Mocker.SetConstant<IEditionResolver>(Mocker.Resolve<EditionResolver>());
+            Mocker.SetConstant<IMangaSeriesMetadataProvider>(Mocker.Resolve<MangaSeriesMetadataProvider>());
+
+            var candidate = Subject.SearchForNewAuthor("over geared", LibraryType.Manga).Single();
+
+            candidate.ForeignAuthorId.Should().Be("local-over-geared");
+            candidate.Name.Should().Be("Overgeared");
+            candidate.Metadata.Value.TomeLineId.Should().Be("rl_en_og");
+
+            var added = Subject.GetAuthorInfo(candidate.ForeignAuthorId, false, false);
+
+            added.Name.Should().Be("Overgeared");
+            added.Metadata.Value.TomeLineId.Should().Be("rl_en_og");
+            added.Metadata.Value.EditionLanguage.Should().BeNull();
+            added.Metadata.Value.EditionFallback.Should().BeFalse();
+
+            var stored = new Author { Id = 7, Metadata = added.Metadata.Value };
+            Mocker.GetMock<IAuthorService>().Setup(a => a.FindById("local-over-geared")).Returns(stored);
+
+            var refreshed = Subject.GetAuthorInfo("local-over-geared", false, false);
+
+            refreshed.Name.Should().Be("Overgeared");
+            refreshed.Metadata.Value.TomeLineId.Should().Be("rl_en_og");
+            refreshed.Books.Value.Should().HaveCount(5);
+        }
+
+        // Follow-up round (KR/CN consumer, I1 residue): a fallback series is bound to its Japanese line for its
+        // structure, but titles, stamps and looks up its volumes as English (EditionLanguages.ReleaseLanguage).
+        // The same binding without the flag (a Japanese edition the user chose) keeps today's edition behaviour.
+        private Author GivenAJapaneseSeries(bool fallback, params string[] files)
+        {
+            var existing = new Author
+            {
+                Id = 7,
+                Path = "/series/sus",
+                Metadata = new AuthorMetadata
+                {
+                    ForeignAuthorId = "local-attack-on-titan", Name = "Stand Up Start", EditionLanguage = "ja", TomeLineId = "rl_ja_sus", EditionFallback = fallback
+                }
+            };
+
+            Mocker.GetMock<IAuthorService>().Setup(s => s.FindById("local-attack-on-titan")).Returns(existing);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.FolderExists("/series/sus")).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(d => d.GetFiles("/series/sus", true)).Returns(files);
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Setup(s => s.ResolveVolume(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<bool>()))
+                  .Returns((string n, double v, bool d) => new MangaVolumeMetadata { VolumeNumber = v });
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Setup(s => s.ResolveVolume(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<string>()))
+                  .Returns((string n, double v, bool d, string l) => new MangaVolumeMetadata { VolumeNumber = v });
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Setup(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<string>(), It.IsAny<EditionRequest>()))
+                  .Returns(new MangaSeriesMetadata
+                  {
+                      DisplayName = "Stand Up Start", IdentityName = "Stand Up Start", EditionLanguage = "ja", TomeLineId = "rl_ja_sus", EditionFallback = fallback, VolumeCount = 1,
+                      Volumes = new List<MangaVolumeMetadata> { new MangaVolumeMetadata { VolumeNumber = 1 } }
+                  });
+
+            return existing;
+        }
+
+        [TestCase(true, "Stand Up Start Vol. 1", "eng")]
+        [TestCase(false, "Stand Up Start 第1巻", "jpn")]
+        public void a_fallback_series_volume_is_titled_and_stamped_like_english(bool fallback, string title, string language)
+        {
+            GivenAJapaneseSeries(fallback);
+
+            var author = Subject.GetAuthorInfo("local-attack-on-titan");
+            var book = author.Books.Value.Single();
+
+            author.Metadata.Value.EditionLanguage.Should().Be("ja");
+            author.Metadata.Value.TomeLineId.Should().Be("rl_ja_sus");
+            book.Title.Should().Be(title);
+            book.Editions.Value.Single().Title.Should().Be(title);
+            book.Editions.Value.Single().Language.Should().Be(language);
+        }
+
+        // Description round, ruling (a): a pass stamps by its own line and flag (M13: one pass never mixes the
+        // two), even when the binding is re-read as moved at write time. A ja fallback pass whose stored binding
+        // moved to a non-fallback fr line still stamps English; the kept binding is what is stored.
+        [Test]
+        public void a_pass_stamps_by_its_own_flag_when_the_stored_binding_moved_mid_pass()
+        {
+            var snapshot = GivenAJapaneseSeries(true);
+            var moved = new Author
+            {
+                Id = 7,
+                Path = "/series/sus",
+                Metadata = new AuthorMetadata
+                {
+                    ForeignAuthorId = "local-attack-on-titan", Name = "Stand Up Start", EditionLanguage = "fr", TomeLineId = "rl_fr_sus", EditionFallback = false
+                }
+            };
+            var reads = 0;
+            Mocker.GetMock<IAuthorService>().Setup(s => s.FindById("local-attack-on-titan")).Returns(() => reads++ == 0 ? snapshot : moved);
+
+            var author = Subject.GetAuthorInfo("local-attack-on-titan");
+            var book = author.Books.Value.Single();
+
+            author.Metadata.Value.EditionLanguage.Should().Be("fr");
+            author.Metadata.Value.EditionFallback.Should().BeFalse();
+            book.Title.Should().Be("Stand Up Start Vol. 1");
+            book.Editions.Value.Single().Language.Should().Be("eng");
+        }
+
+        [Test]
+        public void a_fallback_series_extra_volume_is_resolved_and_titled_like_english()
+        {
+            GivenAJapaneseSeries(true, "/series/sus/Stand Up Start Vol. 3.cbz");
+
+            var books = Subject.GetAuthorInfo("local-attack-on-titan").Books.Value;
+
+            books.Single(b => b.VolumeNumber == 3).Title.Should().Be("Stand Up Start Vol. 3");
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Verify(s => s.ResolveVolume("Stand Up Start", 3, It.IsAny<bool>()), Times.Once());
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Verify(s => s.ResolveVolume(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public void the_same_binding_as_an_edition_resolves_its_extra_volume_in_japanese()
+        {
+            GivenAJapaneseSeries(false, "/series/sus/Stand Up Start Vol. 3.cbz");
+
+            var books = Subject.GetAuthorInfo("local-attack-on-titan").Books.Value;
+
+            books.Single(b => b.VolumeNumber == 3).Title.Should().Be("Stand Up Start 第3巻");
+            Mocker.GetMock<IMangaSeriesMetadataProvider>()
+                  .Verify(s => s.ResolveVolume("Stand Up Start", 3, It.IsAny<bool>(), "ja"), Times.Once());
+        }
+
+        // A downloaded file is matched as the release was named: an English-style series does not read the
+        // edition's "5巻" (as an unbound English entry never did); the edition series still does.
+        [TestCase(true, new double[] { 1 })]
+        [TestCase(false, new double[] { 1, 5 })]
+        public void a_fallback_series_reads_its_files_like_english(bool fallback, double[] volumes)
+        {
+            GivenAJapaneseSeries(fallback, "/series/sus/Stand Up Start 5巻.cbz");
+
+            Subject.GetAuthorInfo("local-attack-on-titan").Books.Value.Select(b => (double)b.VolumeNumber).Should().Equal(volumes);
+        }
+
+        // Follow-up round (KR/CN consumer): a fallback series moved to English by Change Edition refreshes onto the
+        // English line -- real provider and resolver, catalogue mocked. The English refresh asks by AnchorName, else
+        // the stored name: both states Change Edition now writes (renamed: Name = the line's name, no anchor; not
+        // renamed: the old name with the line's name as anchor) find the line; the old name alone (what it wrote
+        // before this round) does not.
+        [TestCase("Stand Up Start", null, 3)]
+        [TestCase("Sutando Appu Sutato", "Stand Up Start", 3)]
+        [TestCase("Sutando Appu Sutato", null, 0)]
+        public void a_fallback_series_moved_to_english_refreshes_onto_the_english_line(string name, string anchorName, int books)
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(c => c.PreferredEditionLanguages).Returns("en");
+
+            var japanese = new GcdSeries { GcdSeriesId = 8001, Name = "Stand Up Start", LocalName = "スタンドUPスタート", Language = "ja", VolumeCount = 7, TomeId = "rl_ja_sus", TomeWorkId = "w_sus", Medium = "manga", IsMain = true };
+            var english = new GcdSeries { GcdSeriesId = 8002, Name = "Stand Up Start", Language = "en", VolumeCount = 3, TomeId = "rl_en_sus", TomeWorkId = "w_sus", Medium = "manga", IsMain = true, OrigSeriesId = 8001 };
+            var gcd = Mocker.GetMock<IGcdMetadataService>();
+            gcd.SetupGet(g => g.Available).Returns(true);
+            gcd.Setup(g => g.FindSeriesByTitle("Stand Up Start", LibraryType.Manga)).Returns(english);
+            gcd.Setup(g => g.FindSeriesByTomeId("rl_en_sus")).Returns(english);
+            gcd.Setup(g => g.GetWorkLines("w_sus")).Returns(new List<GcdSeries> { japanese, english });
+            gcd.Setup(g => g.Markets()).Returns(new Dictionary<string, int> { { "ja", 1 }, { "en", 1 } });
+            gcd.Setup(g => g.GetVolumes(It.IsAny<int>())).Returns(new List<GcdVolume>());
+            gcd.Setup(g => g.GetVolumes(8002)).Returns(Enumerable.Range(1, 3).Select(n => new GcdVolume { VolumeNumber = n }).ToList());
+            gcd.Setup(g => g.GetAliases(It.IsAny<int>())).Returns(new List<string>());
+            Mocker.GetMock<IAudibleCatalogService>().Setup(a => a.GetSeries(It.IsAny<string>(), It.IsAny<IEnumerable<string>>())).Returns(new List<AudibleProduct>());
+
+            Mocker.SetConstant<IEditionResolver>(Mocker.Resolve<EditionResolver>());
+            Mocker.SetConstant<IMangaSeriesMetadataProvider>(Mocker.Resolve<MangaSeriesMetadataProvider>());
+
+            var stored = new Author
+            {
+                Id = 7,
+                Metadata = new AuthorMetadata { ForeignAuthorId = "local-stand-up-start", Name = name, AnchorName = anchorName, TomeLineId = "rl_en_sus" }
+            };
+            Mocker.GetMock<IAuthorService>().Setup(a => a.FindById("local-stand-up-start")).Returns(stored);
+
+            var refreshed = Subject.GetAuthorInfo("local-stand-up-start", false, false);
+
+            refreshed.Metadata.Value.EditionLanguage.Should().BeNull();
+            refreshed.Metadata.Value.TomeLineId.Should().Be("rl_en_sus");
+            refreshed.Books.Value.Should().HaveCount(books);
         }
     }
 }

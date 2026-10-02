@@ -3,6 +3,21 @@
 Mangarr's user-facing changes, newest first. Each beta image also carries a build number
 (`10.0.0.N`, shown in System → Status); the release notes on GitHub give both.
 
+## Unreleased
+
+### Editions
+
+- **Korean and Chinese editions.** Volume labels (5권, 第5卷), release-name parsing and search
+  tokens, like French, German and Japanese ones. For a series whose catalogue line is a manhwa or
+  manhua, AniList's country of origin guards the binding, so a same-titled Japanese entry is not
+  picked by mistake. Manhwa and manhua totals count print volumes only, so webtoon seasons no
+  longer appear as Coming Soon rows.
+- **Release names in Korean or Chinese** (Hangul, or a volume marker such as 第5卷) now count as
+  that language: an English series rejects them, as it already did for Japanese names, and a
+  Korean or Chinese edition accepts them.
+- Existing Korean- or Chinese-edition series keep their names; on their next refresh their volume
+  titles (and Calibre titles) read 5권 / 第5卷 instead of Vol. 5.
+
 ## 0.1.0-beta.1
 
 The first public beta. Everything below is new compared with Readarr.

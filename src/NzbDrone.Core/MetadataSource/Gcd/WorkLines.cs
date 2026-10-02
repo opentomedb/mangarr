@@ -16,6 +16,15 @@ namespace NzbDrone.Core.MetadataSource.Gcd
     // labelled, listed or rejected for it.
     public static class WorkLines
     {
+        // KR/CN consumer (2026-09-29, spec §3.4): a library series' catalogue line -- its bound line first (an
+        // edition or fallback series is not findable by its English-ranked title), else the title as before.
+        public static GcdSeries LibraryLine(IGcdMetadataService gcd, string tomeLineId, string name, LibraryType library)
+        {
+            var bound = tomeLineId.IsNotNullOrWhiteSpace() ? gcd.FindSeriesByTomeId(tomeLineId) : null;
+
+            return bound ?? gcd.FindSeriesByTitle(name, library);
+        }
+
         // Every line of the work (the catalogue read); empty when the line carries no work id.
         public static List<GcdSeries> Of(IGcdMetadataService gcd, GcdSeries line)
         {

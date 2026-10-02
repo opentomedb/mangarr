@@ -41,8 +41,8 @@ namespace NzbDrone.Core.Test.PreferredEdition
             gcd.Setup(s => s.GetAliases(It.IsAny<int>())).Returns(new List<string> { "kaiju no 8" });
 
             Mocker.GetMock<IAniListService>()
-                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>()))
-                  .Returns<string, LibraryType, int?, IReadOnlyList<string>, bool, bool>((name, library, count, aliases, relaxed, isLineName) => new AniListSeries
+                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>()))
+                  .Returns<string, LibraryType, int?, IReadOnlyList<string>, bool, bool, string>((name, library, count, aliases, relaxed, isLineName, origin) => new AniListSeries
                   {
                       Id = library == LibraryType.LightNovel ? 86302 : 108556,
                       EnglishTitle = name,
@@ -84,7 +84,7 @@ namespace NzbDrone.Core.Test.PreferredEdition
                 s.DisplayName,
                 s.Status,
                 s.VolumeCount,
-                s.JapaneseTotal,
+                s.OriginTotal,
                 s.Overview,
                 s.CoverUrl,
                 s.PosterSource,

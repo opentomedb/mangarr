@@ -89,7 +89,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         private void GivenAniList(AniListSeries series)
         {
             Mocker.GetMock<IAniListService>()
-                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>()))
                   .Returns(series);
         }
 
@@ -109,7 +109,32 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         private void VerifyNoSearch()
         {
             Mocker.GetMock<IAniListService>()
-                  .Verify(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+                  .Verify(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never());
+        }
+
+        // KR/CN piece 2 (2026-10-02, M4): the hint line's medium is the expected origin.
+        private void VerifyExpectedOrigin(string origin)
+        {
+            Mocker.GetMock<IAniListService>()
+                  .Verify(s => s.FindSeries(It.IsAny<string>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<bool>(), origin), Times.Once());
+        }
+
+        // KR/CN piece 2 (2026-10-02, M6): the live sources' counts for the total tests.
+        private void GivenCounts(int mangaDexHighest, int mangaUpdatesVolumes, bool mangaUpdatesCompleted = false)
+        {
+            Mocker.GetMock<IMangaDexService>()
+                  .Setup(s => s.Lookup(It.IsAny<string>(), It.IsAny<bool>()))
+                  .Returns(new MangaDexResult { HighestVolume = mangaDexHighest });
+            Mocker.GetMock<IMangaUpdatesService>()
+                  .Setup(s => s.FindSeries(It.IsAny<string>(), It.IsAny<bool>()))
+                  .Returns(mangaUpdatesVolumes > 0 ? new MangaUpdatesSeries { VolumeCount = mangaUpdatesVolumes, Completed = mangaUpdatesCompleted } : null);
+        }
+
+        private static GcdSeries ComicLine(int id, string name, int volumes, string medium)
+        {
+            var line = Line(id, name, volumes);
+            line.Medium = medium;
+            return line;
         }
 
         private void GivenCatalogueLine(string title, LibraryType library, GcdSeries line)
@@ -385,7 +410,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
                                            LibraryType.Manga,
                                            24,
                                            It.Is<IReadOnlyList<string>>(a => a.SequenceEqual(new[] { "Mushoku Tensei Jobless Reincarnation", "Mushoku Tensei: Jobless Reincarnation", "Jobless Reincarnation" })),
-                                           false, It.IsAny<bool>()))
+                                           false, It.IsAny<bool>(), null))
                   .Returns(Bound(85564, "alias", "Mushoku Tensei: Jobless Reincarnation"));
 
             var series = Subject.GetSeries("Mushoku Tensei", 0, resolveVolumeDetails: true, LibraryType.Manga, null, "Mushoku Tensei Jobless Reincarnation");
@@ -400,7 +425,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         public void no_catalogue_line_means_no_volume_count_and_only_the_id_name_as_alias()
         {
             Mocker.GetMock<IAniListService>()
-                  .Setup(s => s.FindSeries("Kaiju No.8", LibraryType.Manga, null, It.Is<IReadOnlyList<string>>(a => a.SequenceEqual(new[] { "Kaiju No 8" })), false, It.IsAny<bool>()))
+                  .Setup(s => s.FindSeries("Kaiju No.8", LibraryType.Manga, null, It.Is<IReadOnlyList<string>>(a => a.SequenceEqual(new[] { "Kaiju No 8" })), false, It.IsAny<bool>(), It.IsAny<string>()))
                   .Returns(Bound(120760, "primary", "Kaiju No. 8"));
 
             var series = Subject.GetSeries("Kaiju No.8", 0, resolveVolumeDetails: true, LibraryType.Manga, null, "Kaiju No 8");
@@ -436,7 +461,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
                                            LibraryType.Manga,
                                            18,
                                            It.Is<IReadOnlyList<string>>(a => a.SequenceEqual(new[] { "Inuyasha Vizbig Edition", "Inuyasha", "InuYasha: A Feudal Fairy Tale" })),
-                                           false, It.IsAny<bool>()))
+                                           false, It.IsAny<bool>(), null))
                   .Returns(Bound(30676, "alias", "Inuyasha"));
 
             var pick = Subject.ResolveAniList("Inuyasha (VizBig edition)", LibraryType.Manga, "Inuyasha Vizbig Edition");
@@ -470,7 +495,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         private void VerifyLineNameFlag(string name, LibraryType library, int count, bool expected)
         {
             Mocker.GetMock<IAniListService>()
-                  .Verify(s => s.FindSeries(name, library, count, It.IsAny<IReadOnlyList<string>>(), false, expected), Times.Once());
+                  .Verify(s => s.FindSeries(name, library, count, It.IsAny<IReadOnlyList<string>>(), false, expected, It.IsAny<string>()), Times.Once());
         }
 
         [Test]
@@ -533,7 +558,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         {
             GivenCatalogueLine(RawName, LibraryType.LightNovel, MainLine);
             Mocker.GetMock<IAniListService>()
-                  .Setup(s => s.FindSeries(RawName, LibraryType.LightNovel, 28, It.IsAny<IReadOnlyList<string>>(), false, It.IsAny<bool>()))
+                  .Setup(s => s.FindSeries(RawName, LibraryType.LightNovel, 28, It.IsAny<IReadOnlyList<string>>(), false, It.IsAny<bool>(), It.IsAny<string>()))
                   .Returns(Bound(51479, "primary", "Sword Art Online", "NOVEL"));
 
             var series = Subject.GetSeries(RawName, 0, resolveVolumeDetails: true, LibraryType.LightNovel);
@@ -552,7 +577,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             // line the AniList English title names, and the presentation is the pick's.
             GivenCatalogueLine("Attack on Titan", LibraryType.Manga, Line(9, "Attack on Titan", 34));
             Mocker.GetMock<IAniListService>()
-                  .Setup(s => s.FindSeries("Attack on Titan", LibraryType.Manga, 34, It.IsAny<IReadOnlyList<string>>(), false, It.IsAny<bool>()))
+                  .Setup(s => s.FindSeries("Attack on Titan", LibraryType.Manga, 34, It.IsAny<IReadOnlyList<string>>(), false, It.IsAny<bool>(), It.IsAny<string>()))
                   .Returns(Bound(53390, "primary", "Attack on Titan"));
 
             var series = Subject.GetSeries("Attack on Titan", 0, resolveVolumeDetails: true, LibraryType.Manga);
@@ -583,7 +608,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         {
             GivenCatalogueLine("Mushoku Tensei", LibraryType.Manga, Line(8, "Mushoku Tensei", 24));
             Mocker.GetMock<IAniListService>()
-                  .Setup(s => s.FindSeries("Mushoku Tensei", LibraryType.Manga, 24, It.Is<IReadOnlyList<string>>(a => a.First() == "Mushoku Tensei Jobless Reincarnation"), false, It.IsAny<bool>()))
+                  .Setup(s => s.FindSeries("Mushoku Tensei", LibraryType.Manga, 24, It.Is<IReadOnlyList<string>>(a => a.First() == "Mushoku Tensei Jobless Reincarnation"), false, It.IsAny<bool>(), It.IsAny<string>()))
                   .Returns(Bound(85564, "alias", "Mushoku Tensei: Jobless Reincarnation"));
 
             var pick = Subject.ResolveAniList("Mushoku Tensei", LibraryType.Manga, "Mushoku Tensei Jobless Reincarnation");
@@ -1983,7 +2008,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             series.AltTitles.Should().BeEmpty();
             series.RatingValue.Should().Be(0m);
             series.VolumeCount.Should().Be(3);
-            series.JapaneseTotal.Should().Be(3);
+            series.OriginTotal.Should().Be(3);
             series.Status.Should().Be(AuthorStatusType.Continuing);
 
             // Only the series poster: a volume row without art does not show another work's picture.
@@ -2213,6 +2238,119 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         public void no_hint_gets_no_display_fallback()
         {
             MangaSeriesMetadataProvider.DisplayFallbackAllowed("Weed", LibraryType.Manga, null, null, null).Should().BeFalse();
+        }
+
+        [Test]
+        public void a_manhwa_hint_line_expects_a_korean_origin()
+        {
+            var line = Line(50, "Solo Leveling", 14);
+            line.Medium = "manhwa";
+            GivenCatalogueLine("Solo Leveling", LibraryType.Manga, line);
+
+            Subject.GetSeries("Solo Leveling", 0, resolveVolumeDetails: false, LibraryType.Manga);
+
+            VerifyExpectedOrigin("KR");
+        }
+
+        [Test]
+        public void a_manga_hint_line_expects_no_origin()
+        {
+            var line = Line(51, "Attack on Titan", 34);
+            line.Medium = "manga";
+            GivenCatalogueLine("Attack on Titan", LibraryType.Manga, line);
+
+            Subject.GetSeries("Attack on Titan", 0, resolveVolumeDetails: false, LibraryType.Manga);
+
+            VerifyExpectedOrigin(null);
+        }
+
+        [Test]
+        public void a_series_bound_by_id_on_a_manhwa_line_keeps_its_entry_whatever_its_origin()
+        {
+            // Review Focus 5: Fix Match / a stored binding goes through GetById, which has no guard.
+            var line = Line(52, "Solo Leveling", 14);
+            line.Medium = "manhwa";
+            GivenCatalogueLine("Solo Leveling", LibraryType.Manga, line);
+            var japanese = Bound(1, "id", "Solo Leveling");
+            japanese.CountryOfOrigin = "JP";
+            Mocker.GetMock<IAniListService>().Setup(s => s.GetById(1)).Returns(japanese);
+
+            var series = Subject.GetSeries("Solo Leveling", 0, resolveVolumeDetails: false, LibraryType.Manga, anilistId: 1);
+
+            series.AniListId.Should().Be(1);
+            VerifyNoSearch();
+        }
+
+        // ---- KR/CN piece 2 (2026-10-02, M6): the origin total ----
+
+        [Test]
+        public void a_manhwa_lines_total_ignores_the_mangadex_aggregate()
+        {
+            GivenAniList(new AniListSeries { Id = 105398, EnglishTitle = "Solo Leveling", Status = "RELEASING", Volumes = null, CountryOfOrigin = "KR", MatchedVia = "primary" });
+            GivenCatalogueLine("Solo Leveling", LibraryType.Manga, ComicLine(60, "Solo Leveling", 15, "manhwa"));
+            GivenCounts(mangaDexHighest: 120, mangaUpdatesVolumes: 0);
+
+            var series = Subject.GetSeries("Solo Leveling", 0, resolveVolumeDetails: true, LibraryType.Manga);
+
+            series.VolumeCount.Should().Be(15);
+            series.OriginTotal.Should().Be(15);
+        }
+
+        [Test]
+        public void a_manhwa_lines_total_takes_the_finished_print_count()
+        {
+            // The English line is still ongoing (a null status would read AniList's FINISHED as Ended and skip the ladder).
+            GivenAniList(new AniListSeries { Id = 105398, EnglishTitle = "Solo Leveling", Status = "FINISHED", Volumes = 14, CountryOfOrigin = "KR", MatchedVia = "primary" });
+            var line = ComicLine(61, "Solo Leveling", 11, "manhwa");
+            line.Status = "ongoing";
+            GivenCatalogueLine("Solo Leveling", LibraryType.Manga, line);
+            GivenCounts(mangaDexHighest: 120, mangaUpdatesVolumes: 0);
+
+            Subject.GetSeries("Solo Leveling", 0, resolveVolumeDetails: true, LibraryType.Manga).OriginTotal.Should().Be(14);
+        }
+
+        [Test]
+        public void a_manhwa_lines_total_takes_mangaupdates_print_count_alone()
+        {
+            GivenAniList(new AniListSeries { Id = 105398, EnglishTitle = "Solo Leveling", Status = "RELEASING", Volumes = null, CountryOfOrigin = "KR", MatchedVia = "primary" });
+            GivenCatalogueLine("Solo Leveling", LibraryType.Manga, ComicLine(62, "Solo Leveling", 11, "manhwa"));
+            GivenCounts(mangaDexHighest: 120, mangaUpdatesVolumes: 14);
+
+            Subject.GetSeries("Solo Leveling", 0, resolveVolumeDetails: true, LibraryType.Manga).OriginTotal.Should().Be(14);
+        }
+
+        [Test]
+        public void a_manhwa_line_without_an_anilist_answer_reads_its_medium()
+        {
+            GivenAniList(null);
+            GivenCatalogueLine("Solo Leveling", LibraryType.Manga, ComicLine(63, "Solo Leveling", 10, "manhwa"));
+            GivenCounts(mangaDexHighest: 120, mangaUpdatesVolumes: 0);
+
+            Subject.GetSeries("Solo Leveling", 0, resolveVolumeDetails: true, LibraryType.Manga).OriginTotal.Should().Be(10);
+        }
+
+        [Test]
+        public void a_japanese_line_keeps_the_mangadex_aggregate()
+        {
+            // Today's behaviour, pinned: Japanese origin still reads MangaDex's highest volume.
+            GivenAniList(new AniListSeries { Id = 1, EnglishTitle = "Attack on Titan", Status = "RELEASING", Volumes = null, CountryOfOrigin = "JP", MatchedVia = "primary" });
+            GivenCatalogueLine("Attack on Titan", LibraryType.Manga, ComicLine(64, "Attack on Titan", 10, "manga"));
+            GivenCounts(mangaDexHighest: 30, mangaUpdatesVolumes: 0);
+
+            Subject.GetSeries("Attack on Titan", 0, resolveVolumeDetails: true, LibraryType.Manga).OriginTotal.Should().Be(30);
+        }
+
+        [Test]
+        public void an_ended_manhwa_line_keeps_its_own_count()
+        {
+            // Review Focus 6: the ended / collected gate is untouched.
+            GivenAniList(new AniListSeries { Id = 105398, EnglishTitle = "Solo Leveling", Status = "FINISHED", Volumes = 14, CountryOfOrigin = "KR", MatchedVia = "primary" });
+            var line = ComicLine(65, "Solo Leveling", 11, "manhwa");
+            line.Status = "ended";
+            GivenCatalogueLine("Solo Leveling", LibraryType.Manga, line);
+            GivenCounts(mangaDexHighest: 120, mangaUpdatesVolumes: 14);
+
+            Subject.GetSeries("Solo Leveling", 0, resolveVolumeDetails: true, LibraryType.Manga).OriginTotal.Should().Be(11);
         }
     }
 }

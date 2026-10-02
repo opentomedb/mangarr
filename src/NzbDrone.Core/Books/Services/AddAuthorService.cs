@@ -133,9 +133,23 @@ namespace NzbDrone.Core.Books
                 // Preferred Edition (2026-09-24): the Add form's edition rides in AddOptions (null = Auto,
                 // the chain -- today's three-argument call).
                 var requestedEdition = newAuthor.AddOptions?.EditionLanguage;
-                author = requestedEdition.IsNullOrWhiteSpace()
-                    ? _authorInfo.GetAuthorInfo(newAuthor.Metadata.Value.ForeignAuthorId, false, resolveVolumeDetails: false)
-                    : _authorInfo.GetAuthorInfo(newAuthor.Metadata.Value.ForeignAuthorId, false, false, requestedEdition);
+                // Staging fix S1 (2026-10-01, spec §3.2): an Auto add of a fallback candidate carries the line the
+                // search chose (EditionFallback + TomeLineId + EditionLanguage in the posted metadata); the resolve
+                // binds it by id, since the work's name may not find the line again.
+                var posted = newAuthor.Metadata?.Value;
+                var carriesFallbackLine = requestedEdition.IsNullOrWhiteSpace() && posted != null && posted.EditionFallback &&
+                    posted.TomeLineId.IsNotNullOrWhiteSpace() && posted.EditionLanguage.IsNotNullOrWhiteSpace();
+
+                if (carriesFallbackLine)
+                {
+                    author = _authorInfo.GetAuthorInfo(posted.ForeignAuthorId, false, false, posted.EditionLanguage, posted.TomeLineId);
+                }
+                else
+                {
+                    author = requestedEdition.IsNullOrWhiteSpace()
+                        ? _authorInfo.GetAuthorInfo(newAuthor.Metadata.Value.ForeignAuthorId, false, resolveVolumeDetails: false)
+                        : _authorInfo.GetAuthorInfo(newAuthor.Metadata.Value.ForeignAuthorId, false, false, requestedEdition);
+                }
             }
             catch (NotInCatalogueException ex)
             {

@@ -22,9 +22,41 @@ namespace NzbDrone.Core.Books
             return code.IsNullOrWhiteSpace() || code.Trim().Equals(English, StringComparison.OrdinalIgnoreCase);
         }
 
+        // KR/CN piece 2 (2026-10-02, M5): the language a regional code belongs to ("zh-TW" -> "zh"); null or
+        // blank is English. Every per-language table keys on this.
+        public static string BaseCode(string code)
+        {
+            return IsEnglish(code) ? English : code.Trim().Split('-')[0].ToLowerInvariant();
+        }
+
+        // KR/CN piece 2 (2026-10-02, M5): an edition whose own script is not Latin -- its local name is kana,
+        // Hangul or Han, so a series of it is named by AniList's romanized title and keeps native-script
+        // aliases. This replaces the `== "ja"` checks that meant the same thing.
+        public static bool IsNativeScript(string code)
+        {
+            switch (BaseCode(code))
+            {
+                case "ja":
+                case "ko":
+                case "zh":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         public static string Of(AuthorMetadata metadata)
         {
             return IsEnglish(metadata?.EditionLanguage) ? English : metadata.EditionLanguage.Trim();
+        }
+
+        // Final fix wave I1 (KR/CN consumer ruling, 2026-09-29): the language a series' release searches, release
+        // acceptance and light-novel volume labels follow. A fallback series (bound to a line outside the user's
+        // languages, AuthorMetadata.EditionFallback) is English-style there -- exactly how the work behaved as an
+        // unbound English entry; any other series follows its edition. Null = English.
+        public static string ReleaseLanguage(AuthorMetadata metadata)
+        {
+            return metadata == null || metadata.EditionFallback ? null : metadata.EditionLanguage;
         }
 
         // The global setting (Settings -> UI -> Preferred Edition): ordered, de-duplicated, malformed
@@ -82,7 +114,7 @@ namespace NzbDrone.Core.Books
         // D4: the volume label belongs to the edition ("Tome 5"), never to the UI language.
         public static string VolumeLabel(string code, string volumeToken)
         {
-            switch (IsEnglish(code) ? English : code.Trim())
+            switch (BaseCode(code))
             {
                 case "fr":
                     return $"Tome {volumeToken}";
@@ -90,6 +122,10 @@ namespace NzbDrone.Core.Books
                     return $"Band {volumeToken}";
                 case "ja":
                     return $"第{volumeToken}巻";
+                case "ko":
+                    return $"{volumeToken}권";
+                case "zh":
+                    return $"第{volumeToken}卷";
                 default:
                     return $"Vol. {volumeToken}";
             }

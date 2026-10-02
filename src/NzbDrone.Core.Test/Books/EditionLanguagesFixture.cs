@@ -86,9 +86,37 @@ namespace NzbDrone.Core.Test.BookTests
         [TestCase("de", "3.5", "Band 3.5")]
         [TestCase("ja", "5", "第5巻")]
         [TestCase("it", "5", "Vol. 5")]
+        [TestCase("ko", "5", "5권")]
+        [TestCase("zh", "5", "第5卷")]
+        [TestCase("zh-TW", "12", "第12卷")]
         public void volume_label(string code, string token, string expected)
         {
             EditionLanguages.VolumeLabel(code, token).Should().Be(expected);
+        }
+
+        // KR/CN piece 2 (2026-10-02, M5): the editions whose own script is not Latin.
+        [TestCase("ja", true)]
+        [TestCase("ko", true)]
+        [TestCase("zh", true)]
+        [TestCase("zh-TW", true)]
+        [TestCase("zh-HK", true)]
+        [TestCase("fr", false)]
+        [TestCase("en", false)]
+        [TestCase(null, false)]
+        [TestCase("", false)]
+        public void is_native_script(string code, bool expected)
+        {
+            EditionLanguages.IsNativeScript(code).Should().Be(expected);
+        }
+
+        [TestCase("zh-TW", "zh")]
+        [TestCase("ko", "ko")]
+        [TestCase(" fr ", "fr")]
+        [TestCase(null, "en")]
+        [TestCase("", "en")]
+        public void base_code(string code, string expected)
+        {
+            EditionLanguages.BaseCode(code).Should().Be(expected);
         }
 
         [Test]

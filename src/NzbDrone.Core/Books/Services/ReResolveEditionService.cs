@@ -144,7 +144,11 @@ namespace NzbDrone.Core.Books
         {
             var meta = author.Metadata.Value;
             var oldName = author.Name;
-            var anchorName = meta.AnchorName.IsNotNullOrWhiteSpace() ? meta.AnchorName : oldName;
+
+            // Follow-up round (KR/CN consumer): a fallback or anchorless series moving to English takes the English
+            // line's name as its anchor (EditionPreview.ToAnchorName); everything else keeps today's anchor.
+            var anchorName = preview.ToAnchorName.IsNotNullOrWhiteSpace() ? preview.ToAnchorName
+                : meta.AnchorName.IsNotNullOrWhiteSpace() ? meta.AnchorName : oldName;
             var newName = renaming ? preview.NewName : oldName;
 
             // Written from a copy: meta is the live instance in AuthorService's cache (see the rebind pass).
@@ -156,6 +160,9 @@ namespace NzbDrone.Core.Books
             // line; false is the safe side (a numbered collected release is rejected) until the queued
             // refresh recomputes it from the new line.
             write.EditionCollected = false;
+
+            // KR/CN consumer (2026-09-29): a change of edition is the user's choice, never a fallback.
+            write.EditionFallback = false;
 
             // The anchor is kept whenever the name is not it (a localized name, renamed or kept). A refresh
             // never writes it (create-only, M5); this is the one place an existing entry's anchor changes.
@@ -210,6 +217,9 @@ namespace NzbDrone.Core.Books
             meta.TomeLineId = write.TomeLineId;
             meta.AnchorName = write.AnchorName;
             meta.EditionCollected = write.EditionCollected;
+
+            // KR/CN consumer (2026-09-29): a change of edition is the user's choice, never a fallback.
+            meta.EditionFallback = false;
 
             if (renaming)
             {

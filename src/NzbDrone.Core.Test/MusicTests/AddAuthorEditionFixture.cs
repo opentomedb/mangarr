@@ -31,6 +31,7 @@ namespace NzbDrone.Core.Test.MusicTests
             Mocker.GetMock<IAddAuthorValidator>().Setup(s => s.Validate(It.IsAny<Author>())).Returns(new ValidationResult());
             Mocker.GetMock<IProvideAuthorInfo>().Setup(s => s.GetAuthorInfo("local-attack-on-titan", false, It.IsAny<bool>())).Returns(_resolved);
             Mocker.GetMock<IProvideAuthorInfo>().Setup(s => s.GetAuthorInfo("local-attack-on-titan", false, false, "fr")).Returns(_resolved);
+            Mocker.GetMock<IProvideAuthorInfo>().Setup(s => s.GetAuthorInfo("local-attack-on-titan", false, false, "fr", "rl_x")).Returns(_resolved);
         }
 
         private static Author NewAuthor(string edition)
@@ -58,6 +59,44 @@ namespace NzbDrone.Core.Test.MusicTests
             Subject.AddAuthor(NewAuthor(null));
 
             Mocker.GetMock<IProvideAuthorInfo>().Verify(s => s.GetAuthorInfo("local-attack-on-titan", false, It.IsAny<bool>()), Times.Once());
+        }
+
+        // Staging fix S1 (2026-10-01, spec §3.2): the fallback line the search chose rides in the posted metadata.
+        private static Author FallbackAuthor(string addEdition, bool fallback, string tomeLineId, string language)
+        {
+            var author = NewAuthor(addEdition);
+            author.Metadata = new AuthorMetadata { ForeignAuthorId = "local-attack-on-titan", EditionFallback = fallback, TomeLineId = tomeLineId, EditionLanguage = language };
+
+            return author;
+        }
+
+        [Test]
+        public void a_fallback_candidate_carries_its_line_into_the_resolve()
+        {
+            Subject.AddAuthor(FallbackAuthor(null, true, "rl_x", "fr"));
+
+            Mocker.GetMock<IProvideAuthorInfo>().Verify(s => s.GetAuthorInfo("local-attack-on-titan", false, false, "fr", "rl_x"), Times.Once());
+            Mocker.GetMock<IProvideAuthorInfo>().Verify(s => s.GetAuthorInfo(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+        }
+
+        [TestCase(false, "rl_x", "fr")]
+        [TestCase(true, "", "fr")]
+        [TestCase(true, "rl_x", null)]
+        public void an_add_without_a_complete_fallback_binding_keeps_the_three_argument_call(bool fallback, string tomeLineId, string language)
+        {
+            Subject.AddAuthor(FallbackAuthor(null, fallback, tomeLineId, language));
+
+            Mocker.GetMock<IProvideAuthorInfo>().Verify(s => s.GetAuthorInfo("local-attack-on-titan", false, It.IsAny<bool>()), Times.Once());
+            Mocker.GetMock<IProvideAuthorInfo>().Verify(s => s.GetAuthorInfo(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public void an_explicit_edition_wins_over_a_carried_fallback_line()
+        {
+            Subject.AddAuthor(FallbackAuthor("fr", true, "rl_x", "fr"));
+
+            Mocker.GetMock<IProvideAuthorInfo>().Verify(s => s.GetAuthorInfo("local-attack-on-titan", false, false, "fr"), Times.Once());
+            Mocker.GetMock<IProvideAuthorInfo>().Verify(s => s.GetAuthorInfo(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never());
         }
 
         [Test]

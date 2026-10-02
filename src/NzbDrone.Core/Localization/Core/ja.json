@@ -2722,5 +2722,7 @@
     "TaskNameSwitchLine": "ラインを切り替え",
     "ServerValidationSeriesNoLongerExists": "このシリーズはもう存在しません",
     "SwitchLineConfirmAdded": "{count} 巻が追加されます。",
-    "SwitchLineConfirmNoAniList": "このラインには AniList の一致がありません。メタデータはタイトルで再解決されます。"
+    "SwitchLineConfirmNoAniList": "このラインには AniList の一致がありません。メタデータはタイトルで再解決されます。",
+    "EditionFallbackNote": "{language}版 — ご利用の言語では提供されていません",
+    "Donations": "寄付"
 }

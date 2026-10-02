@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Books;
 using NzbDrone.Core.MetadataSource.Manga;
 
 namespace NzbDrone.Core.MetadataSource
@@ -162,10 +164,25 @@ namespace NzbDrone.Core.MetadataSource
         //      the ceiling (even an R1-rejected synonym carrier — Worst's 4-volume 147044 stays),
         //      never beside an article-equal candidate, and R1 still holds inside the tier. Like
         //      R5 it needs a catalogue count AND termIsLineName.
-        public static (AniListCandidate Pick, string Via, List<string> Rejections) Pick(IReadOnlyList<AniListCandidate> candidates, string normalizedTitle, int? catalogueVolumeCount, bool ownName = true, bool termIsLineName = true)
+        //   expectedOrigin (M4): Origin.OfMedium of the hint line; candidates that disagree are dropped first.
+        public static (AniListCandidate Pick, string Via, List<string> Rejections) Pick(IReadOnlyList<AniListCandidate> candidates, string normalizedTitle, int? catalogueVolumeCount, bool ownName = true, bool termIsLineName = true, string expectedOrigin = null)
         {
             var rejections = new List<string>();
-            var page = candidates ?? Array.Empty<AniListCandidate>();
+            var page = (candidates ?? Array.Empty<AniListCandidate>()).ToList();
+
+            // KR/CN piece 2 (2026-10-02, M4): a candidate of another origin is not this work, whatever its
+            // title says -- it leaves the page before any tier, so it never counts as "a primary-title
+            // candidate on the page" for R1 either (a same-titled Japanese entry must not block a Korean
+            // synonym carrier). Unknown on either side agrees (Origin.Agrees).
+            if (expectedOrigin.IsNotNullOrWhiteSpace())
+            {
+                foreach (var foreign in page.Where(c => !Origin.Agrees(expectedOrigin, c.CountryOfOrigin)).ToList())
+                {
+                    rejections.Add($"{foreign.Id} \"{foreign.DisplayTitle}\": origin {foreign.CountryOfOrigin} (line expects {expectedOrigin})");
+                    page.Remove(foreign);
+                }
+            }
+
             var key = TitleMatcher.Normalize(normalizedTitle);
             var articleKey = ArticleKey(normalizedTitle);
 

@@ -48,7 +48,7 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
                   {
                       DisplayName = "Overlord",
                       VolumeCount = 1,
-                      JapaneseTotal = 16,
+                      OriginTotal = 16,
                       Volumes = new List<MangaVolumeMetadata> { new MangaVolumeMetadata { VolumeNumber = 1 } },
                       Writer = catalogueWriter
                   });

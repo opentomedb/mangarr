@@ -26,6 +26,22 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             };
         }
 
+        // Final fix wave I1 (ruling): a fallback series takes releases as an English series does.
+        [Test]
+        public void a_fallback_series_accepts_an_unmarked_release()
+        {
+            var release = Release("ja", "Stand Up Start v05");
+            release.Author.Metadata.Value.EditionFallback = true;
+
+            Subject.IsSatisfiedBy(release, null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void the_same_binding_as_an_edition_rejects_an_unmarked_release()
+        {
+            Subject.IsSatisfiedBy(Release("ja", "Stand Up Start v05"), null).Accepted.Should().BeFalse();
+        }
+
         [Test]
         public void a_french_tag_passes_a_french_edition()
         {
@@ -91,7 +107,11 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         {
             Subject.IsSatisfiedBy(Release("zh", "海贼王 第05卷 [CHS]"), null).Accepted.Should().BeTrue();
 
-            var untagged = Subject.IsSatisfiedBy(Release("zh", "海贼王 第05卷"), null);
+            // KR/CN piece 2 (2026-10-02, M5): a Chinese volume marker (a digit before 卷) is zh evidence on its own.
+            Subject.IsSatisfiedBy(Release("zh", "海贼王 第05卷"), null).Accepted.Should().BeTrue();
+
+            // Han characters alone, with no marker, are still no evidence.
+            var untagged = Subject.IsSatisfiedBy(Release("zh", "海贼王 05"), null);
             untagged.Accepted.Should().BeFalse();
             untagged.Reason.Should().Be("No Chinese language marker on this release (the series is the Chinese edition)");
 

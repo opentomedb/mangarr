@@ -53,5 +53,18 @@ namespace NzbDrone.Core.Test.BookTests
             stored.UseMetadataFrom(new AuthorMetadata { TomeLineId = "rl_fr2", EditionCollected = false });
             stored.EditionCollected.Should().BeFalse();
         }
+
+        // KR/CN consumer (2026-09-29, migration 061): the fallback flag follows the binding like the collected flag.
+        [Test]
+        public void edition_fallback_follows_the_binding_like_edition_collected()
+        {
+            var stored = new AuthorMetadata { TomeLineId = "rl_ja", EditionLanguage = "ja", EditionFallback = true };
+
+            stored.UseMetadataFrom(new AuthorMetadata { TomeLineId = null });
+            stored.EditionFallback.Should().BeTrue();
+
+            stored.UseMetadataFrom(new AuthorMetadata { TomeLineId = "rl_ja", EditionFallback = false });
+            stored.EditionFallback.Should().BeFalse();
+        }
     }
 }

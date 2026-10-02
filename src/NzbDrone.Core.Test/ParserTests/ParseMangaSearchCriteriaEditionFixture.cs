@@ -161,5 +161,40 @@ namespace NzbDrone.Core.Test.ParserTests
             japanesePack.VolumeStart.Should().Be(1);
             japanesePack.VolumeEnd.Should().Be(5);
         }
+
+        // Follow-up round (KR/CN consumer, I1 residue): a fallback series parses releases like English -- a numbered
+        // "Box Set" is read as its volume (as an unbound English entry reads it) instead of the edition's A9 reject,
+        // and "5巻" is not read; the same binding as a Japanese edition keeps both edition rules.
+        private static Author JapaneseSeries(bool fallback)
+        {
+            var series = Series("Stand Up Start", "ja", "Sutando Appu Sutato");
+            series.Metadata.Value.EditionFallback = fallback;
+
+            return series;
+        }
+
+        [Test]
+        public void a_fallback_series_reads_a_numbered_box_set_like_english()
+        {
+            Parser.Parser.ParseBookTitleWithSearchCriteria("Stand Up Start Vol. 2 (Box Set)", JapaneseSeries(true), new List<Book>()).VolumeNumber.Should().Be(2);
+            Parser.Parser.ParseBookTitleWithSearchCriteria("Stand Up Start Vol. 2 (Box Set)", Series("Stand Up Start", null), new List<Book>()).VolumeNumber.Should().Be(2);
+        }
+
+        [Test]
+        public void the_same_binding_as_an_edition_rejects_a_numbered_box_set()
+        {
+            Parser.Parser.ParseBookTitleWithSearchCriteria("Stand Up Start Vol. 2 (Box Set)", JapaneseSeries(false), new List<Book>()).Should().BeNull();
+        }
+
+        [Test]
+        public void a_fallback_series_does_not_read_the_editions_volume_token()
+        {
+            var fallback = Parser.Parser.ParseBookTitleWithSearchCriteria("Stand Up Start 5巻", JapaneseSeries(true), new List<Book>());
+            var english = Parser.Parser.ParseBookTitleWithSearchCriteria("Stand Up Start 5巻", Series("Stand Up Start", null), new List<Book>());
+
+            (fallback?.VolumeNumber).Should().Be(english?.VolumeNumber);
+            (fallback?.VolumeNumber).Should().NotBe(5);
+            Parser.Parser.ParseBookTitleWithSearchCriteria("Stand Up Start 5巻", JapaneseSeries(false), new List<Book>()).VolumeNumber.Should().Be(5);
+        }
     }
 }

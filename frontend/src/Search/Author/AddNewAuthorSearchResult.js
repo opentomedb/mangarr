@@ -9,6 +9,7 @@ import Link from 'Components/Link/Link';
 import { icons, kinds, sizes } from 'Helpers/Props';
 import dimensions from 'Styles/Variables/dimensions';
 import fonts from 'Styles/Variables/fonts';
+import languageName from 'Utilities/String/languageName';
 import stripHtml from 'Utilities/String/stripHtml';
 import translate from 'Utilities/String/translate';
 import AddNewAuthorModal from './AddNewAuthorModal';
@@ -83,6 +84,7 @@ class AddNewAuthorSearchResult extends Component {
       library,
       totalVolumes,
       aniListId,
+      editionFallback,
       editionLanguage,
       editionOptions,
       catalogueLine,
@@ -103,6 +105,7 @@ class AddNewAuthorSearchResult extends Component {
     // Line safety (2026-09-28): one short line under the title for a catalogue-backed result.
     const lineFacts = catalogueLine ?
       [
+        editionFallback && editionLanguage ? translate('EditionFallbackNote', { language: languageName(editionLanguage) }) : null,
         catalogueLine.volumeCount ? translate('CountVolumes', { count: catalogueLine.volumeCount }) : null,
         catalogueLine.publisher || null,
         catalogueLine.spinOffOf ? translate('SpinOffOf', { name: catalogueLine.spinOffOf }) : null
@@ -272,6 +275,7 @@ AddNewAuthorSearchResult.propTypes = {
   library: PropTypes.string,
   totalVolumes: PropTypes.number,
   aniListId: PropTypes.number,
+  editionFallback: PropTypes.bool,
   editionLanguage: PropTypes.string,
   editionOptions: PropTypes.arrayOf(PropTypes.object),
   catalogueLine: PropTypes.object,

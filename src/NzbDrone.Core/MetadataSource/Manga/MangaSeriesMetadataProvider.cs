@@ -101,6 +101,57 @@ namespace NzbDrone.Core.MetadataSource.Manga
             }
         }
 
+        // KR/CN consumer (2026-09-29, spec §3.2): the Preferred Edition chain of a NEW entry (an add or a search
+        // candidate), set by BookInfoProxy only when there is no existing series. Ambient like PinsUnder, for the
+        // same reason: the six/seven-argument GetSeries calls are mocked across the suite and must not change.
+        private static readonly AsyncLocal<IReadOnlyList<string>> FallbackChain = new AsyncLocal<IReadOnlyList<string>>();
+
+        internal static IReadOnlyList<string> ScopedFallbackChain => FallbackChain.Value;
+
+        public static IDisposable NewEntryFallback(IReadOnlyList<string> chain)
+        {
+            return new FallbackScope(chain);
+        }
+
+        private sealed class FallbackScope : IDisposable
+        {
+            private readonly IReadOnlyList<string> _previous;
+
+            public FallbackScope(IReadOnlyList<string> chain)
+            {
+                _previous = FallbackChain.Value;
+                FallbackChain.Value = chain;
+            }
+
+            public void Dispose()
+            {
+                FallbackChain.Value = _previous;
+            }
+        }
+
+        // A fallback series' name: AniList English, then romaji, then the line's (Latin) name; never local_name.
+        // Final fix wave I6: a light novel skips AniList (queried manga-only, its title names the manga) -- the
+        // line's name with the "(novel series)" qualifier stripped, else the identity name.
+        internal static string FallbackDisplayName(GcdSeries line, AniListSeries ani, string identityName, LibraryType library)
+        {
+            if (library == LibraryType.LightNovel)
+            {
+                return line?.Name.IsNotNullOrWhiteSpace() == true ? StripLightNovelQualifier(line.Name) : identityName;
+            }
+
+            if (ani?.EnglishTitle.IsNotNullOrWhiteSpace() == true)
+            {
+                return ani.EnglishTitle;
+            }
+
+            if (ani?.RomajiTitle.IsNotNullOrWhiteSpace() == true)
+            {
+                return ani.RomajiTitle;
+            }
+
+            return line?.Name.IsNotNullOrWhiteSpace() == true ? line.Name : identityName;
+        }
+
         private readonly IMetadataOverridesService _metadataOverrides;
         private readonly IGcdMetadataService _gcdMetadataService;
         private readonly IAniListService _aniListService;
@@ -341,7 +392,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
         }
 
         // Preferred Edition (2026-09-24, ruling S2): the one candidate test both alt-title builders share.
-        // Trimmed, 4-80 characters, mostly Latin unless allowNative (a Japanese edition's native title),
+        // Trimmed, 4-80 characters, mostly Latin unless allowNative (a native-script edition's native title (ja / ko / zh)),
         // and new by at least one of the two keys (review F3: TitleMatcher's and the parser's). Both
         // keys are always recorded -- the second add must run even when the first is new.
         private static bool TryAddAltTitle(string candidate, HashSet<string> seen, HashSet<string> cleanSeen, bool allowNative, out string title)
@@ -379,9 +430,9 @@ namespace NzbDrone.Core.MetadataSource.Manga
 
         // Preferred Edition (2026-09-24, spec §2.2 Aliases): a non-English series' alternate titles. The
         // edition line's rows in its own language first (official, then romanized, then the rest), then
-        // AniList's English / romaji (/ native for a Japanese edition) / synonyms, then the English
-        // anchor; cap 6. Native script only for a Japanese edition (the parser matches it; queries still
-        // skip non-ASCII -- BookSearchCriteria.IsSearchableAlias). A raw list-article row ("Liste des
+        // AniList's English / romaji (/ native for a native-script edition: ja / ko / zh, IsNativeScript) / synonyms, then the English
+        // anchor; cap 6. Native script is matched by the parser; queries still skip non-ASCII
+        // (BookSearchCriteria.IsSearchableAlias). A raw list-article row ("Liste des
         // chapitres de ...") is an OpenTome matching aid, never a title.
         // Controller ruling (2026-09-24): OpenTome tags a same-spelled title with the alphabetically first
         // of its languages, so a row's language orders it and never excludes it -- the rows of other (or
@@ -396,7 +447,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
             var result = new List<string>();
             var seen = new HashSet<string> { TitleMatcher.Normalize(displayName) };
             var cleanSeen = new HashSet<string> { displayName.CleanAuthorName() };
-            var native = editionLanguage == "ja";
+            var native = EditionLanguages.IsNativeScript(editionLanguage);
             var anchor = identityName?.Trim();
             var anchorIsTitle = anchor.IsNotNullOrWhiteSpace() && IsAltTitleShape(anchor, native) && !ListArticle.IsMatch(anchor);
             var anchorsTurn = false;
@@ -548,9 +599,10 @@ namespace NzbDrone.Core.MetadataSource.Manga
         // romaji title (OpenTome's ja local name is native script and has no romanized rows yet); other
         // languages -> the line's local name (OpenTome v0), light-novel qualifier stripped; none -> the
         // anchor's name.
+        // KR/CN piece 2 (2026-10-02, M5): Korean and Chinese editions too -- their local name is native script.
         internal static string EditionDisplayName(GcdSeries editionLine, string editionLanguage, AniListSeries ani, string identityName, LibraryType library)
         {
-            if (editionLanguage == "ja")
+            if (EditionLanguages.IsNativeScript(editionLanguage))
             {
                 return ani?.RomajiTitle.IsNotNullOrWhiteSpace() == true ? ani.RomajiTitle : identityName;
             }
@@ -663,6 +715,11 @@ namespace NzbDrone.Core.MetadataSource.Manga
             GcdSeries editionLine = null;
             string editionLanguage = null;
 
+            // Final fix wave I4: a NEW entry (scope set) with an explicit language whose title found no English line
+            // and no line of that language is not refused yet -- the fallback lookup below tries that language.
+            var fallbackChain = FallbackChain.Value;
+            string explicitLanguage = null;
+
             if (edition != null)
             {
                 var resolution = _gcdMetadataService.Available ? _editionResolver.Resolve(gcd, edition, library, name) : null;
@@ -674,7 +731,60 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 }
                 else if (!EditionLanguages.IsEnglish(edition.Language))
                 {
-                    throw new EditionUnavailableException(name, edition.Language, edition.TomeLineId);
+                    if (fallbackChain == null || gcd != null || edition.TomeLineId.IsNotNullOrWhiteSpace() || !_gcdMetadataService.Available)
+                    {
+                        throw new EditionUnavailableException(name, edition.Language, edition.TomeLineId);
+                    }
+
+                    explicitLanguage = edition.Language.Trim();
+                }
+            }
+
+            // KR/CN consumer (2026-09-29, spec §3.2): a NEW entry (scope set) whose title found no English line and
+            // no edition line: find the work by AniList id, then by title in any language, and take the fallback
+            // line. An English line the title missed binds as today's English path (gcd); anything else is an
+            // edition line flagged EditionFallback. Existing series never reach this (no scope).
+            var fallback = edition?.Fallback == true;
+            string pickedIdentity = null;
+
+            if (fallbackChain != null && gcd == null && editionLine == null && _gcdMetadataService.Available)
+            {
+                var languages = _gcdMetadataService.Markets().Keys.ToList();
+                var anyLine = (ani?.Id is int aniId ? _gcdMetadataService.FindSeriesByAnilistId(aniId, library) : null)
+                              ?? _gcdMetadataService.FindSeriesByTitle(displayName, library, languages)
+                              ?? _gcdMetadataService.FindSeriesByTitle(name, library, languages);
+                var picked = anyLine == null ? null
+                    : _editionResolver.ResolveFallback(anyLine, explicitLanguage != null ? new[] { explicitLanguage } : fallbackChain, library);
+
+                // An explicit language takes only a line of that language; anything else is refused as before.
+                if (explicitLanguage != null && picked?.Language != explicitLanguage)
+                {
+                    throw new EditionUnavailableException(name, explicitLanguage, null);
+                }
+
+                if (picked?.Line != null)
+                {
+                    if (EditionLanguages.IsEnglish(picked.Language))
+                    {
+                        gcd = picked.Line;
+
+                        // Name the entry after the line so its stored name re-finds it on refresh (the
+                        // title that missed would drop the refresh to live sources with a stale TomeLineId).
+                        // Final fix wave I5: the identity stays the name before the rename, so a search
+                        // candidate's id is the AniList-title slug and its add re-enters this fallback (a
+                        // line-name id would de-slug to a name the English path binds without it).
+                        if (gcd.Name.IsNotNullOrWhiteSpace())
+                        {
+                            pickedIdentity = displayName;
+                            displayName = library == LibraryType.LightNovel ? StripLightNovelQualifier(gcd.Name) : gcd.Name;
+                        }
+                    }
+                    else
+                    {
+                        editionLine = picked.Line;
+                        editionLanguage = picked.Language;
+                        fallback = !fallbackChain.Any(l => l.Trim() == picked.Language);
+                    }
                 }
             }
 
@@ -706,18 +816,20 @@ namespace NzbDrone.Core.MetadataSource.Manga
             // Preferred Edition (D3/D7): the anchor's name stays the series' identity (id slug, source
             // search terms); a non-English edition's display name is the line's own title -- AniList's
             // romaji for Japanese, whose local name is native script (kept as an alias, M6b).
-            var identityName = displayName;
+            var identityName = pickedIdentity ?? displayName;
 
             if (editionLine != null)
             {
-                displayName = EditionDisplayName(editionLine, editionLanguage, ani, identityName, library);
+                displayName = fallback
+                    ? FallbackDisplayName(editionLine, ani, identityName, library)
+                    : EditionDisplayName(editionLine, editionLanguage, ani, identityName, library);
             }
 
             // The line the volume STRUCTURE comes from: the edition's, else the anchor (today).
             var line = editionLine ?? gcd;
 
             int volumeCount;
-            int japaneseTotal;
+            int originTotal;
             AuthorStatusType status;
             Dictionary<int, GcdVolume> gcdVolumes = null;
             var lineCollected = false;
@@ -755,7 +867,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                     ? line.IsOmnibus || gcdVolumes.Values.Any(v => v.Composition != null && v.Composition.Count > 1)
                     : IsCollectedEdition(line.IsOmnibus, gcdVolumes.Values);
 
-                // English release is the grabbable count; the full Japanese tankoubon total (when
+                // English release is the grabbable count; the original market's print total (when
                 // higher) is shown alongside as "X of Y" and drives the Coming Soon placeholder
                 // rows. Only surface it when the JP tankoubon numbering plausibly extends THIS
                 // line's own numbering: an ended English line will never grow (Erased: 5 EN 2-in-1
@@ -766,14 +878,21 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 // composition data or a collected-edition page count (median ≥320pp vs ~200pp
                 // singles) as the tell. The 0 indexer thunk skips the expensive search —
                 // AniList/MangaUpdates supply the total.
+                // KR/CN piece 2 (2026-10-02, M6): a Korean or Chinese origin (AniList's countryOfOrigin, else the
+                // line's medium) counts print volumes only -- AniList's finished count and MangaUpdates. The
+                // MangaDex aggregate numbers webtoon uploads by season or chapter and the indexer thunk was
+                // already 0 here; both would invent Coming Soon rows. Japanese origin: the call is unchanged.
+                var origin = ani?.CountryOfOrigin.IsNotNullOrWhiteSpace() == true ? ani.CountryOfOrigin : Origin.OfMedium(line.Medium);
+                var printOnly = Origin.IsKoreanOrChinese(origin);
+
                 if (status != AuthorStatusType.Ended && !IsCollectedEdition(line.IsOmnibus, gcdVolumes.Values))
                 {
-                    japaneseTotal = Math.Max(volumeCount,
-                        DetermineVolumeCount(0, ani?.Status, ani?.Volumes, muVolumes, mdx?.HighestVolume ?? 0, () => 0));
+                    originTotal = Math.Max(volumeCount,
+                        DetermineVolumeCount(0, ani?.Status, ani?.Volumes, muVolumes, printOnly ? 0 : (mdx?.HighestVolume ?? 0), () => 0));
                 }
                 else
                 {
-                    japaneseTotal = volumeCount;
+                    originTotal = volumeCount;
                 }
             }
             else
@@ -798,7 +917,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 }
 
                 // No separate English-vs-JP split without GCD: total equals the available count.
-                japaneseTotal = volumeCount;
+                originTotal = volumeCount;
             }
 
             // Plausibility window for BACKFILLED dates only. The ISBN/title backfills occasionally
@@ -861,7 +980,13 @@ namespace NzbDrone.Core.MetadataSource.Manga
             var recordKeys = editionLine == null
                 ? BuildAltTitles(displayName, ani)
                 : BuildEditionAltTitles(displayName, identityName, editionAliases, editionLanguage, ani);
-            var descriptionLanguage = editionLanguage ?? "en";
+
+            // Description round (KR/CN consumer, the maintainer 2026-09-29): a fallback series' per-volume blurbs and
+            // subtitles are fetched, gated and stored as English, exactly as for an unbound English entry. Its
+            // covers, aliases and structure stay the bound line's. Every other series: its edition, as before.
+            var englishText = editionLine == null || fallback;
+            var textLanguage = englishText ? null : editionLanguage;
+            var descriptionLanguage = textLanguage ?? "en";
 
             if (resolveVolumeDetails && line != null)
             {
@@ -1153,7 +1278,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 {
                     // A 429 here is a miss like the ISBN one; the search's own null (no match, 5xx) is not.
                     // Preferred Edition (2026-09-24): an edition asks in its own language and volume label.
-                    var byTitle = Google(() => editionLine == null
+                    var byTitle = Google(() => englishText
                         ? _googleBooksService.LookupVolume(displayName, i)
                         : _googleBooksService.LookupVolume(displayName, i, editionLanguage), out var titleQuotaMiss);
                     googleMissed |= titleQuotaMiss;
@@ -1211,7 +1336,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
             var audibleStepRan = library == LibraryType.LightNovel && resolveVolumeDetails;
             if (audibleStepRan)
             {
-                audibleAnswered = ApplyAudiobookIdentity(displayName, recordKeys, volumes, isbnRecords, !audioSkipped, editionLanguage, editionLine == null ? displayName : identityName);
+                audibleAnswered = ApplyAudiobookIdentity(displayName, recordKeys, volumes, isbnRecords, !audioSkipped, textLanguage, fallback && editionLine != null, editionLine == null ? displayName : identityName);
             }
 
             // D5 re-admission (B3b, 2026-09-18): a held record whose title is the volume's own — Audible's
@@ -1252,7 +1377,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                     googleMisses += (googleMissed ? 1 : 0) - (loopMissed ? 1 : 0);
                     volume.GoogleMissed = googleMissed;
                     volume.GoogleRejected = false;
-                    volume.Subtitle = SubtitleOf(volume.ArtifactTitle, volume.Audio, held.Record, displayName, recordKeys, volume.VolumeNumber, editionLanguage);
+                    volume.Subtitle = SubtitleOf(volume.ArtifactTitle, volume.Audio, held.Record, displayName, recordKeys, volume.VolumeNumber, textLanguage, fallback && editionLine != null);
                     volume.SubtitleRejected = volume.Subtitle == null && HadSubtitleCandidate(volume.ArtifactTitle, volume.Audio, held.Record);
 
                     if (volume.VolumeNumber == 1)
@@ -1454,7 +1579,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 VolumeCoverUrl = volumeCoverUrl,
                 RatingValue = ratingValue,
                 Volumes = volumes,
-                JapaneseTotal = japaneseTotal,
+                OriginTotal = originTotal,
                 AltTitles = editionLine == null ? BuildAltTitles(displayName, ani) : BuildEditionAltTitles(displayName, identityName, editionAliases, editionLanguage, ani),
                 ParentName = parentName,
                 AniListId = pinnedId,
@@ -1466,7 +1591,8 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 IdentityName = identityName,
                 EditionLanguage = editionLanguage,
                 TomeLineId = line?.TomeId,
-                EditionCollected = lineCollected
+                EditionCollected = lineCollected,
+                EditionFallback = fallback && editionLine != null
             };
         }
 
@@ -1584,7 +1710,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
         // English line) gets no audio -- the subtitle pass below still runs; Audible is neither asked nor
         // counted as answering. audibleName is the Audible query only (the anchor's English name for an
         // edition, the display name for English); the subtitles and logs keep displayName.
-        private bool ApplyAudiobookIdentity(string displayName, List<string> recordKeys, List<MangaVolumeMetadata> volumes, Dictionary<double, VolumeDetails> isbnRecords, bool askAudible, string editionLanguage, string audibleName)
+        private bool ApplyAudiobookIdentity(string displayName, List<string> recordKeys, List<MangaVolumeMetadata> volumes, Dictionary<double, VolumeDetails> isbnRecords, bool askAudible, string editionLanguage, bool englishOnly, string audibleName)
         {
             var products = askAudible ? _audibleCatalogService.GetSeries(audibleName, recordKeys) : new List<AudibleProduct>();
 
@@ -1658,7 +1784,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 var audio = volume.Audio;
                 isbnRecords.TryGetValue(volume.VolumeNumber, out var record);
 
-                volume.Subtitle = SubtitleOf(volume.ArtifactTitle, audio, record, displayName, recordKeys, volume.VolumeNumber, editionLanguage);
+                volume.Subtitle = SubtitleOf(volume.ArtifactTitle, audio, record, displayName, recordKeys, volume.VolumeNumber, editionLanguage, englishOnly);
                 volume.SubtitleRejected = volume.Subtitle == null && HadSubtitleCandidate(volume.ArtifactTitle, audio, record);
 
                 if (audio == null && volume.CoveredByVolume.HasValue)
@@ -1693,13 +1819,18 @@ namespace NzbDrone.Core.MetadataSource.Manga
         // reads "Vol. 1 · Aincrad" on its first refresh instead of after the quota-bound Google pass.
         // Preferred Edition (2026-09-24): editionLanguage = the series' edition, so its own volume labels
         // and edition words are no subtitle (Subtitles.IsJunk); null is today's filter.
-        internal static string SubtitleOf(string artifactTitle, AudiobookIdentity audio, VolumeDetails record, string displayName, List<string> recordKeys, double volumeNumber, string editionLanguage = null)
+        internal static string SubtitleOf(string artifactTitle, AudiobookIdentity audio, VolumeDetails record, string displayName, List<string> recordKeys, double volumeNumber, string editionLanguage = null, bool englishOnly = false)
         {
             var single = audio?.CoversFrom == null ? audio : null;
 
-            return Subtitles.Derive(null, artifactTitle, null, displayName, recordKeys, volumeNumber, trustedArtifactCandidate: true, editionLanguage: editionLanguage)
-                ?? Subtitles.Derive(single?.Title, single?.Subtitle, null, displayName, recordKeys, volumeNumber, editionLanguage: editionLanguage)
-                ?? Subtitles.Derive(record?.Title, record?.Subtitle, record?.SeriesBookTitle, displayName, recordKeys, volumeNumber, editionLanguage: editionLanguage);
+            // Description round (2026-09-29): a fallback series' subtitle is English (englishOnly, editionLanguage
+            // null). Its catalogue title and ISBN record are the bound line's own language, so a candidate in
+            // native script is no subtitle for a title that reads in English; the next source is tried.
+            string English(string derived) => englishOnly && derived != null && GoogleBooksService.HasCjkScript(derived) ? null : derived;
+
+            return English(Subtitles.Derive(null, artifactTitle, null, displayName, recordKeys, volumeNumber, trustedArtifactCandidate: true, editionLanguage: editionLanguage))
+                ?? English(Subtitles.Derive(single?.Title, single?.Subtitle, null, displayName, recordKeys, volumeNumber, editionLanguage: editionLanguage))
+                ?? English(Subtitles.Derive(record?.Title, record?.Subtitle, record?.SeriesBookTitle, displayName, recordKeys, volumeNumber, editionLanguage: editionLanguage));
         }
 
         // Fix round 3 (2026-09-24): distinguishes "SubtitleOf found nothing to work with this pass"
@@ -1881,7 +2012,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 aliases.AddRange(_gcdMetadataService.GetAliases(hint.GcdSeriesId) ?? new List<string>());
             }
 
-            return _aniListService.FindSeries(name, library, hint?.VolumeCount > 0 ? hint.VolumeCount : (int?)null, aliases, relaxed, IsLineName(name, hint));
+            return _aniListService.FindSeries(name, library, hint?.VolumeCount > 0 ? hint.VolumeCount : (int?)null, aliases, relaxed, IsLineName(name, hint), Origin.OfMedium(hint?.Medium));
         }
 
         // The ranker's R4 ceiling and R5 substring tiers read the line's volume count as the

@@ -63,6 +63,23 @@ namespace NzbDrone.Core.Test.BookTests
             p.NewName.Should().Be("L'Attaque des Titans");
         }
 
+        // KR/CN piece 2 (2026-10-02, M5): a preview to Korean names by AniList's romaji, like Japanese.
+        [Test]
+        public void a_preview_to_korean_names_by_the_romaji_title()
+        {
+            var korean = new GcdSeries { GcdSeriesId = 1007, Name = "Attack on Titan", Language = "ko", VolumeCount = 34, TomeId = "rl_ko", LocalName = "진격의 거인" };
+            Mocker.GetMock<IEditionResolver>()
+                  .Setup(r => r.Resolve(English, It.Is<EditionRequest>(q => q.Language == "ko"), LibraryType.Manga, "Attack on Titan"))
+                  .Returns(new EditionResolution { Line = korean, Language = "ko" });
+            _author.Metadata.Value.AniListId = 53390;
+            Mocker.GetMock<IAniListService>().Setup(s => s.GetById(53390)).Returns(new AniListSeries { RomajiTitle = "Shingeki no Kyojin" });
+
+            var p = Subject.Preview(_author, "ko");
+
+            p.BlockedReason.Should().BeNull();
+            p.NewName.Should().Be("Shingeki no Kyojin");
+        }
+
         [Test]
         public void different_numbering_with_files_is_blocked()
         {
@@ -354,6 +371,139 @@ namespace NzbDrone.Core.Test.BookTests
             p.Compatible.Should().BeTrue();
             p.BlockedReason.Should().BeNull();
             p.FilesAffected.Should().Be(3);
+        }
+
+        // Final fix wave I3: a fallback series (bound to its Japanese line, no English line by its name) takes the
+        // target from its bound line's work -- the real EditionResolver ranks it, so the spin-off's lines lose.
+        private void GivenJapaneseFallbackSeries()
+        {
+            var jaMain = new GcdSeries { GcdSeriesId = 8001, Name = "Stand Up Start", LocalName = "スタンドUPスタート", Language = "ja", VolumeCount = 7, IsMain = true, Medium = "manga", TomeId = "rl_ja_sus", TomeWorkId = "w_sus" };
+            var jaSpin = new GcdSeries { GcdSeriesId = 8003, Name = "Stand Up Start Side", Language = "ja", VolumeCount = 2, IsMain = false, Medium = "manga", TomeId = "rl_ja_side", TomeWorkId = "w_sus" };
+            var en = new GcdSeries { GcdSeriesId = 8002, Name = "Stand Up Start", Language = "en", VolumeCount = 3, IsMain = true, OrigSeriesId = 8001, Medium = "manga", TomeId = "rl_en_sus", TomeWorkId = "w_sus" };
+            var fr = new GcdSeries { GcdSeriesId = 8004, Name = "Stand Up Start", LocalName = "Stand Up Start FR", Language = "fr", VolumeCount = 5, IsMain = true, OrigSeriesId = 8001, Medium = "manga", TomeId = "rl_fr_sus", TomeWorkId = "w_sus" };
+            var frSpin = new GcdSeries { GcdSeriesId = 8005, Name = "Stand Up Start Side", Language = "fr", VolumeCount = 9, IsMain = true, OrigSeriesId = 8003, Medium = "manga", TomeId = "rl_fr_side", TomeWorkId = "w_sus" };
+
+            var gcd = Mocker.GetMock<IGcdMetadataService>();
+            gcd.Setup(s => s.FindSeriesByTomeId("rl_ja_sus")).Returns(jaMain);
+            gcd.Setup(s => s.GetWorkLines("w_sus")).Returns(new List<GcdSeries> { jaMain, jaSpin, en, fr, frSpin });
+            gcd.Setup(s => s.GetVolumes(It.IsAny<int>())).Returns(new List<GcdVolume>());
+            Mocker.SetConstant<IEditionResolver>(Mocker.Resolve<EditionResolver>());
+
+            _author = new Author { Id = 7, Metadata = new AuthorMetadata { Name = "Stand Up Start", EditionLanguage = "ja", TomeLineId = "rl_ja_sus", EditionFallback = true } };
+        }
+
+        [Test]
+        public void a_fallback_series_previews_a_move_to_english()
+        {
+            GivenJapaneseFallbackSeries();
+
+            var p = Subject.Preview(_author, "en");
+
+            p.BlockedReason.Should().BeNull();
+            p.FromLanguage.Should().Be("ja");
+            p.ToTomeLineId.Should().Be("rl_en_sus");
+        }
+
+        [Test]
+        public void a_fallback_series_previews_a_move_to_french()
+        {
+            GivenJapaneseFallbackSeries();
+
+            var p = Subject.Preview(_author, "fr");
+
+            p.BlockedReason.Should().BeNull();
+            p.ToTomeLineId.Should().Be("rl_fr_sus");
+        }
+
+        [Test]
+        public void a_fallback_series_on_its_own_language_is_already_that_edition()
+        {
+            GivenJapaneseFallbackSeries();
+
+            Subject.Preview(_author, "ja").BlockedReason.Should().Be("Already the Japanese edition");
+        }
+
+        // Follow-up round (KR/CN consumer): a first Change Edition (ja -> ko) cleared the fallback flag, but the series
+        // still has no English line by its name -- the target still comes from its bound line's work.
+        private void GivenAKoreanSeriesWhoseFallbackFlagWasCleared()
+        {
+            GivenJapaneseFallbackSeries();
+
+            var ko = new GcdSeries { GcdSeriesId = 8006, Name = "Stand Up Start", Language = "ko", VolumeCount = 7, IsMain = true, OrigSeriesId = 8001, Medium = "manga", TomeId = "rl_ko_sus", TomeWorkId = "w_sus" };
+            var gcd = Mocker.GetMock<IGcdMetadataService>();
+            var work = gcd.Object.GetWorkLines("w_sus").Concat(new[] { ko }).ToList();
+            gcd.Setup(s => s.FindSeriesByTomeId("rl_ko_sus")).Returns(ko);
+            gcd.Setup(s => s.GetWorkLines("w_sus")).Returns(work);
+
+            _author.Metadata.Value.EditionLanguage = "ko";
+            _author.Metadata.Value.TomeLineId = "rl_ko_sus";
+            _author.Metadata.Value.EditionFallback = false;
+        }
+
+        [Test]
+        public void a_series_whose_fallback_flag_was_cleared_previews_a_move_to_english()
+        {
+            GivenAKoreanSeriesWhoseFallbackFlagWasCleared();
+
+            var p = Subject.Preview(_author, "en");
+
+            p.BlockedReason.Should().BeNull();
+            p.FromLanguage.Should().Be("ko");
+            p.ToTomeLineId.Should().Be("rl_en_sus");
+        }
+
+        [Test]
+        public void a_series_whose_fallback_flag_was_cleared_previews_a_move_to_french()
+        {
+            GivenAKoreanSeriesWhoseFallbackFlagWasCleared();
+
+            var p = Subject.Preview(_author, "fr");
+
+            p.BlockedReason.Should().BeNull();
+            p.ToTomeLineId.Should().Be("rl_fr_sus");
+        }
+
+        // A fallback (or anchorless) series moved to English is offered the English line's name, which also becomes
+        // its anchor -- an English series is refreshed by that name (BookInfoProxy), so the old name would lose the line.
+        [Test]
+        public void a_fallback_series_moved_to_english_is_offered_the_english_lines_name()
+        {
+            GivenJapaneseFallbackSeries();
+            _author.Metadata.Value.Name = "Sutando Appu Sutato";
+
+            var p = Subject.Preview(_author, "en");
+
+            p.ToTomeLineId.Should().Be("rl_en_sus");
+            p.NewName.Should().Be("Stand Up Start");
+            p.ToAnchorName.Should().Be("Stand Up Start");
+        }
+
+        [Test]
+        public void a_series_whose_fallback_flag_was_cleared_is_offered_the_english_lines_name()
+        {
+            GivenAKoreanSeriesWhoseFallbackFlagWasCleared();
+            _author.Metadata.Value.Name = "Sutando Appu Sutato";
+
+            var p = Subject.Preview(_author, "en");
+
+            p.NewName.Should().Be("Stand Up Start");
+            p.ToAnchorName.Should().Be("Stand Up Start");
+        }
+
+        // An anchored series keeps today's rule (back_to_english_offers_the_anchor_name): no anchor override.
+        [Test]
+        public void an_anchored_series_moved_to_english_carries_no_anchor_override()
+        {
+            _author.Metadata.Value.Name = "L'Attaque des Titans";
+            _author.Metadata.Value.AnchorName = "Attack on Titan";
+            _author.Metadata.Value.EditionLanguage = "fr";
+            _author.Metadata.Value.TomeLineId = "rl_fr";
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.FindSeriesByTomeId("rl_fr")).Returns(French);
+
+            var p = Subject.Preview(_author, "en");
+
+            p.NewName.Should().Be("Attack on Titan");
+            p.ToAnchorName.Should().BeNull();
         }
     }
 }

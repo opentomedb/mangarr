@@ -94,5 +94,34 @@ namespace NzbDrone.Core.Test.Profiles.Metadata
         {
             Subject.FilterBooks(SeriesWithEdition(null, "eng"), 1).Should().HaveCount(1);
         }
+
+        // Follow-up round (KR/CN consumer, I1 residue): a fallback series is English-style for the profile -- its
+        // editions are minted "eng" (BookInfoProxy) and pass the Standard profile as an English series' do; its
+        // bound line's language earns no exemption. The same binding as a Japanese edition keeps its exemption.
+        private static Author JapaneseSeries(bool fallback, string editionIso3)
+        {
+            var author = SeriesWithEdition("ja", editionIso3);
+            author.Metadata.Value.EditionFallback = fallback;
+
+            return author;
+        }
+
+        [Test]
+        public void a_fallback_series_keeps_its_english_edition()
+        {
+            Subject.FilterBooks(JapaneseSeries(true, "eng"), 1).Should().HaveCount(1);
+        }
+
+        [Test]
+        public void a_fallback_series_is_filtered_like_an_english_series()
+        {
+            Subject.FilterBooks(JapaneseSeries(true, "jpn"), 1).Should().BeEmpty();
+        }
+
+        [Test]
+        public void the_same_binding_as_an_edition_keeps_its_japanese_edition()
+        {
+            Subject.FilterBooks(JapaneseSeries(false, "jpn"), 1).Should().HaveCount(1);
+        }
     }
 }

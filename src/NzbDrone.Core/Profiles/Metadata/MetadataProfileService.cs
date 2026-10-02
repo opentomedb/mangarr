@@ -141,9 +141,12 @@ namespace NzbDrone.Core.Profiles.Metadata
 
             // Preferred Edition (2026-09-24): the series' own edition language is always allowed -- the
             // seeded Standard profile ("eng, null") would otherwise drop every edition of a French series.
-            var seriesEdition = EditionLanguages.IsEnglish(input.Metadata?.Value?.EditionLanguage)
+            // Follow-up round (KR/CN consumer): a fallback series' editions are minted "eng" (BookInfoProxy), so it is
+            // filtered as an English series is (EditionLanguages.ReleaseLanguage).
+            var releaseLanguage = EditionLanguages.ReleaseLanguage(input.Metadata?.Value);
+            var seriesEdition = EditionLanguages.IsEnglish(releaseLanguage)
                 ? null
-                : EditionLanguages.ToIso3(input.Metadata.Value.EditionLanguage);
+                : EditionLanguages.ToIso3(releaseLanguage);
 
             return FilterBooks(input.Books.Value, localBooks, localFiles, seriesLinks, profileId, seriesEdition);
         }

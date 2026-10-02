@@ -13,7 +13,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
         public string DisplayName { get; set; }
         public AuthorStatusType Status { get; set; }
         public int VolumeCount { get; set; }       // English-available (grabbable) volumes
-        public int JapaneseTotal { get; set; }      // full series tankoubon total; >= VolumeCount
+        public int OriginTotal { get; set; }        // the original market's print total (was JapaneseTotal; KR/CN piece 2, 2026-10-02, M6); >= VolumeCount
         public string Overview { get; set; }
         public string CoverUrl { get; set; }         // series poster: the edition's volume-1 cover (English for an English series, D4), AniList's art as the last resort
         public string PosterSource { get; set; }     // pin | mangadex-en | mangadex-<lang> (a non-English edition's locale art, Preferred Edition 2026-09-24) | opentome | google | google-thumbnail | anilist | mangadex | anilist-display | none (D10; pin = a pinned volume-1 cover, B3b; anilist-display = the catalogue's display-only AniList entry, 2026-09-24; google-thumbnail = Google's 128 px volume-1 thumbnail asked at poster size, 2026-09-24)
@@ -59,6 +59,10 @@ namespace NzbDrone.Core.MetadataSource.Manga
 
         // 2026-09-26: the TomeLineId line is a collected edition (IsCollectedEdition over its volumes).
         public bool EditionCollected { get; set; }
+
+        // KR/CN consumer (2026-09-29): this pass's edition line came from the new-entry fallback, or the entry is
+        // already a fallback series (EditionRequest.Fallback).
+        public bool EditionFallback { get; set; }
     }
 
     public class MangaVolumeMetadata

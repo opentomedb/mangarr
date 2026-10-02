@@ -69,7 +69,8 @@ namespace NzbDrone.Core.Test.MusicTests
             var different = _fixture.Create<AuthorMetadata>();
 
             // make item2 different in the property under consideration
-            var differentEntry = prop.GetValue(different);
+            // AutoFixture alternates bools, so a bool can land equal: flip it instead.
+            var differentEntry = prop.PropertyType == typeof(bool) ? !(bool)prop.GetValue(item1) : prop.GetValue(different);
             prop.SetValue(item2, differentEntry);
 
             item1.Should().NotBeSameAs(item2);

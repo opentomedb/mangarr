@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
                   {
                       DisplayName = Series,
                       VolumeCount = 2,
-                      JapaneseTotal = 26,
+                      OriginTotal = 26,
                       VolumeCoverUrl = "https://uploads.mangadex.org/covers/bd6d0982/v1.jpg",
                       Volumes = new List<MangaVolumeMetadata>
                       {

@@ -18,7 +18,8 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
         // Preferred Edition (2026-09-24, spec §3): the series' edition (null/"en" = English, every query
         // below byte-identical). A light-novel AUDIO search of a non-English series is for the English
         // audiobook (D8), so it searches like English, by the anchor name.
-        private string EditionLanguage => Author?.Metadata?.Value?.EditionLanguage;
+        // A fallback series searches like English (final fix wave I1: EditionLanguages.ReleaseLanguage).
+        private string EditionLanguage => EditionLanguages.ReleaseLanguage(Author?.Metadata?.Value);
 
         private bool IsEditionSearch => VolumeNumber > 0 && !EditionLanguages.IsEnglish(EditionLanguage) && MediaType != MediaType.Audio;
 

@@ -312,5 +312,191 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             options.Single(o => o.Language == "fr").VolumeCount.Should().Be(20);
             options.Single(o => o.Language == "fr").Name.Should().Be("French");
         }
+
+        // KR/CN consumer (2026-09-29, spec §3.3): a work with no Korean original line in the catalogue.
+        private static GcdSeries Kr(int id, string language, bool main = true, string work = "w_og")
+        {
+            return new GcdSeries { GcdSeriesId = id, Name = "Overgeared", Language = language, VolumeCount = 10, IsMain = main, Medium = "manhwa", TomeId = "rl_" + id, TomeWorkId = work };
+        }
+
+        [Test]
+        public void main_lines_of_a_work_without_an_original_are_counterparts()
+        {
+            EditionResolver.IsCounterpart(Kr(5002, "en"), Kr(5001, "de")).Should().BeTrue();
+            EditionResolver.IsCounterpart(Kr(5001, "de"), Kr(5004, "fr")).Should().BeTrue();
+        }
+
+        [Test]
+        public void a_side_line_is_not_a_counterpart_of_the_main_line()
+        {
+            EditionResolver.IsCounterpart(Kr(5002, "en"), Kr(5003, "de", main: false)).Should().BeFalse();
+        }
+
+        [Test]
+        public void main_lines_of_different_works_are_not_counterparts()
+        {
+            EditionResolver.IsCounterpart(Kr(5002, "en"), Kr(7001, "de", work: "w_other")).Should().BeFalse();
+        }
+
+        [Test]
+        public void a_japanese_work_keeps_the_orig_series_rule()
+        {
+            // Anchor has orig 1003; a main German line pointing elsewhere is not a counterpart even though both are main.
+            EditionResolver.IsCounterpart(Anchor, Line(3009, "de", 10, orig: 9999)).Should().BeFalse();
+            EditionResolver.IsCounterpart(Anchor, Line(3002, "de", 34, orig: 1003)).Should().BeTrue();
+        }
+
+        [Test]
+        public void resolving_german_for_a_korean_work_picks_the_main_german_line()
+        {
+            var en = Kr(5002, "en");
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.GetWorkLines("w_og")).Returns(new List<GcdSeries> { en, Kr(5001, "de"), Kr(5003, "de", main: false) });
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.GetVolumes(It.IsAny<int>())).Returns(new List<GcdVolume>());
+
+            Subject.Resolve(en, new EditionRequest { Chain = new[] { "de" } }, LibraryType.Manga, "Overgeared").Line.GcdSeriesId.Should().Be(5001);
+        }
+
+        // KR/CN consumer (2026-09-29, spec §3.2): the line a new entry falls back to.
+        private static GcdSeries W(int id, string language, int volumes = 10, int? orig = null, bool main = true, string medium = "manga", string work = "w_x")
+        {
+            return new GcdSeries { GcdSeriesId = id, Name = "X", Language = language, VolumeCount = volumes, OrigSeriesId = orig, IsMain = main, Medium = medium, TomeId = "rl_" + id, TomeWorkId = work };
+        }
+
+        private void GivenLines(params GcdSeries[] lines)
+        {
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.GetWorkLines("w_x")).Returns(lines.ToList());
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.GetVolumes(It.IsAny<int>())).Returns(new List<GcdVolume>());
+        }
+
+        [Test]
+        public void a_japanese_only_work_falls_back_to_its_japanese_line()
+        {
+            var ja = W(1, "ja");
+            GivenLines(ja);
+
+            var r = Subject.ResolveFallback(ja, new[] { "en" }, LibraryType.Manga);
+
+            r.Line.GcdSeriesId.Should().Be(1);
+            r.Language.Should().Be("ja");
+        }
+
+        [Test]
+        public void the_original_beats_a_french_edition_for_an_english_user()
+        {
+            var ja = W(1, "ja");
+            var fr = W(2, "fr", orig: 1);
+            GivenLines(ja, fr);
+
+            Subject.ResolveFallback(fr, new[] { "en" }, LibraryType.Manga).Line.GcdSeriesId.Should().Be(1);
+        }
+
+        [Test]
+        public void a_chain_language_line_the_title_missed_comes_first()
+        {
+            var ja = W(1, "ja");
+            var fr = W(2, "fr", orig: 1);
+            GivenLines(ja, fr);
+
+            Subject.ResolveFallback(ja, new[] { "fr", "en" }, LibraryType.Manga).Language.Should().Be("fr");
+        }
+
+        [Test]
+        public void an_english_line_found_by_id_is_taken_as_english()
+        {
+            var en = W(3, "en");
+            var de = W(4, "de");
+            GivenLines(en, de);
+
+            Subject.ResolveFallback(de, new[] { "en" }, LibraryType.Manga).Line.GcdSeriesId.Should().Be(3);
+        }
+
+        [Test]
+        public void a_german_french_work_without_an_original_follows_rank_order()
+        {
+            // Final fix wave C1: the found line itself would win, so it is an empty stub here (not a candidate)
+            // and its two counterparts are ranked.
+            var de = W(4, "de", volumes: 12);
+            var it = W(6, "it", volumes: 8);
+            var fr = W(5, "fr", volumes: 0);
+            GivenLines(de, it, fr);
+
+            Subject.ResolveFallback(fr, new[] { "en" }, LibraryType.Manga).Line.GcdSeriesId.Should().Be(4);
+        }
+
+        [Test]
+        public void a_german_french_work_without_an_original_keeps_the_found_line()
+        {
+            var de = W(4, "de", volumes: 12);
+            var fr = W(5, "fr", volumes: 8);
+            GivenLines(de, fr);
+
+            Subject.ResolveFallback(fr, new[] { "en" }, LibraryType.Manga).Line.GcdSeriesId.Should().Be(5);
+        }
+
+        // Final fix wave C1: a search that found a spin-off binds the spin-off, never its work's main line.
+        [Test]
+        public void a_spin_off_hit_of_a_japanese_only_work_binds_the_spin_off()
+        {
+            var main = W(1, "ja", volumes: 30);
+            var spin = W(2, "ja", volumes: 3, main: false);
+            GivenLines(main, spin);
+
+            Subject.ResolveFallback(spin, new[] { "en" }, LibraryType.Manga).Line.GcdSeriesId.Should().Be(2);
+        }
+
+        [Test]
+        public void a_spin_off_hit_never_binds_the_licensed_english_main_line()
+        {
+            var jaMain = W(1, "ja", volumes: 30);
+            var enMain = W(3, "en", volumes: 25, orig: 1);
+            var spin = W(2, "ja", volumes: 3, main: false);
+            GivenLines(jaMain, enMain, spin);
+
+            var r = Subject.ResolveFallback(spin, new[] { "en" }, LibraryType.Manga);
+
+            r.Line.GcdSeriesId.Should().Be(2);
+            r.Language.Should().Be("ja");
+        }
+
+        [Test]
+        public void the_chain_order_decides_between_two_chain_counterparts()
+        {
+            var ja = W(1, "ja");
+            var de = W(4, "de", volumes: 20, orig: 1);
+            var fr = W(5, "fr", volumes: 5, orig: 1);
+            GivenLines(ja, de, fr);
+
+            Subject.ResolveFallback(ja, new[] { "fr", "de" }, LibraryType.Manga).Line.GcdSeriesId.Should().Be(5);
+        }
+
+        [Test]
+        public void the_line_others_point_at_wins_among_original_language_lines()
+        {
+            var jaMain = W(1, "ja", volumes: 20);
+            var jaOther = W(6, "ja", volumes: 30, main: false);
+            var fr = W(2, "fr", orig: 1);
+            GivenLines(jaOther, jaMain, fr);
+
+            Subject.ResolveFallback(fr, new[] { "en" }, LibraryType.Manga).Line.GcdSeriesId.Should().Be(1);
+        }
+
+        [Test]
+        public void wrong_library_class_and_empty_lines_are_skipped()
+        {
+            var jaNovel = W(1, "ja", medium: "light_novel");
+            var jaEmpty = W(7, "ja", volumes: 0);
+            GivenLines(jaNovel, jaEmpty);
+
+            Subject.ResolveFallback(jaEmpty, new[] { "en" }, LibraryType.Manga).Should().BeNull();
+        }
+
+        [Test]
+        public void a_line_without_a_work_is_its_own_work()
+        {
+            var lone = new GcdSeries { GcdSeriesId = 9, Name = "Lone", Language = "ko", VolumeCount = 3, IsMain = true, Medium = "manhwa" };
+            Mocker.GetMock<IGcdMetadataService>().Setup(s => s.GetVolumes(It.IsAny<int>())).Returns(new List<GcdVolume>());
+
+            Subject.ResolveFallback(lone, new[] { "en" }, LibraryType.Manga).Line.GcdSeriesId.Should().Be(9);
+        }
     }
 }

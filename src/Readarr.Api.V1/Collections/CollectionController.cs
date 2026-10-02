@@ -99,7 +99,7 @@ namespace Readarr.Api.V1.Collections
 
                 // Every member the artifact knows in this library's medium, in library or not.
                 var line = _gcd.Available
-                    ? (_gcd.FindSeriesByTitle(root?.Name, library) ?? _gcd.FindSeriesByTitle(parentName, library))
+                    ? (WorkLines.LibraryLine(_gcd, root?.Metadata.Value.TomeLineId, root?.Name, library) ?? _gcd.FindSeriesByTitle(parentName, library))
                     : null;
                 if (line != null)
                 {
@@ -131,7 +131,7 @@ namespace Readarr.Api.V1.Collections
             {
                 foreach (var a in authors)
                 {
-                    var line = _gcd.FindSeriesByTitle(a.Name, a.Library);
+                    var line = WorkLines.LibraryLine(_gcd, a.Metadata.Value.TomeLineId, a.Name, a.Library);
                     if (line != null && _gcd.GetChildren(line.GcdSeriesId).Any())
                     {
                         Collection(a.Name, a.Library);

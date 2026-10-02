@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using NzbDrone.Core.Books;
 
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
@@ -10,12 +11,22 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
     {
         public static bool Has(string language)
         {
-            return language == "fr" || language == "de" || language == "ja";
+            switch (EditionLanguages.BaseCode(language))
+            {
+                case "fr":
+                case "de":
+                case "ja":
+                case "ko":
+                case "zh":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         public static string Token(string language, string number, bool padded)
         {
-            switch (language)
+            switch (EditionLanguages.BaseCode(language))
             {
                 case "fr":
                     return padded ? $"T{number}" : $"Tome+{number}";
@@ -23,6 +34,11 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
                     return padded ? $"Band+{number}" : $"Bd+{number}";
                 case "ja":
                     return $"第{number}巻";
+                case "ko":
+                    // KR/CN piece 2 (2026-10-02, M5): "05권" is how Korean releases are numbered; "제5권" the formal form.
+                    return padded ? $"{number}권" : $"제{number}권";
+                case "zh":
+                    return padded ? $"第{number}卷" : $"{number}卷";
                 default:
                     return $"v{number}";
             }
@@ -31,7 +47,7 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
         // An edition's own function words: a French alias keeps "de/la/les", a German one "der/die/das".
         public static IReadOnlyCollection<string> FunctionWords(string language)
         {
-            switch (language)
+            switch (EditionLanguages.BaseCode(language))
             {
                 case "fr":
                     return new[] { "de", "del", "des", "la", "le", "les", "du" };

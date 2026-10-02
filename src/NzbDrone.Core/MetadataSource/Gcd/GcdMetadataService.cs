@@ -48,6 +48,11 @@ namespace NzbDrone.Core.MetadataSource.Gcd
         // Every line of the work, every language and medium. Empty when the artifact has no tome_work_id.
         List<GcdSeries> GetWorkLines(string tomeWorkId);
 
+        // KR/CN consumer (2026-09-29, spec §3.1): the lines carrying this AniList id, widened to every line of
+        // their works (tome_work_id), library-gated like Rank; English first, then is_main, then Rank's tail.
+        // A KR/CN work is often catalogued under a German or French name, so the English title misses it.
+        GcdSeries FindSeriesByAnilistId(int anilistId, LibraryType library);
+
         // FindSeriesByTitle restricted to these languages, the chain order ranked first (spec §2.1
         // step 2: a work with no English line).
         GcdSeries FindSeriesByTitle(string title, LibraryType library, IReadOnlyList<string> languages);
@@ -623,6 +628,49 @@ namespace NzbDrone.Core.MetadataSource.Gcd
 
                 return rows;
             }) ?? new List<GcdSeries>();
+        }
+
+        public GcdSeries FindSeriesByAnilistId(int anilistId, LibraryType library)
+        {
+            return Query(conn =>
+            {
+                var ids = conn.Query<int>("SELECT gcd_series_id FROM series WHERE anilist_id = @a", new { a = anilistId }).ToList();
+
+                if (ids.Count == 0)
+                {
+                    return null;
+                }
+
+                try
+                {
+                    var workIds = conn.Query<int>(
+                        "SELECT gcd_series_id FROM series WHERE tome_work_id IN (SELECT tome_work_id FROM series WHERE anilist_id = @a AND tome_work_id IS NOT NULL)",
+                        new { a = anilistId }).ToList();
+                    ids = ids.Union(workIds).ToList();
+                }
+                catch (SQLiteException)
+                {
+                    // no tome_work_id column: the matched rows alone
+                }
+
+                var inList = string.Join(",", ids);
+                var rows = conn.Query<GcdSeries>(SeriesSelect + " WHERE gcd_series_id IN (" + inList + ")").ToList();
+                LoadOptionalColumns(conn, rows, inList);
+
+                var wantNovel = library == LibraryType.LightNovel;
+
+                return rows
+                    .Where(s => wantNovel ? IsLightNovel(s.Medium) : true)
+                    .OrderByDescending(s => s.AnilistId == anilistId)
+                    .ThenByDescending(s => s.Language == "en")
+                    .ThenByDescending(s => s.IsMain)
+                    .ThenBy(s => IsLightNovel(s.Medium))
+                    .ThenBy(s => s.IsOmnibus)
+                    .ThenByDescending(s => s.DatedCount ?? 0)
+                    .ThenByDescending(s => s.VolumeCount)
+                    .ThenBy(s => s.GcdSeriesId)
+                    .FirstOrDefault();
+            });
         }
 
         public List<GcdAlias> GetAliasRows(int gcdSeriesId)

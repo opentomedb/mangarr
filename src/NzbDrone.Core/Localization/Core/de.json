@@ -2724,5 +2724,7 @@
     "TaskNameSwitchLine": "Reihe wechseln",
     "ServerValidationSeriesNoLongerExists": "Die Serie existiert nicht mehr",
     "SwitchLineConfirmAdded": "{count} Band/Bände werden hinzugefügt.",
-    "SwitchLineConfirmNoAniList": "Keine AniList-Zuordnung für diese Reihe; die Metadaten werden über den Titel neu aufgelöst."
+    "SwitchLineConfirmNoAniList": "Keine AniList-Zuordnung für diese Reihe; die Metadaten werden über den Titel neu aufgelöst.",
+    "EditionFallbackNote": "Ausgabe {language} – in Ihren Sprachen nicht verfügbar",
+    "Donations": "Spenden"
 }

@@ -17,6 +17,7 @@ import QualityProfileName from 'Settings/Profiles/Quality/QualityProfileName';
 import fonts from 'Styles/Variables/fonts';
 import suggestCorrectionUrl from 'Utilities/Author/suggestCorrectionUrl';
 import formatBytes from 'Utilities/Number/formatBytes';
+import languageName from 'Utilities/String/languageName';
 import stripHtml from 'Utilities/String/stripHtml';
 import translate from 'Utilities/String/translate';
 import AuthorAlternateTitles from './AuthorAlternateTitles';
@@ -73,6 +74,8 @@ class AuthorDetailsHeader extends Component {
       audioQualityProfileId,
       audioQualityProfileName,
       writer,
+      editionFallback,
+      editionLanguage,
       monitored,
       status,
       overview,
@@ -190,6 +193,14 @@ class AuthorDetailsHeader extends Component {
               isLightNovel && writer ?
                 <div className={styles.writer}>
                   {translate('ByWriter', { writer })}
+                </div> :
+                null
+            }
+
+            {
+              editionFallback && editionLanguage ?
+                <div className={styles.writer}>
+                  {translate('EditionFallbackNote', { language: languageName(editionLanguage) })}
                 </div> :
                 null
             }
@@ -402,6 +413,8 @@ AuthorDetailsHeader.propTypes = {
   audioQualityProfileId: PropTypes.number,
   audioQualityProfileName: PropTypes.string,
   writer: PropTypes.string,
+  editionFallback: PropTypes.bool,
+  editionLanguage: PropTypes.string,
   monitored: PropTypes.bool.isRequired,
   status: PropTypes.string.isRequired,
   overview: PropTypes.string,

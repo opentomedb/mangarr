@@ -32,6 +32,12 @@ namespace NzbDrone.Core.Test.MetadataSource
             };
         }
 
+        private static AniListCandidate From(string country, AniListCandidate c)
+        {
+            c.CountryOfOrigin = country;
+            return c;
+        }
+
         [Test]
         public void a_one_shot_is_rejected_even_with_primary_title_equality()
         {
@@ -732,6 +738,77 @@ namespace NzbDrone.Core.Test.MetadataSource
             AniListRanker.ArticleKey("Theater Night").Should().Be("theaternight");
             AniListRanker.ArticleKey("The The Band").Should().Be("theband");
             AniListRanker.ArticleKey(null).Should().Be(string.Empty);
+        }
+
+        // ---- KR/CN piece 2 (2026-10-02, M4): the origin guard ----
+
+        [Test]
+        public void a_manhwa_line_drops_a_japanese_entry_carrying_its_title()
+        {
+            var page = new List<AniListCandidate>
+            {
+                From("JP", C(1, "Solo Leveling", "Solo Leveling", Manga, Releasing, null, 900000)),
+                From("KR", C(105398, "Na Honjaman Level Up", "Solo Leveling", Manga, Finished, null, 150000))
+            };
+
+            var result = AniListRanker.Pick(page, "Solo Leveling", null, expectedOrigin: "KR");
+
+            result.Pick.Id.Should().Be(105398);
+            result.Via.Should().Be("primary");
+            result.Rejections.Should().ContainSingle(r => r == "1 \"Solo Leveling\": origin JP (line expects KR)");
+        }
+
+        [Test]
+        public void a_dropped_entry_does_not_block_a_synonym_carrier()
+        {
+            // R1 blocks a synonym-only candidate while a primary-title candidate is on the page -- but a
+            // same-titled entry of another origin is not this work, so it is off the page before R1 reads it.
+            var page = new List<AniListCandidate>
+            {
+                From("JP", C(1, "Noblesse", "Noblesse", Manga, Releasing, null, 900000)),
+                From("KR", C(2, "Nobeulleseu", null, Manga, Releasing, null, 150000, "Noblesse"))
+            };
+
+            var result = AniListRanker.Pick(page, "Noblesse", null, expectedOrigin: "KR");
+
+            result.Pick.Id.Should().Be(2);
+            result.Via.Should().Be("synonym");
+        }
+
+        [Test]
+        public void taiwan_agrees_with_a_manhua_line()
+        {
+            var page = new List<AniListCandidate> { From("TW", C(3, "Pili Fantasy", "Pili Fantasy", Manga, Finished, 2, 500)) };
+
+            AniListRanker.Pick(page, "Pili Fantasy", 2, expectedOrigin: "CN").Pick.Id.Should().Be(3);
+        }
+
+        [Test]
+        public void no_expected_origin_keeps_every_entry()
+        {
+            var page = new List<AniListCandidate> { From("JP", C(1, "Solo Leveling", "Solo Leveling", Manga, Releasing, null, 900000)) };
+
+            AniListRanker.Pick(page, "Solo Leveling", null).Pick.Id.Should().Be(1);
+            AniListRanker.Pick(page, "Solo Leveling", null, expectedOrigin: null).Pick.Id.Should().Be(1);
+        }
+
+        [Test]
+        public void an_entry_without_an_origin_is_never_dropped()
+        {
+            var page = new List<AniListCandidate> { C(1, "Solo Leveling", "Solo Leveling", Manga, Releasing, null, 900000) };
+
+            AniListRanker.Pick(page, "Solo Leveling", null, expectedOrigin: "KR").Pick.Id.Should().Be(1);
+        }
+
+        [Test]
+        public void only_a_wrong_origin_entry_on_the_page_binds_nothing()
+        {
+            var page = new List<AniListCandidate> { From("JP", C(1, "Solo Leveling", "Solo Leveling", Manga, Releasing, null, 900000)) };
+
+            var result = AniListRanker.Pick(page, "Solo Leveling", null, expectedOrigin: "KR");
+
+            result.Pick.Should().BeNull();
+            result.Rejections.Should().ContainSingle(r => r == "1 \"Solo Leveling\": origin JP (line expects KR)");
         }
     }
 }

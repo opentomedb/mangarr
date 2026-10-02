@@ -217,7 +217,11 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
         // adds); an add names one or takes the chain; a search candidate takes the chain. Null = the
         // English (six-argument) call -- the ONLY gate keeping EditionResolver (and its new catalogue
         // reads) off every English series, including one that already records a TomeLineId (A3).
-        private EditionRequest EditionRequestFor(Author existing, string requestedEdition)
+        //
+        // Staging fix S1 (2026-10-01, spec §3.2): a new entry that also carries the line the search chose
+        // (tomeLineId, from an add of a fallback candidate) resolves that line by id, flagged as a fallback
+        // unless its language is one of the chain's -- the provider's own rule for a fallback pick.
+        private EditionRequest EditionRequestFor(Author existing, string requestedEdition, string tomeLineId = null)
         {
             if (existing != null)
             {
@@ -226,7 +230,15 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 // Ruling S1: the stored name rides along -- the provider keys pins by it.
                 return EditionLanguages.IsEnglish(bound)
                     ? null
-                    : new EditionRequest { Language = bound.Trim(), TomeLineId = existing.Metadata.Value.TomeLineId, StoredName = existing.Name };
+                    : new EditionRequest { Language = bound.Trim(), TomeLineId = existing.Metadata.Value.TomeLineId, StoredName = existing.Name, Fallback = existing.Metadata.Value.EditionFallback };
+            }
+
+            if (requestedEdition.IsNotNullOrWhiteSpace() && tomeLineId.IsNotNullOrWhiteSpace() && !EditionLanguages.IsEnglish(requestedEdition))
+            {
+                var language = requestedEdition.Trim();
+                var carriedChain = EditionLanguages.ParseChain(_configService.PreferredEditionLanguages);
+
+                return new EditionRequest { Language = language, TomeLineId = tomeLineId, Fallback = !carriedChain.Any(l => l.Trim() == language) };
             }
 
             if (requestedEdition.IsNotNullOrWhiteSpace())
@@ -280,7 +292,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             return author;
         }
 
-        private Author BuildFakeAuthor(string idOrTitle, bool resolveVolumeDetails = true, LibraryType library = LibraryType.Manga, string requestedEdition = null, bool anchorOnly = false)
+        private Author BuildFakeAuthor(string idOrTitle, bool resolveVolumeDetails = true, LibraryType library = LibraryType.Manga, string requestedEdition = null, bool anchorOnly = false, string tomeLineId = null)
         {
             // The library rides in the id when we were handed one (add / refresh / import) and comes
             // from the caller when we were handed a title (the Add page's library toggle). Lookups
@@ -323,7 +335,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             // Preferred Edition: a non-English edition takes the seven-argument overload; the English
             // call is byte-identical to before (EnEditionPinning).
             var snapshotId = existing?.Metadata?.Value?.AniListId;
-            var edition = anchorOnly ? null : EditionRequestFor(existing, requestedEdition);
+            var edition = anchorOnly ? null : EditionRequestFor(existing, requestedEdition, tomeLineId);
 
             // Preferred Edition (2026-09-24, M13 pre-review fix, ruling (c)): an English entry that still
             // carries an AnchorName (localized, then changed back to English without Rename) keeps its pins
@@ -332,6 +344,16 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             var englishPinName = edition == null && anchorName.IsNotNullOrWhiteSpace() ? existing.Name : null;
             MangaSeriesMetadata series;
 
+            // KR/CN consumer (2026-09-29, spec §3.2): only a NEW entry (add or search candidate) may fall back to a line
+            // outside the chain; an existing series never does. Final fix wave I4: an explicit non-English Add-form
+            // edition opens the scope too -- the provider then looks that language up by AniList id / any-language
+            // title before refusing it; the scope always carries the user's configured chain, which decides the flag.
+            // An explicit English add stays as today (no scope).
+            var fallbackChain = existing == null && !anchorOnly && (requestedEdition.IsNullOrWhiteSpace() || !EditionLanguages.IsEnglish(requestedEdition))
+                ? EditionLanguages.ParseChain(_configService.PreferredEditionLanguages)
+                : null;
+
+            using (fallbackChain != null ? MangaSeriesMetadataProvider.NewEntryFallback(fallbackChain) : null)
             using (englishPinName != null ? MangaSeriesMetadataProvider.PinsUnder(englishPinName) : null)
             {
                 series = edition == null
@@ -402,6 +424,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             var boundEdition = keepStoredEdition ? storedMeta?.EditionLanguage : series.EditionLanguage ?? storedMeta?.EditionLanguage;
             var boundLine = keepStoredEdition ? storedMeta?.TomeLineId : series.TomeLineId ?? storedMeta?.TomeLineId;
             var boundCollected = keepStoredEdition || series.TomeLineId == null ? storedMeta?.EditionCollected ?? false : series.EditionCollected;
+            var boundFallback = keepStoredEdition || series.TomeLineId == null ? storedMeta?.EditionFallback ?? false : series.EditionFallback;
             var boundAnchor = keepStoredEdition ? storedMeta?.AnchorName
                 : existing == null && series.EditionLanguage != null ? (displayName != series.IdentityName ? series.IdentityName : null)
                 : storedMeta?.AnchorName;
@@ -430,7 +453,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 SortNameLastFirst = displayName.ToLowerInvariant(),
                 Overview = stored?.Overview ?? KeptOnDisplayMiss(series, existing?.Metadata?.Value?.Overview) ?? series.Overview,
                 Status = stored?.Status ?? series.Status,
-                TotalVolumes = stored?.TotalVolumes ?? series.JapaneseTotal,
+                TotalVolumes = stored?.TotalVolumes ?? series.OriginTotal,
                 Aliases = stored?.Aliases?.Any() == true ? stored.Aliases : series.AltTitles ?? new List<string>(),
                 Ratings = seriesRating.JsonClone(),
                 ParentName = series.ParentName,
@@ -440,6 +463,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 TomeLineId = boundLine,
                 AnchorName = boundAnchor,
                 EditionCollected = boundCollected,
+                EditionFallback = boundFallback,
 
                 // One copy each (2026-09-20): a light novel's real author, from the writer ladder (pin,
                 // calibre file, catalogue, else null -> filed under the series name). Only on an add
@@ -487,15 +511,20 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             // as the main loop (fractionals stay bare); all become real, adoptable volumes that
             // survive refresh (re-discovered every cycle).
             var volumes = new List<MangaVolumeMetadata>(series.Volumes);
+
+            // Follow-up round (KR/CN consumer, 2026-09-29): a fallback series takes its volumes (numbers, dates,
+            // ISBNs) from its bound line, but titles, stamps and looks up its extras as English, as its releases do
+            // (EditionLanguages.ReleaseLanguage). Every other series: its edition, as before.
+            var releaseLanguage = series.EditionFallback ? null : series.EditionLanguage;
             var knownVolumes = new HashSet<string>(volumes.Select(v => MangaVolumeParser.Format(v.VolumeNumber)));
             foreach (var extra in DiscoverExtraVolumes(existing))
             {
                 if (knownVolumes.Add(MangaVolumeParser.Format(extra)))
                 {
                     // Preferred Edition (2026-09-24): a non-English edition's extra is looked up in its language.
-                    volumes.Add(EditionLanguages.IsEnglish(series.EditionLanguage)
+                    volumes.Add(EditionLanguages.IsEnglish(releaseLanguage)
                         ? _mangaMetadataProvider.ResolveVolume(displayName, extra, resolveVolumeDetails)
-                        : _mangaMetadataProvider.ResolveVolume(displayName, extra, resolveVolumeDetails, series.EditionLanguage));
+                        : _mangaMetadataProvider.ResolveVolume(displayName, extra, resolveVolumeDetails, releaseLanguage));
                 }
             }
 
@@ -507,9 +536,9 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 var foreignBookId = $"{foreignAuthorId}-v{volToken}";
                 // Preferred Edition (2026-09-24, D4): a non-English edition's volume label is its own
                 // ("Tome 5", "Band 5", "第5巻"); English is unchanged.
-                var title = EditionLanguages.IsEnglish(series.EditionLanguage)
+                var title = EditionLanguages.IsEnglish(releaseLanguage)
                     ? $"{displayName} Vol. {volToken}"
-                    : $"{displayName} {EditionLanguages.VolumeLabel(series.EditionLanguage, volToken)}";
+                    : $"{displayName} {EditionLanguages.VolumeLabel(releaseLanguage, volToken)}";
 
                 // Per-volume cover when a source had one; otherwise fall back to the series cover so
                 // every volume row still shows art — unless Google did not answer for this volume
@@ -534,7 +563,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                     : new[] { MediaType.Archive };
 
                 var editions = mediaTypes
-                    .Select(mediaType => MintEdition(foreignBookId, title, mediaType, vol, seriesRating, volumeCoverUrl, series.AudibleAnswered, series.EditionLanguage, series.AudioSkipped))
+                    .Select(mediaType => MintEdition(foreignBookId, title, mediaType, vol, seriesRating, volumeCoverUrl, series.AudibleAnswered, releaseLanguage, series.AudioSkipped))
                     .ToList();
 
                 var book = new Book
@@ -657,11 +686,14 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
 
             // Preferred Edition (2026-09-24): a series of another edition reads its own tokens in the files
             // Mangarr named ("… Tome 5.cbz") and, with its series-name matcher (fix round 1), a user's own
-            // "… T05.cbz"; an English series has no EditionLanguage and no matcher -- today's parse.
+            // "… T05.cbz"; an English series has no EditionLanguage and no matcher -- today's parse. Follow-up round
+            // (KR/CN consumer): a fallback series reads its files as English (EditionLanguages.ReleaseLanguage).
+            var releaseLanguage = EditionLanguages.ReleaseLanguage(existing.Metadata?.Value);
+
             foreach (var file in _diskProvider.GetFiles(existing.Path, true))
             {
                 if (MediaFileExtensions.TextExtensions.Contains(Path.GetExtension(file)) &&
-                    MangaVolumeParser.TryParseSeriesVolume(Path.GetFileNameWithoutExtension(file), out _, out var volume, existing.Metadata?.Value?.EditionLanguage, EditionVolumeTokens.SeriesMatcher(existing.Metadata?.Value)) &&
+                    MangaVolumeParser.TryParseSeriesVolume(Path.GetFileNameWithoutExtension(file), out _, out var volume, releaseLanguage, EditionVolumeTokens.SeriesMatcher(existing.Metadata?.Value)) &&
                     volume > 0)
                 {
                     found.Add(volume);
@@ -734,6 +766,12 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             // Preferred Edition (2026-09-24): the Add form's chosen edition (AddAuthorService). The library
             // rides in the id, as on every by-id resolve.
             return BuildFakeAuthor(foreignAuthorId, resolveVolumeDetails, LibraryType.Manga, editionLanguage);
+        }
+
+        public Author GetAuthorInfo(string foreignAuthorId, bool useCache, bool resolveVolumeDetails, string editionLanguage, string tomeLineId)
+        {
+            // Staging fix S1 (2026-10-01): the add of a fallback candidate, bound to the line the search chose.
+            return BuildFakeAuthor(foreignAuthorId, resolveVolumeDetails, LibraryType.Manga, editionLanguage, tomeLineId: tomeLineId);
         }
 
         public HashSet<string> GetChangedBooks(DateTime startTime)

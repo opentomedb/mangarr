@@ -79,7 +79,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Existing
                 }
 
                 // Preferred Edition (2026-09-24, D4): the same edition label CalibreProxy.SetFields writes.
-                var title = LightNovelTitles.Display(seriesTitle, book.VolumeNumber, book.Subtitle, author.Metadata.Value.EditionLanguage);
+                var title = LightNovelTitles.Display(seriesTitle, book.VolumeNumber, book.Subtitle, EditionLanguages.ReleaseLanguage(author.Metadata.Value));
                 var sort = LightNovelTitles.SortTitle(seriesTitle, book.VolumeNumber);
 
                 // I1: compare BOTH title and sort -- a book whose title landed without its sort (a

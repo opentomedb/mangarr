@@ -34,6 +34,15 @@ namespace NzbDrone.Core.Parser
         // ("進撃の巨人 - 5巻") is volume 5 -- JaRange has already taken every "N - M巻" pack.
         private static readonly Regex JaSingle = new Regex(@"(?<!第\s*)(?<![\d.～〜全]\s*)(?<!\p{Pd})(?<n>\d{1,3})\s*巻", RegexOptions.Compiled);
 
+        // KR/CN piece 2 (2026-10-02, M5): Korean "N권" (volume N; "제N권" = the Nth volume) and Chinese "第N卷" /
+        // "N册" / "N冊" / "第N集" (Taiwan). A range ("1-5권", "第1-5卷") is a pack, read as "Volumes 1 to 5" like
+        // the Japanese one. "전N권" / "총N권" / "全N卷" / "共N卷" / "全套N册" are whole sets, never volume N; a dash touching the number is a
+        // pack's tail (JaSingle's rule).
+        private static readonly Regex KoRange = new Regex(@"(?:제\s*)?(?<![\d.])(?<s>\d{1,3})\s*[\p{Pd}~～〜]\s*(?<e>\d{1,3})\s*권", RegexOptions.Compiled);
+        private static readonly Regex KoSingle = new Regex(@"(?<![전총]\s*)(?<![\d.~～〜]\s*)(?<!\p{Pd})(?:제\s*)?(?<n>\d{1,3})\s*권", RegexOptions.Compiled);
+        private static readonly Regex ZhRange = new Regex(@"(?:第\s*)?(?<![\d.])(?<s>\d{1,3})\s*[\p{Pd}~～〜]\s*(?<e>\d{1,3})\s*[卷册冊集]", RegexOptions.Compiled);
+        private static readonly Regex ZhSingle = new Regex(@"(?<![全共套]\s*)(?<![\d.~～〜]\s*)(?<!\p{Pd})(?:第\s*)?(?<n>\d{1,3})\s*[卷册冊集]", RegexOptions.Compiled);
+
         // Preferred Edition (2026-09-24, ruling A9): box sets ("Coffret", "Box Set") are collected releases too;
         // fix round 1: so is Carlsen's "Massiv".
         private static readonly Regex CollectedMarker = new Regex(@"\b(?:Int[ée]grale|Doppelband|Massiv|Perfect\s+Edition|Coffret|Box\s*-?\s*Set)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -51,7 +60,7 @@ namespace NzbDrone.Core.Parser
             title = title.Replace('_', ' ');
             title = Regex.Replace(title, @"(?<!\d)\.(?!\d)", " ");
 
-            switch (editionLanguage.Trim().ToLowerInvariant())
+            switch (EditionLanguages.BaseCode(editionLanguage))
             {
                 case "fr":
                     title = FrRange.Replace(title, " Vol. ${s}-${e} ");
@@ -76,6 +85,14 @@ namespace NzbDrone.Core.Parser
                 case "ja":
                     title = JaRange.Replace(title, " Volumes ${s} to ${e} ");
                     title = JaSingle.Replace(title, "第${n}巻");
+                    break;
+                case "ko":
+                    title = KoRange.Replace(title, " Volumes ${s} to ${e} ");
+                    title = KoSingle.Replace(title, " Vol. ${n} ");
+                    break;
+                case "zh":
+                    title = ZhRange.Replace(title, " Volumes ${s} to ${e} ");
+                    title = ZhSingle.Replace(title, " Vol. ${n} ");
                     break;
             }
 

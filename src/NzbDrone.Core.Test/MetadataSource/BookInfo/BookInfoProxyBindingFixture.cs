@@ -73,7 +73,7 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
                   {
                       DisplayName = "Mushoku Tensei: Jobless Reincarnation",
                       VolumeCount = 1,
-                      JapaneseTotal = 24,
+                      OriginTotal = 24,
                       Overview = overview,
                       CoverUrl = coverUrl,
                       PosterSource = coverUrl == null ? "none" : "anilist",

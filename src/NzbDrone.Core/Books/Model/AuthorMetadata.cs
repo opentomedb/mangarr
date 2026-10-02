@@ -50,6 +50,11 @@ namespace NzbDrone.Core.Books
         // to an omnibus-only line take marker-named releases (EditionVolumeTokens.IsCollectedSeries).
         public bool EditionCollected { get; set; }
 
+        // KR/CN consumer (2026-09-29, migration 061): bound to a line outside the Preferred Edition chain because
+        // the work had none in it when added (EditionResolver.ResolveFallback). Named in English, not by the
+        // edition rule. Cleared by Change Edition.
+        public bool EditionFallback { get; set; }
+
         // Transient (TableMapping ignores it): the languages this work has a line in, filled on a search
         // candidate for the Add form's Edition picker. Never stored.
         // Preferred Edition (2026-09-24, M5 pre-review fix): outside memberwise equality too -- a
@@ -113,6 +118,7 @@ namespace NzbDrone.Core.Books
             TomeLineId = other.TomeLineId ?? TomeLineId;
             AnchorName = other.AnchorName ?? AnchorName;
             EditionCollected = other.TomeLineId != null ? other.EditionCollected : EditionCollected;
+            EditionFallback = other.TomeLineId != null ? other.EditionFallback : EditionFallback;
             // Plain copy: the writer ladder (IWriterResolver) is handed the stored author and owns
             // any keep-existing decision before this is reached.
             Writer = other.Writer;

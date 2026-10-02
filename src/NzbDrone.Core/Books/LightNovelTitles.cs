@@ -72,7 +72,7 @@ namespace NzbDrone.Core.Books
                 return null;
             }
 
-            return Display(SeriesOf(author), book.VolumeNumber, book.Subtitle, author.Metadata?.Value?.EditionLanguage);
+            return Display(SeriesOf(author), book.VolumeNumber, book.Subtitle, EditionLanguages.ReleaseLanguage(author.Metadata?.Value));
         }
 
         // Full-title subtitles (2026-09-24): the series page row's subtitle ("Vol. 2: <this>") --
@@ -88,7 +88,7 @@ namespace NzbDrone.Core.Books
                 return null;
             }
 
-            return ShownSubtitle(SeriesOf(author), book.Subtitle, author.Metadata?.Value?.EditionLanguage) ?? string.Empty;
+            return ShownSubtitle(SeriesOf(author), book.Subtitle, EditionLanguages.ReleaseLanguage(author.Metadata?.Value)) ?? string.Empty;
         }
 
         // calibre title_sort (2026-09-23): "<series> <n>" with n's INTEGER part zero-padded to 4

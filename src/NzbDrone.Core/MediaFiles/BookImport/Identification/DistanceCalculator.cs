@@ -86,8 +86,10 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Identification
             // Preferred Edition (2026-09-24, M9 pre-review fix): a series of another edition is also known by its
             // English anchor and its aliases, so an English-named file ("Attack on Titan v05") can identify
             // against "L'Attaque des Titans". An English series keeps the one-name call, byte for byte.
+            // Follow-up round (KR/CN consumer): a fallback series matches files like English (EditionLanguages.ReleaseLanguage).
             var authorMeta = edition.Book.Value.AuthorMetadata.Value;
-            if (EditionLanguages.IsEnglish(authorMeta.EditionLanguage))
+            var releaseLanguage = EditionLanguages.ReleaseLanguage(authorMeta);
+            if (EditionLanguages.IsEnglish(releaseLanguage))
             {
                 dist.AddString("author", authors, authorMeta.Name);
                 Logger.Trace("author: '{0}' vs '{1}'; {2}", authors.ConcatToString("' or '"), edition.Book.Value.AuthorMetadata.Value.Name, dist.NormalizedDistance());
@@ -141,7 +143,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Identification
             // mismatches were that 11.5 file and three such audio parts.
             var isAudioFile = localTracks.Any(t => t.Path.IsNotNullOrWhiteSpace() &&
                                                MediaTypes.OfExtension(System.IO.Path.GetExtension(t.Path)) == MediaType.Audio);
-            var fileVolume = isAudioFile ? 0 : FileVolume(localTracks, authorMeta.EditionLanguage, EditionVolumeTokens.SeriesMatcher(authorMeta));
+            var fileVolume = isAudioFile ? 0 : FileVolume(localTracks, releaseLanguage, EditionVolumeTokens.SeriesMatcher(authorMeta));
             var bookVolume = edition.Book.Value.VolumeNumber;
             if (fileVolume > 0 && bookVolume > 0)
             {

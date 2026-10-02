@@ -54,7 +54,7 @@ namespace NzbDrone.Core.Test.PreferredEdition
                       DisplayName = name,
                       Status = AuthorStatusType.Continuing,
                       VolumeCount = 2,
-                      JapaneseTotal = 12,
+                      OriginTotal = 12,
                       Overview = "About " + name + ".",
                       CoverUrl = "https://example.test/poster.jpg",
                       PosterSource = "opentome",

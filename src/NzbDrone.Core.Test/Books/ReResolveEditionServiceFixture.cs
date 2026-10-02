@@ -96,6 +96,20 @@ namespace NzbDrone.Core.Test.BookTests
             _author.Metadata.Value.EditionCollected.Should().BeFalse();
         }
 
+        // KR/CN consumer (2026-09-29, migration 061): a change of edition is the user's choice, never a fallback.
+        [Test]
+        public void a_change_clears_edition_fallback()
+        {
+            GivenAuthor("Attack on Titan", null, null);
+            _author.Metadata.Value.EditionFallback = true;
+            GivenPreview("fr", "L'Attaque des Titans");
+
+            Execute("fr");
+
+            Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m => m.TomeLineId == "rl_fr" && !m.EditionFallback)), Times.Once());
+            _author.Metadata.Value.EditionFallback.Should().BeFalse();
+        }
+
         [Test]
         public void a_blocked_change_writes_nothing()
         {
@@ -454,6 +468,42 @@ namespace NzbDrone.Core.Test.BookTests
             Execute("fr");
 
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.IsAny<AuthorMetadata>()), Times.Once());
+        }
+
+        // Follow-up round (KR/CN consumer): a fallback series moved to English takes the English line's name as its
+        // anchor (EditionPreview.ToAnchorName) -- renamed, the name is the anchor (none stored); not renamed, the
+        // anchor is stored, so the English refresh asks by the line's name while pins stay under the stored name.
+        private void GivenAFallbackMovedToEnglish()
+        {
+            GivenAuthor("Sutando Appu Sutato", "ja", null, "/manga/Sutando Appu Sutato");
+            _author.Metadata.Value.EditionFallback = true;
+            Mocker.GetMock<IEditionPreviewService>().Setup(s => s.Preview(It.IsAny<Author>(), "en")).Returns(new EditionPreview
+            {
+                AuthorId = 7, FromLanguage = "ja", ToLanguage = "en", ToTomeLineId = "rl_en_sus", NewName = "Stand Up Start", ToAnchorName = "Stand Up Start", Compatible = true
+            });
+            Mocker.GetMock<IBuildFileNames>().Setup(s => s.GetAuthorFolder(It.IsAny<Author>(), null)).Returns("Stand Up Start");
+        }
+
+        [Test]
+        public void a_fallback_series_renamed_to_the_english_lines_name_stores_no_anchor()
+        {
+            GivenAFallbackMovedToEnglish();
+
+            Execute("en", rename: true);
+
+            Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
+                m.Name == "Stand Up Start" && m.AnchorName == null && m.EditionLanguage == null && m.TomeLineId == "rl_en_sus" && !m.EditionFallback)), Times.Once());
+        }
+
+        [Test]
+        public void a_fallback_series_moved_to_english_without_a_rename_stores_the_english_lines_name_as_its_anchor()
+        {
+            GivenAFallbackMovedToEnglish();
+
+            Execute("en");
+
+            Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
+                m.Name == "Sutando Appu Sutato" && m.AnchorName == "Stand Up Start" && m.EditionLanguage == null && m.TomeLineId == "rl_en_sus")), Times.Once());
         }
     }
 }

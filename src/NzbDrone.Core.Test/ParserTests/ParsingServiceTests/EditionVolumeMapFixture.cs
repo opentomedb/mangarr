@@ -134,5 +134,18 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
             Mocker.GetMock<IBookService>().Verify(s => s.FindByTitle(2, result.Parsed.BookTitle), Times.Once());
             Mocker.GetMock<IBookService>().Verify(s => s.GetBooksByAuthor(2), Times.Never());
         }
+
+        // Follow-up round (KR/CN consumer, I1 residue): a fallback series maps a numbered collected release like an
+        // English series (its volume); the same binding as a Japanese edition still rejects it (ruling A9).
+        [TestCase(true, new double[] { 2 })]
+        [TestCase(false, new double[0])]
+        public void a_fallback_series_maps_a_numbered_box_set_like_english(bool fallback, double[] volumes)
+        {
+            var series = Series(3, "Stand Up Start", "ja", null, "Vol.");
+            series.Metadata.Value.EditionFallback = fallback;
+            Mocker.GetMock<IBookService>().Setup(s => s.GetBooksByAuthor(3)).Returns(series.Books.Value);
+
+            Map("Stand Up Start - Vol. 2 (Box Set)", series).Books.Select(b => b.VolumeNumber).Should().Equal(volumes);
+        }
     }
 }

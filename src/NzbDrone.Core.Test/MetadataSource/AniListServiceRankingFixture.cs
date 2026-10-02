@@ -151,6 +151,72 @@ namespace NzbDrone.Core.Test.MetadataSource
             series.Description.Should().Be("About Fairy Tail\nSecond line.");
         }
 
+        // KR/CN piece 2 (2026-10-02, M4): the page and the by-id read carry AniList's countryOfOrigin.
+        [Test]
+        public void country_of_origin_is_read_from_the_page_and_by_id()
+        {
+            var korean = M(105398, "Na Honjaman Level Up", "Solo Leveling", Manga, Finished, 14, 150000);
+            korean.CountryOfOrigin = "KR";
+            Given("Solo Leveling", korean);
+
+            Subject.FindSeries("Solo Leveling", LibraryType.Manga, 14, NoAliases).CountryOfOrigin.Should().Be("KR");
+            Subject.GetById(105398).CountryOfOrigin.Should().Be("KR");
+            Subject.Candidates("Solo Leveling", LibraryType.Manga).Single().CountryOfOrigin.Should().Be("KR");
+
+            // The query asks for the field; without it a live AniList sends nothing.
+            _requests.Should().OnlyContain(r => r.Query.Contains("countryOfOrigin"));
+        }
+
+        [Test]
+        public void a_manhwa_lines_search_never_binds_a_japanese_entry()
+        {
+            var japanese = M(1, "Solo Leveling", "Solo Leveling", Manga, Releasing, null, 900000);
+            japanese.CountryOfOrigin = "JP";
+            var korean = M(105398, "Na Honjaman Level Up", "Solo Leveling", Manga, Finished, 14, 150000);
+            korean.CountryOfOrigin = "KR";
+            Given("Solo Leveling", japanese, korean);
+            Given("solo leveling manga", japanese, korean);
+
+            Subject.FindSeries("Solo Leveling", LibraryType.Manga, 14, NoAliases, expectedOrigin: "KR").Id.Should().Be(105398);
+
+            // The relaxed (search-box) pass is filtered the same way: a near-miss term falls through the
+            // strict pass, and the more popular Japanese entry is dropped there too.
+            Subject.FindSeries("solo leveling manga", LibraryType.Manga, null, NoAliases, relaxed: true, expectedOrigin: "KR").Id.Should().Be(105398);
+            Subject.FindSeries("solo leveling manga", LibraryType.Manga, null, NoAliases, relaxed: true).Id.Should().Be(1);
+
+            // Without the hint the Japanese entry (more popular, title-equal) still wins -- unchanged behaviour.
+            Subject.FindSeries("Solo Leveling", LibraryType.Manga, null, NoAliases).Id.Should().Be(1);
+        }
+
+        [Test]
+        public void a_page_with_only_a_japanese_entry_binds_nothing_for_a_manhwa_line()
+        {
+            var japanese = M(1, "Solo Leveling", "Solo Leveling", Manga, Releasing, null, 900000);
+            japanese.CountryOfOrigin = "JP";
+            Given("Solo Leveling", japanese);
+
+            Subject.FindSeries("Solo Leveling", LibraryType.Manga, 14, NoAliases, expectedOrigin: "KR").Should().BeNull();
+
+            _log.Logs.Should().Contain(l => l.StartsWith("Info|AniList rejected \"Solo Leveling\"") && l.Contains("origin JP (line expects KR)"));
+        }
+
+        [Test]
+        public void the_alias_retry_is_origin_filtered_too()
+        {
+            // The title page is empty; the alias's fresh search page holds a title-equal Japanese entry and the Korean one.
+            Given("Solo Leveling", Array.Empty<Media>());
+            var japanese = M(1, "Na Honjaman Level Up", "Solo Leveling", Manga, Releasing, null, 900000);
+            japanese.CountryOfOrigin = "JP";
+            var korean = M(105398, "Na Honjaman Level Up", "Solo Leveling", Manga, Finished, 14, 150000);
+            korean.CountryOfOrigin = "KR";
+            Given("Na Honjaman Level Up", japanese, korean);
+
+            var series = Subject.FindSeries("Solo Leveling", LibraryType.Manga, 14, new[] { "Na Honjaman Level Up" }, expectedOrigin: "KR");
+
+            series.Id.Should().Be(105398);
+            series.MatchedVia.Should().Be("alias");
+        }
+
         [Test]
         public void fairy_tail_still_binds_the_serial_when_the_volume_rule_cannot_run()
         {
@@ -737,6 +803,7 @@ namespace NzbDrone.Core.Test.MetadataSource
             public string Status { get; set; }
             public int? Volumes { get; set; }
             public int? Chapters { get; set; }
+            public string CountryOfOrigin { get; set; }
             public int? AverageScore { get; set; } = 75;
             public int? Popularity { get; set; }
             public string Description { get; set; }

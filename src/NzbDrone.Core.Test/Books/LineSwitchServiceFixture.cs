@@ -362,6 +362,44 @@ namespace NzbDrone.Core.Test.BookTests
                 m.AnchorName == OtomeLines.MainName)), Times.Once());
         }
 
+        // KR/CN piece 2 (2026-10-02, M5): a Korean-edition series switched to another Korean line is named like
+        // the Japanese case -- AniList's romaji for the line's AniList id.
+        private void GivenKoreanEntry()
+        {
+            var koMain = new GcdSeries { GcdSeriesId = 6101, Name = "Otome Game Sekai wa Mob ni Kibishii Sekai desu", LocalName = "오토메 게임 세계는 엑스트라에게 가혹한 세계입니다", Language = "ko", Medium = "light_novel", VolumeCount = 14, IsMain = true, TomeId = "rl_ko_main", TomeWorkId = OtomeLines.WorkId, AnilistId = 311 };
+            var koSpinOff = new GcdSeries { GcdSeriesId = 6102, Name = "Akuyaku Reijou", LocalName = "그 오토메 게임은 우리에게 가혹한 세계입니다", Language = "ko", Medium = "light_novel", VolumeCount = 6, TomeId = "rl_ko_spin", TomeWorkId = OtomeLines.WorkId, AnilistId = 312 };
+            var main = OtomeLines.MainLine();
+            main.OrigSeriesId = 6101;
+            var spinOff = OtomeLines.SpinOff();
+            spinOff.OrigSeriesId = 6102;
+            var gcd = Mocker.GetMock<IGcdMetadataService>();
+            gcd.Setup(s => s.FindSeriesByTomeId("rl_ko_main")).Returns(koMain);
+            gcd.Setup(s => s.FindSeriesByTomeId("rl_ko_spin")).Returns(koSpinOff);
+            gcd.Setup(s => s.GetWorkLines(OtomeLines.WorkId)).Returns(new List<GcdSeries> { main, spinOff, koMain, koSpinOff });
+            gcd.Setup(s => s.GetVolumes(6101)).Returns(Volumes(Enumerable.Range(1, 14)));
+            gcd.Setup(s => s.GetVolumes(6102)).Returns(Volumes(Enumerable.Range(1, 6)));
+            GivenEntry("rl_ko_spin", "Ano Otome Game wa Oretachi ni Kibishii Sekai desu", Enumerable.Range(1, 6));
+            _author.Metadata.Value.EditionLanguage = "ko";
+            _author.Metadata.Value.AnchorName = OtomeLines.SpinOffName;
+        }
+
+        [Test]
+        public void a_korean_series_takes_the_lines_romaji_name_and_its_english_anchor()
+        {
+            GivenKoreanEntry();
+            Mocker.GetMock<IAniListService>().Setup(s => s.GetById(311)).Returns(new AniListSeries { RomajiTitle = "Otome Game Sekai wa Mob ni Kibishii Sekai desu" });
+
+            var option = Subject.Choices(_author).Options.Single();
+            option.Name.Should().Be("Otome Game Sekai wa Mob ni Kibishii Sekai desu");
+
+            Switch("rl_ko_main").Switched.Should().BeTrue();
+            Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
+                m.TomeLineId == "rl_ko_main" &&
+                m.Name == "Otome Game Sekai wa Mob ni Kibishii Sekai desu" &&
+                m.AniListId == 311 &&
+                m.AnchorName == OtomeLines.MainName)), Times.Once());
+        }
+
         // No romaji from AniList: the add path's fallback, the English anchor's name (then no separate anchor).
         [Test]
         public void a_japanese_series_without_a_romaji_title_falls_back_to_its_anchor()
@@ -373,6 +411,47 @@ namespace NzbDrone.Core.Test.BookTests
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
                 m.Name == OtomeLines.MainName &&
                 m.AnchorName == null)), Times.Once());
+        }
+
+        // Final fix wave I2: a fallback series (a Korean work with no line in the user's languages) switched to a
+        // sibling Korean line keeps an English/Latin name by the fallback rule -- never the line's local (Hangul) name.
+        private void GivenKoreanFallbackEntry()
+        {
+            var koMain = new GcdSeries { GcdSeriesId = 7001, Name = "Solo Leveling", LocalName = "나 혼자만 레벨업", Language = "ko", Medium = "manhwa", VolumeCount = 10, IsMain = true, TomeId = "rl_ko_main", TomeWorkId = "w_sl", AnilistId = 401 };
+            var koSide = new GcdSeries { GcdSeriesId = 7002, Name = "Solo Leveling: Ragnarok", LocalName = "나 혼자만 레벨업: 라그나로크", Language = "ko", Medium = "manhwa", VolumeCount = 3, IsMain = false, TomeId = "rl_ko_side", TomeWorkId = "w_sl", AnilistId = 402 };
+
+            var gcd = Mocker.GetMock<IGcdMetadataService>();
+            gcd.Setup(s => s.FindSeriesByTomeId("rl_ko_main")).Returns(koMain);
+            gcd.Setup(s => s.FindSeriesByTomeId("rl_ko_side")).Returns(koSide);
+            gcd.Setup(s => s.GetWorkLines("w_sl")).Returns(new List<GcdSeries> { koMain, koSide });
+            gcd.Setup(s => s.GetVolumes(7001)).Returns(Volumes(Enumerable.Range(1, 10)));
+            gcd.Setup(s => s.GetVolumes(7002)).Returns(Volumes(Enumerable.Range(1, 3)));
+
+            GivenEntry("rl_ko_side", "Solo Leveling: Ragnarok", Enumerable.Range(1, 3), LibraryType.Manga);
+            _author.Metadata.Value.EditionLanguage = "ko";
+            _author.Metadata.Value.EditionFallback = true;
+        }
+
+        [Test]
+        public void a_fallback_series_switched_to_a_sibling_korean_line_takes_the_english_title()
+        {
+            GivenKoreanFallbackEntry();
+            Mocker.GetMock<IAniListService>().Setup(s => s.GetById(401)).Returns(new AniListSeries { EnglishTitle = "Solo Leveling (Webtoon)", RomajiTitle = "Na Honjaman Level Up" });
+
+            Subject.Choices(_author).Options.Single().Name.Should().Be("Solo Leveling (Webtoon)");
+
+            Switch("rl_ko_main").Switched.Should().BeTrue();
+
+            Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
+                m.TomeLineId == "rl_ko_main" && m.Name == "Solo Leveling (Webtoon)")), Times.Once());
+        }
+
+        [Test]
+        public void a_fallback_series_without_an_anilist_title_takes_the_lines_latin_name_not_its_local_name()
+        {
+            GivenKoreanFallbackEntry();
+
+            Subject.Choices(_author).Options.Single().Name.Should().Be("Solo Leveling");
         }
 
         // Another series already named like the line (the incident's repair added the main series as its own

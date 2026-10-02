@@ -332,14 +332,17 @@ namespace NzbDrone.Core.Parser
         {
             var meta = author.Metadata?.Value;
 
-            if (EditionLanguages.IsEnglish(meta?.EditionLanguage) || parsedBookInfo.ReleaseTitle.IsNullOrWhiteSpace())
+            // Follow-up round (KR/CN consumer): a fallback series reads releases like English (EditionLanguages.ReleaseLanguage).
+            var language = EditionLanguages.ReleaseLanguage(meta);
+
+            if (EditionLanguages.IsEnglish(language) || parsedBookInfo.ReleaseTitle.IsNullOrWhiteSpace())
             {
                 return true;
             }
 
             if (!parsedBookInfo.VolumeNumber.HasValue && !parsedBookInfo.VolumeStart.HasValue)
             {
-                var editionTitle = EditionVolumeTokens.Rewrite(parsedBookInfo.ReleaseTitle, meta.EditionLanguage, EditionVolumeTokens.SeriesMatcher(meta));
+                var editionTitle = EditionVolumeTokens.Rewrite(parsedBookInfo.ReleaseTitle, language, EditionVolumeTokens.SeriesMatcher(meta));
                 MangaVolumeParser.ParseVolume(editionTitle, parsedBookInfo);
             }
 

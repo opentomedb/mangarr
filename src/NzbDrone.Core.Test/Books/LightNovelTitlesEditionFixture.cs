@@ -21,6 +21,19 @@ namespace NzbDrone.Core.Test.BookTests
             LightNovelTitles.Display("Overlord", 2, null).Should().Be("Overlord (Vol. 2)");
         }
 
+        // Final fix wave I1 (ruling): a fallback light novel is labelled like an English one.
+        [TestCase(true, "Overlord (Vol. 2)")]
+        [TestCase(false, "Overlord (第2巻)")]
+        public void a_fallback_light_novel_keeps_the_english_label(bool fallback, string expected)
+        {
+            var author = new Author { Name = "Overlord" };
+            author.Metadata.Value.ForeignAuthorId = "local-overlord~ln";
+            author.Metadata.Value.EditionLanguage = "ja";
+            author.Metadata.Value.EditionFallback = fallback;
+
+            LightNovelTitles.DisplayOf(author, new Book { VolumeNumber = 2 }).Should().Be(expected);
+        }
+
         [TestCase("Tome 3", "fr", true)]
         [TestCase("T. 3", "fr", true)]
         [TestCase("Roman", "fr", true)]
@@ -95,6 +108,35 @@ namespace NzbDrone.Core.Test.BookTests
         public void a_french_catalogue_tome_title_derives_no_subtitle()
         {
             Subtitles.Derive(null, "Tome 3", null, "Overlord", null, 3, trustedArtifactCandidate: true, editionLanguage: "fr").Should().BeNull();
+        }
+
+        // KR/CN piece 2 (2026-10-02, M5): Korean and Chinese volume labels and edition words are junk for
+        // their edition; a real subtitle in those scripts is kept.
+        [TestCase("5권", "ko")]
+        [TestCase("제5권", "ko")]
+        [TestCase("소설 완전판", "ko")]
+        [TestCase("第5卷", "zh")]
+        [TestCase("第五卷", "zh")]
+        [TestCase("第5集", "zh-TW")]
+        [TestCase("轻小说", "zh")]
+        [TestCase("合訂本", "zh-TW")]
+        public void a_korean_or_chinese_catalogue_label_derives_no_subtitle(string candidate, string language)
+        {
+            Subtitles.Derive(null, candidate, null, "Overlord", null, 5, trustedArtifactCandidate: true, editionLanguage: language).Should().BeNull();
+        }
+
+        [TestCase("불사자의 왕", "ko")]
+        [TestCase("不死者之王", "zh")]
+        public void a_real_korean_or_chinese_subtitle_is_kept(string candidate, string language)
+        {
+            Subtitles.Derive(null, candidate, null, "Overlord", null, 1, trustedArtifactCandidate: true, editionLanguage: language).Should().Be(candidate);
+        }
+
+        [Test]
+        public void korean_and_chinese_edition_words_do_not_make_a_full_title_for_their_edition()
+        {
+            Subtitles.IsFullTitle("Overlord 소설 권", "Overlord", "ko").Should().BeFalse();
+            Subtitles.IsFullTitle("Overlord 小说 卷", "Overlord", "zh").Should().BeFalse();
         }
 
         [Test]

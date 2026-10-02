@@ -41,6 +41,7 @@ namespace Readarr.Api.V1.Author
 
         // Preferred Edition (2026-09-24): read-only on the wire (the re-resolve command writes them).
         public string EditionLanguage { get; set; }
+        public bool EditionFallback { get; set; }
         public string TomeLineId { get; set; }
 
         // Search candidates only: the languages the work has a line in (Add form picker). Fully
@@ -121,6 +122,7 @@ namespace Readarr.Api.V1.Author
                 ParentForeignAuthorId = model.Metadata.Value.ParentForeignAuthorId,
                 AniListId = model.Metadata.Value.AniListId,
                 EditionLanguage = model.Metadata.Value.EditionLanguage,
+                EditionFallback = model.Metadata.Value.EditionFallback,
                 TomeLineId = model.Metadata.Value.TomeLineId,
                 EditionOptions = model.Metadata.Value.EditionOptions,
                 CatalogueLine = model.Metadata.Value.CatalogueLine,
@@ -184,6 +186,12 @@ namespace Readarr.Api.V1.Author
                     ParentName = resource.ParentName,
                     ParentForeignAuthorId = resource.ParentForeignAuthorId,
                     AniListId = resource.AniListId,
+
+                    // Staging fix S1 (2026-10-01): an add carries the fallback line the search chose. The PUT merge
+                    // (ToModel(resource, author)) copies only Author fields via ApplyChanges, never this metadata.
+                    EditionLanguage = resource.EditionLanguage,
+                    EditionFallback = resource.EditionFallback,
+                    TomeLineId = resource.TomeLineId,
                     Links = resource.Links,
                     Images = resource.Images,
                     Genres = resource.Genres,

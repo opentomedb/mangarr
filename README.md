@@ -1,5 +1,6 @@
 <p align="center"><img src="Logo/256.png" width="120" alt=""></p>
 <h1 align="center">Mangarr</h1>
+<p align="center"><a href="https://buymeacoffee.com/drawesome441"><img src="https://img.shields.io/badge/buy%20me%20a%20coffee-%E2%98%95-7a43b6?style=flat-square" alt="Buy me a coffee"></a></p>
 
 Mangarr finds, downloads and organises **manga** and **light novels** the way Sonarr does for TV.
 You add a series, choose which volumes you want, and Mangarr searches your indexers, sends
@@ -308,6 +309,12 @@ Paste it into Settings → Metadata Source → **Google Books API Key**, or set 
 - **Questions and chat:** Discord **#beta**, <https://discord.gg/bQVwv54KdP>.
 - **Catalogue data:** see [Corrections](#the-opentome-catalogue).
 - **Security problems:** privately, see [SECURITY.md](SECURITY.md).
+
+## Support the project
+
+Mangarr is free software built in spare time. If it saves you some, you can
+[buy me a coffee](https://buymeacoffee.com/drawesome441). Bug reports and catalogue
+corrections (above) are just as welcome.
 
 ## Licence and source
 

@@ -20,6 +20,10 @@ namespace NzbDrone.Core.MetadataSource.Manga
         // Preferred Edition (2026-09-24, ruling S1): the entry's stored name. Pins (overrides.json) are
         // keyed by it, so a re-resolve that kept the name keeps its pins. Null on an add or a search.
         public string StoredName { get; set; }
+
+        // KR/CN consumer (2026-09-29): the entry is a fallback series (AuthorMetadata.EditionFallback) -- named in
+        // English, not by the edition rule.
+        public bool Fallback { get; set; }
     }
 
     public class EditionResolution
@@ -42,6 +46,20 @@ namespace NzbDrone.Core.MetadataSource.Manga
 
         // Collected edition by the flag, composition or page counts (MangaSeriesMetadataProvider's tell).
         bool IsCollected(GcdSeries line);
+
+        // Final fix wave I3: the line of `language` in the work of `line` (a bound line of any language), as seen
+        // from that line -- the line itself for its own language, for English the line Options anchors on, else
+        // PickSibling's pick with the counterpart test read both ways (an origin line has no orig_series_id to
+        // compare). Change Edition from a series with no English anchor (a fallback series). Null = none.
+        GcdSeries LineInWork(GcdSeries line, string language);
+
+        // KR/CN consumer (2026-09-29, spec §3.2): the line a NEW entry falls back to when its work has no line
+        // in the chain's languages by title: a chain-language line of the same series first (the line itself or a
+        // counterpart the title missed),
+        // then the original-language line (ja / ko / zh / zh-TW; the one other lines' orig_series_id points
+        // at first), then any other line by Rank's tail; within each step the found line and its counterparts first
+        // (final fix wave C1). Same library class, >= 1 volume. Null = none.
+        EditionResolution ResolveFallback(GcdSeries anyLine, IReadOnlyList<string> chain, LibraryType library);
     }
 
     public class EditionResolver : IEditionResolver
@@ -178,10 +196,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
             var family = work.Where(c => GcdMetadataService.IsLightNovel(c.Medium) == novel && c.VolumeCount >= 1 && c.Language != null).ToList();
 
             // The counterpart ranking is relative to the English line when the work has one.
-            var anchor = family.Where(c => EditionLanguages.IsEnglish(c.Language))
-                             .OrderByDescending(c => c.GcdSeriesId == anyLine.GcdSeriesId)
-                             .ThenByDescending(c => c.IsMain)
-                             .FirstOrDefault() ?? anyLine;
+            var anchor = EnglishLine(anyLine, family) ?? anyLine;
 
             var options = new List<EditionOption>();
 
@@ -204,6 +219,108 @@ namespace NzbDrone.Core.MetadataSource.Manga
             return options;
         }
 
+        public GcdSeries LineInWork(GcdSeries line, string language)
+        {
+            if (line == null || language.IsNullOrWhiteSpace())
+            {
+                return null;
+            }
+
+            language = language.Trim();
+
+            if (line.Language == language || (EditionLanguages.IsEnglish(language) && EditionLanguages.IsEnglish(line.Language)))
+            {
+                return line;
+            }
+
+            var work = line.TomeWorkId.IsNullOrWhiteSpace()
+                ? new List<GcdSeries>()
+                : _gcdMetadataService.GetWorkLines(line.TomeWorkId) ?? new List<GcdSeries>();
+
+            if (EditionLanguages.IsEnglish(language))
+            {
+                var novel = GcdMetadataService.IsLightNovel(line.Medium);
+
+                return EnglishLine(line, work.Where(c => GcdMetadataService.IsLightNovel(c.Medium) == novel && c.VolumeCount >= 1 && c.Language != null));
+            }
+
+            return PickSibling(line, work, language, bothWays: true);
+        }
+
+        // Options' anchor: the work's English line (of the family), the given line itself first, then is_main.
+        private static GcdSeries EnglishLine(GcdSeries anyLine, IEnumerable<GcdSeries> family)
+        {
+            return family.Where(c => EditionLanguages.IsEnglish(c.Language))
+                         .OrderByDescending(c => c.GcdSeriesId == anyLine.GcdSeriesId)
+                         .ThenByDescending(c => c.IsMain)
+                         .FirstOrDefault();
+        }
+
+        private static readonly string[] OriginLanguages = { "ja", "ko", "zh", "zh-TW" };
+
+        public EditionResolution ResolveFallback(GcdSeries anyLine, IReadOnlyList<string> chain, LibraryType library)
+        {
+            if (anyLine == null)
+            {
+                return null;
+            }
+
+            var work = anyLine.TomeWorkId.IsNullOrWhiteSpace()
+                ? new List<GcdSeries> { anyLine }
+                : _gcdMetadataService.GetWorkLines(anyLine.TomeWorkId) ?? new List<GcdSeries>();
+
+            if (work.Count == 0)
+            {
+                work = new List<GcdSeries> { anyLine };
+            }
+
+            var novel = library == LibraryType.LightNovel;
+            var candidates = work
+                .Where(c => c.Language != null && c.VolumeCount >= 1)
+                .Where(c => GcdMetadataService.IsLightNovel(c.Medium) == novel)
+                .ToList();
+
+            if (candidates.Count == 0)
+            {
+                return null;
+            }
+
+            var pointedAt = new HashSet<int>(work.Where(c => c.OrigSeriesId.HasValue).Select(c => c.OrigSeriesId.Value));
+
+            // Final fix wave C1: the relation to the line the search found comes first -- the line itself, then
+            // its counterparts, then lines of the same kind (main / side) -- so a spin-off hit binds the spin-off,
+            // not its work's main line. Then today's keys.
+            bool Related(GcdSeries c) => c.GcdSeriesId == anyLine.GcdSeriesId || IsCounterpart(anyLine, c) || IsCounterpart(c, anyLine);
+
+            IOrderedEnumerable<GcdSeries> Tail(IEnumerable<GcdSeries> lines) => lines
+                .OrderByDescending(c => c.GcdSeriesId == anyLine.GcdSeriesId)
+                .ThenByDescending(c => IsCounterpart(anyLine, c) || IsCounterpart(c, anyLine))
+                .ThenByDescending(c => c.IsMain == anyLine.IsMain)
+                .ThenByDescending(c => pointedAt.Contains(c.GcdSeriesId))
+                .ThenByDescending(c => c.IsMain)
+                .ThenBy(c => IsCollected(c))
+                .ThenByDescending(c => c.DatedCount ?? 0)
+                .ThenByDescending(c => c.VolumeCount)
+                .ThenBy(c => c.GcdSeriesId);
+
+            // The chain step catches only the SAME series in a chain language (the line itself or a counterpart the
+            // title missed); another series of the work in the user's language is not it.
+            foreach (var language in chain ?? new List<string>())
+            {
+                var hit = Tail(candidates.Where(c => c.Language == language.Trim() && Related(c))).FirstOrDefault();
+
+                if (hit != null)
+                {
+                    return new EditionResolution { Line = hit, Language = hit.Language };
+                }
+            }
+
+            var pick = Tail(candidates.Where(c => OriginLanguages.Contains(c.Language))).FirstOrDefault()
+                       ?? Tail(candidates).FirstOrDefault();
+
+            return pick == null ? null : new EditionResolution { Line = pick, Language = pick.Language };
+        }
+
         public bool IsCollected(GcdSeries line)
         {
             return MangaSeriesMetadataProvider.IsCollectedEdition(line.IsOmnibus, _gcdMetadataService.GetVolumes(line.GcdSeriesId) ?? new List<GcdVolume>());
@@ -214,7 +331,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
         // not a collected edition (IsCollectedEdition -- not bare is_omnibus, which misses "Book Edition"),
         // dated_count, volume_count, id. A line with no volumes never wins. A collected edition ranks
         // last but is not excluded: a market whose only line is an omnibus still resolves to it.
-        private GcdSeries PickSibling(GcdSeries anchor, IEnumerable<GcdSeries> work, string language)
+        private GcdSeries PickSibling(GcdSeries anchor, IEnumerable<GcdSeries> work, string language, bool bothWays = false)
         {
             var novel = GcdMetadataService.IsLightNovel(anchor.Medium);
 
@@ -222,7 +339,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 .Where(c => c.Language == language && c.GcdSeriesId != anchor.GcdSeriesId)
                 .Where(c => GcdMetadataService.IsLightNovel(c.Medium) == novel)
                 .Where(c => c.VolumeCount >= 1)
-                .OrderByDescending(c => IsCounterpart(anchor, c))
+                .OrderByDescending(c => IsCounterpart(anchor, c) || (bothWays && IsCounterpart(c, anchor)))
                 .ThenByDescending(c => c.IsMain == anchor.IsMain)
                 .ThenBy(c => IsCollected(c))
                 .ThenByDescending(c => c.DatedCount ?? 0)
@@ -231,10 +348,22 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 .FirstOrDefault();
         }
 
+        // KR/CN consumer (2026-09-29, spec §3.3): a work with no original-language line in the catalogue (the
+        // new KR/CN works) has no orig_series_id anywhere. Then two lines are counterparts when they belong to
+        // the same work and both are its main line for their market -- never any two lines of the work, or a
+        // spin-off would match its main series. A line with orig_series_id keeps the original rule.
         internal static bool IsCounterpart(GcdSeries anchor, GcdSeries candidate)
         {
-            return anchor.OrigSeriesId.HasValue &&
-                   (candidate.OrigSeriesId == anchor.OrigSeriesId || candidate.GcdSeriesId == anchor.OrigSeriesId.Value);
+            if (anchor.OrigSeriesId.HasValue)
+            {
+                return candidate.OrigSeriesId == anchor.OrigSeriesId || candidate.GcdSeriesId == anchor.OrigSeriesId.Value;
+            }
+
+            return !candidate.OrigSeriesId.HasValue &&
+                   anchor.TomeWorkId.IsNotNullOrWhiteSpace() &&
+                   anchor.TomeWorkId == candidate.TomeWorkId &&
+                   anchor.GcdSeriesId != candidate.GcdSeriesId &&
+                   anchor.IsMain && candidate.IsMain;
         }
     }
 }

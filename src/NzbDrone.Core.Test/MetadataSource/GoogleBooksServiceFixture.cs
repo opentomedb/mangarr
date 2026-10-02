@@ -299,6 +299,16 @@ namespace NzbDrone.Core.Test.MetadataSource
         [TestCase("進撃の巨人 15巻", "ja", false)]
         [TestCase("Attack on Titan Tome 5 (Pika)", "en", false)]
 
+        // KR/CN piece 2 (2026-10-02, M5): Korean and Chinese labels, with zh-TW on the zh rule.
+        [TestCase("나 혼자만 레벨업 5권", "ko", true)]
+        [TestCase("나 혼자만 레벨업 제5권", "ko", true)]
+        [TestCase("나 혼자만 레벨업 15권", "ko", false)]
+        [TestCase("斗破苍穹 第5卷", "zh", true)]
+        [TestCase("斗破苍穹 5卷", "zh", true)]
+        [TestCase("斗破苍穹 第15卷", "zh", false)]
+        [TestCase("霹靂神州 第5集", "zh-TW", true)]
+        [TestCase("斗破苍穹 第5卷 (Pika)", "ja", false)]
+
         // Fix round 1 (Minor 2): a label followed by the publisher tag defeats the English trailing-number
         // form, so only the edition's own branch matches -- and the other language's branch does not.
         [TestCase("Angriff auf Titan Bd. 5 (Carlsen)", "de", true)]

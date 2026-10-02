@@ -187,7 +187,7 @@ namespace NzbDrone.Core.Books
             foreach (var line in siblings.OrderByDescending(l => l.IsMain).ThenBy(l => l.Name))
             {
                 var anchor = english ? null : EnglishAnchor(line, author.Library);
-                var name = english ? WorkLines.DisplayName(line, author.Library) : EditionName(line, meta.EditionLanguage, anchor, author.Library);
+                var name = english ? WorkLines.DisplayName(line, author.Library) : EditionName(line, meta.EditionLanguage, anchor, author.Library, meta.EditionFallback);
 
                 var option = new LineSwitchOption
                 {
@@ -418,13 +418,17 @@ namespace NzbDrone.Core.Books
             return WorkLines.DisplayName(english, library);
         }
 
-        // I3: the add path's name for a series of that edition (EditionDisplayName): Japanese -> AniList's
-        // romaji for the line's AniList id, other languages -> the line's local title; either missing -> the
-        // English anchor; no anchor either -> the line's own display name.
-        private string EditionName(GcdSeries line, string editionLanguage, string anchor, LibraryType library)
+        // I3: the add path's name for a series of that edition (EditionDisplayName): a native-script edition
+        // (ja / ko / zh) -> AniList's romaji for the line's AniList id, other languages -> the line's local
+        // title; either missing -> the English anchor; no anchor either -> the line's own display name.
+        // Final fix wave I2: a fallback series (AuthorMetadata.EditionFallback; Switch Line keeps the flag) is named
+        // by the add path's fallback rule instead -- AniList English, romaji, the line's Latin name; never local_name.
+        private string EditionName(GcdSeries line, string editionLanguage, string anchor, LibraryType library, bool fallback)
         {
-            var ani = editionLanguage == "ja" && line.AnilistId.HasValue ? _aniListService.GetById(line.AnilistId.Value) : null;
-            var name = MangaSeriesMetadataProvider.EditionDisplayName(line, editionLanguage, ani, anchor, library);
+            var ani = (fallback || EditionLanguages.IsNativeScript(editionLanguage)) && line.AnilistId.HasValue ? _aniListService.GetById(line.AnilistId.Value) : null;
+            var name = fallback
+                ? MangaSeriesMetadataProvider.FallbackDisplayName(line, ani, anchor, library)
+                : MangaSeriesMetadataProvider.EditionDisplayName(line, editionLanguage, ani, anchor, library);
 
             return name.IsNotNullOrWhiteSpace() ? name : WorkLines.DisplayName(line, library);
         }

@@ -34,6 +34,10 @@ class MoreInfo extends Component {
           <DescriptionListItemDescription>
             <Link to="https://github.com/opentomedb/mangarr/issues">github.com/opentomedb/mangarr/issues</Link>
           </DescriptionListItemDescription>
+          <DescriptionListItemTitle>{translate('Donations')}</DescriptionListItemTitle>
+          <DescriptionListItemDescription>
+            <Link to="https://buymeacoffee.com/drawesome441">buymeacoffee.com/drawesome441</Link>
+          </DescriptionListItemDescription>
 
         </DescriptionList>
       </FieldSet>

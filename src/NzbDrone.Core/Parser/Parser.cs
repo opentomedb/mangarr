@@ -419,7 +419,8 @@ namespace NzbDrone.Core.Parser
                 // series name) read as "Vol." -- an English series never takes this branch. Ruling S7: its
                 // English anchor name is an accepted series too ("Attack on Titan T05 [FR]" for "L'Attaque des
                 // Titans"), added before the rewrite because the T05 gate asks IsAcceptedSeries.
-                var editionLanguage = author.Metadata?.Value?.EditionLanguage;
+                // Follow-up round (KR/CN consumer): a fallback series parses like English (EditionLanguages.ReleaseLanguage).
+                var editionLanguage = EditionLanguages.ReleaseLanguage(author.Metadata?.Value);
                 var editionSearch = !EditionLanguages.IsEnglish(editionLanguage);
 
                 if (editionSearch)

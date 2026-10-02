@@ -61,12 +61,18 @@ namespace NzbDrone.Core.MetadataSource
         private static readonly Regex GermanVolumeToken = new Regex(@"\b(?:band|bd|teil)\.?\s*\d+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex JapaneseVolumeToken = new Regex(@"第?\s*\d+\s*巻|第\s*[一二三四五六七八九十百千〇零]+\s*巻|(?:^|\s)[上中下]巻(?:\s|$)", RegexOptions.Compiled);
 
+        // KR/CN piece 2 (2026-10-02, M5): "5권" / "제5권"; "第5卷" / "5册" / "第五卷" / "第5集".
+        private static readonly Regex KoreanVolumeToken = new Regex(@"(?:제\s*)?\d+\s*권", RegexOptions.Compiled);
+        private static readonly Regex ChineseVolumeToken = new Regex(@"第?\s*\d+\s*[卷册冊集]|第\s*[一二三四五六七八九十百千〇零]+\s*[卷册冊集]", RegexOptions.Compiled);
+
         // Built once (not per word): IsFullTitle asks for every word of every English candidate too, and
         // an English (or unknown) edition answers the one shared empty set.
         private static readonly HashSet<string> NoEditionWords = new HashSet<string>();
         private static readonly HashSet<string> FrenchEditionWords = new HashSet<string> { "roman", "romans", "tome", "edition", "integrale", "collector" };
         private static readonly HashSet<string> GermanEditionWords = new HashSet<string> { "roman", "band", "ausgabe", "edition", "sammelband" };
         private static readonly HashSet<string> JapaneseEditionWords = new HashSet<string> { "小説", "巻", "文庫", "ライトノベル" };
+        private static readonly HashSet<string> KoreanEditionWords = new HashSet<string> { "소설", "라이트노벨", "권", "완전판", "합본" };
+        private static readonly HashSet<string> ChineseEditionWords = new HashSet<string> { "小说", "小說", "轻小说", "輕小說", "卷", "完全版", "合订本", "合訂本" };
 
         // M14 fix round 1 (2026-09-24): an article with an edition word is still only the edition word
         // ("Le roman", "L'intégrale", "Der Roman") -- EditionJunk alone reads these, and only next to an
@@ -254,7 +260,7 @@ namespace NzbDrone.Core.MetadataSource
 
         private static HashSet<string> EditionWordsFor(string editionLanguage)
         {
-            switch (EditionLanguages.IsEnglish(editionLanguage) ? EditionLanguages.English : editionLanguage.Trim())
+            switch (EditionLanguages.BaseCode(editionLanguage))
             {
                 case "fr":
                     return FrenchEditionWords;
@@ -262,6 +268,10 @@ namespace NzbDrone.Core.MetadataSource
                     return GermanEditionWords;
                 case "ja":
                     return JapaneseEditionWords;
+                case "ko":
+                    return KoreanEditionWords;
+                case "zh":
+                    return ChineseEditionWords;
                 default:
                     return NoEditionWords;
             }
@@ -269,7 +279,9 @@ namespace NzbDrone.Core.MetadataSource
 
         private static bool EditionJunk(string candidate, string editionLanguage)
         {
-            switch (editionLanguage)
+            var language = EditionLanguages.BaseCode(editionLanguage);
+
+            switch (language)
             {
                 case "fr":
                     if (FrenchVolumeToken.IsMatch(candidate))
@@ -292,12 +304,26 @@ namespace NzbDrone.Core.MetadataSource
                     }
 
                     break;
+                case "ko":
+                    if (KoreanVolumeToken.IsMatch(candidate))
+                    {
+                        return true;
+                    }
+
+                    break;
+                case "zh":
+                    if (ChineseVolumeToken.IsMatch(candidate))
+                    {
+                        return true;
+                    }
+
+                    break;
                 default:
                     return false;
             }
 
             var editionWords = EditionWordsFor(editionLanguage);
-            var articles = editionLanguage == "fr" ? FrenchArticles : editionLanguage == "de" ? GermanArticles : NoEditionWords;
+            var articles = language == "fr" ? FrenchArticles : language == "de" ? GermanArticles : NoEditionWords;
             var words = WordAndElisionSeparators.Split(candidate).Select(TitleMatcher.Normalize).Where(w => w.Length > 0).ToList();
 
             return words.Any(w => editionWords.Contains(w)) && words.All(w => editionWords.Contains(w) || articles.Contains(w));

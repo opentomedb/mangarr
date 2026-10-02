@@ -62,6 +62,26 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
             c.BookQuery.Should().Be("L'attacco+dei+giganti+v05");
         }
 
+        // Final fix wave I1 (ruling): a fallback series (bound to a line outside the user's languages) searches
+        // like an English series; the same binding chosen as an edition keeps the edition's tokens.
+        [Test]
+        public void a_fallback_series_searches_like_english()
+        {
+            var c = Criteria("Stand Up Start", "ja", null, 5);
+            c.Author.Metadata.Value.EditionFallback = true;
+
+            c.BookQuery.Should().Be("Stand+Up+Start+v05");
+            c.BookQueryAlt.Should().Be("Stand+Up+Start+v5");
+        }
+
+        [Test]
+        public void the_same_binding_as_an_edition_keeps_its_tokens()
+        {
+            var c = Criteria("Stand Up Start", "ja", null, 5);
+
+            c.BookQuery.Should().Be("Stand+Up+Start+第05巻");
+        }
+
         [Test]
         public void an_english_series_is_unchanged()
         {

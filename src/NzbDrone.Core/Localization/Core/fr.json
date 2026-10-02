@@ -2724,5 +2724,7 @@
     "TaskNameSwitchLine": "Changer de ligne",
     "ServerValidationSeriesNoLongerExists": "La série n'existe plus",
     "SwitchLineConfirmAdded": "{count} tome(s) seront ajoutés.",
-    "SwitchLineConfirmNoAniList": "Aucune correspondance AniList pour cette ligne ; les métadonnées seront résolues à nouveau par le titre."
+    "SwitchLineConfirmNoAniList": "Aucune correspondance AniList pour cette ligne ; les métadonnées seront résolues à nouveau par le titre.",
+    "EditionFallbackNote": "Édition {language} — non disponible dans vos langues",
+    "Donations": "Dons"
 }

@@ -268,7 +268,8 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Identification
         // English series has no language and no matcher = today's parse.
         internal static double? ParseScopedVolume(LocalEdition localBookRelease, AuthorMetadata scopedMeta)
         {
-            var editionLanguage = scopedMeta?.EditionLanguage;
+            // Follow-up round (KR/CN consumer): a fallback series reads its files like English (EditionLanguages.ReleaseLanguage).
+            var editionLanguage = EditionLanguages.ReleaseLanguage(scopedMeta);
             var isAcceptedSeries = EditionVolumeTokens.SeriesMatcher(scopedMeta);
 
             foreach (var localBook in localBookRelease.LocalBooks)

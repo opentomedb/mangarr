@@ -33,7 +33,8 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
         public Decision IsSatisfiedBy(RemoteBook subject, SearchCriteriaBase searchCriteria)
         {
-            var edition = subject.Author?.Metadata?.Value?.EditionLanguage;
+            // A fallback series takes releases as English does (final fix wave I1: EditionLanguages.ReleaseLanguage).
+            var edition = EditionLanguages.ReleaseLanguage(subject.Author?.Metadata?.Value);
 
             if (EditionLanguages.IsEnglish(edition))
             {

@@ -57,16 +57,25 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("ATTACK ON TITAN VOL 05 PT SCAN", new string[0])]
         [TestCase("ATTACK ON TITAN VOL 05 CN SCAN", new string[0])]
 
-        // Final fix round I1 (2026-09-24): kana are ja evidence; kanji alone are not (Chinese uses them).
+        // Final fix round I1 (2026-09-24): kana are ja evidence. KR/CN piece 2 (2026-10-02, M5): Hangul is ko evidence, a Chinese volume marker (卷/册/冊 after a digit) zh evidence; kanji alone still are not.
         [TestCase("進撃の巨人 第05巻", new[] { "ja" })]
         [TestCase("ソードアート・オンライン 1", new[] { "ja" })]
         [TestCase("進撃巨人 第05巻", new string[0])]
-        [TestCase("海贼王 第05卷", new string[0])]
-        [TestCase("刀剑神域・进击篇 第05卷", new string[0])]
+        [TestCase("海贼王 第05卷", new[] { "zh" })]
+        [TestCase("刀剑神域・进击篇 第05卷", new[] { "zh" })]
         [TestCase("海贼王 第05卷 [CHS]", new[] { "zh" })]
         // Final review follow-up (2026-09-25): an explicit other-language tag wins over kana.
         [TestCase("進撃の巨人 第05巻 [ENG]", new[] { "en" })]
         [TestCase("進撃の巨人 第05巻 [JP][ENG]", new[] { "ja", "en" })]
+
+        // KR/CN piece 2 (2026-10-02, M5): script evidence for Korean and Chinese; a tag still wins (Review Focus 1).
+        [TestCase("나 혼자만 레벨업 5권", new[] { "ko" })]
+        [TestCase("나 혼자만 레벨업 제05권", new[] { "ko" })]
+        [TestCase("나 혼자만 레벨업 5권 [ENG]", new[] { "en" })]
+        [TestCase("進撃の巨人 5巻 [KOR]", new[] { "ko" })]
+        [TestCase("進撃の巨人 5권", new[] { "ja" })]
+        [TestCase("斗破苍穹 第05册", new[] { "zh" })]
+        [TestCase("霹靂神州 第05集", new string[0])]
         public void finds_language_tags(string title, string[] expected)
         {
             ReleaseLanguageParser.Parse(title).Should().BeEquivalentTo(expected);

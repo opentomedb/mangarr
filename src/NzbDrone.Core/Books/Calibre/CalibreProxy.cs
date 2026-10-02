@@ -363,7 +363,7 @@ namespace NzbDrone.Core.Books.Calibre
             // keeps edition.Title/no sort, unchanged. Preferred Edition (2026-09-24, D4): the series'
             // edition picks the volume label ("Tome <n>"); an English series (null) is unchanged.
             var isNumberedLightNovel = file.Author.Value.Library == LibraryType.LightNovel && book.VolumeNumber > 0;
-            var title = isNumberedLightNovel ? LightNovelTitles.Display(seriesTitle, book.VolumeNumber, book.Subtitle, file.Author.Value.Metadata.Value.EditionLanguage) : edition.Title;
+            var title = isNumberedLightNovel ? LightNovelTitles.Display(seriesTitle, book.VolumeNumber, book.Subtitle, EditionLanguages.ReleaseLanguage(file.Author.Value.Metadata.Value)) : edition.Title;
             var sort = isNumberedLightNovel ? LightNovelTitles.SortTitle(seriesTitle, book.VolumeNumber) : null;
 
             var payload = new CalibreChangesPayload

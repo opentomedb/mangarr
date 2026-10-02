@@ -48,6 +48,13 @@ namespace NzbDrone.Core.Books
         // Fix round 1: the edition does not change -- only a rename back to the edition's name (e.g. after
         // "back to English without Rename"). Applies only when Rename is ticked.
         public bool RenameOnly { get; set; }
+
+        // Follow-up round (KR/CN consumer, 2026-09-29): the English line's name when a fallback or anchorless series
+        // moves to English -- the anchor Change Edition stores (an English series is refreshed by its anchor, else its
+        // name). Null = today's rule (the stored anchor, else the name). Not part of the API resource.
+        [System.Text.Json.Serialization.JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        public string ToAnchorName { get; set; }
     }
 
     // Preferred Edition (2026-09-24, M13 fix round 1): the checks the preview shows and the run repeats
@@ -216,7 +223,15 @@ namespace NzbDrone.Core.Books
             var bound = meta.TomeLineId.IsNotNullOrWhiteSpace() ? _gcdMetadataService.FindSeriesByTomeId(meta.TomeLineId) : null;
             var anchor = from == EditionLanguages.English && bound != null ? bound : _gcdMetadataService.FindSeriesByTitle(anchorName, author.Library);
             var current = bound ?? anchor;
-            var target = to == EditionLanguages.English
+
+            // Final fix wave I3: a fallback series has no English anchor by its name (that is why it fell back), so
+            // its target comes from its bound line's work. Follow-up round: so does any bound series whose name finds
+            // no anchor (a fallback series whose flag a first Change Edition cleared, e.g. ja -> ko). Every other
+            // series keeps the anchor-based lookup.
+            var fromBoundWork = bound != null && ((meta.EditionFallback && from != EditionLanguages.English) || anchor == null);
+            var target = fromBoundWork
+                ? _editionResolver.LineInWork(bound, to)
+                : to == EditionLanguages.English
                 ? anchor
                 : _editionResolver.Resolve(anchor, new EditionRequest { Language = to }, author.Library, anchorName)?.Line;
 
@@ -253,6 +268,15 @@ namespace NzbDrone.Core.Books
                 preview.BlockedReason = text.English;
                 preview.BlockedReasonText = text;
                 return preview;
+            }
+
+            // Follow-up round: such a series moving to English is offered the English line's name, and Change Edition
+            // stores it as the anchor -- an English series is refreshed by its anchor, else its name, and the old
+            // (fallback) name would not find the line again.
+            if (fromBoundWork && to == EditionLanguages.English)
+            {
+                anchorName = WorkLines.DisplayName(target, author.Library);
+                preview.ToAnchorName = anchorName;
             }
 
             var newName = NewName(author, target, to, anchorName);
@@ -312,9 +336,10 @@ namespace NzbDrone.Core.Books
                 return anchorName;
             }
 
-            // Only Japanese needs AniList (the romaji name): a bulk preview to any other language costs no call.
+            // Only a native-script edition needs AniList (the romanized name; ja / ko / zh since KR/CN piece 2): a bulk
+            // preview to any other language costs no call.
             var aniListId = author.Metadata.Value.AniListId;
-            var ani = to == "ja" && aniListId.HasValue ? _aniListService.GetById(aniListId.Value) : null;
+            var ani = EditionLanguages.IsNativeScript(to) && aniListId.HasValue ? _aniListService.GetById(aniListId.Value) : null;
             var name = MangaSeriesMetadataProvider.EditionDisplayName(target, to, ani, anchorName, author.Library);
 
             return name == anchorName ? null : name;
