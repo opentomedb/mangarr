@@ -78,6 +78,54 @@ namespace NzbDrone.Core.Test.Api.Config
             Subject.ValidateShared(resource).IsValid.Should().BeTrue();
         }
 
+        // .When() puts its condition on every validator of the rule, so the Recycle Bin and PDF Originals rules must
+        // not share validator instances: each folder has to validate on its own (found on staging 2026-10-10, when a
+        // bad folder saved without error unless both were set). Real validators, built the way the container does:
+        // one fresh instance per constructor parameter.
+        private TestableController RealController()
+        {
+            var disk = Mocker.GetMock<NzbDrone.Common.Disk.IDiskProvider>();
+            disk.Setup(d => d.FolderExists(It.IsAny<string>())).Returns(false);
+            disk.Setup(d => d.FolderWritable(It.IsAny<string>())).Returns(false);
+
+            var authorsMock = Mocker.GetMock<NzbDrone.Core.Books.IAuthorService>();
+            authorsMock.Setup(a => a.AllAuthorPaths()).Returns(new System.Collections.Generic.Dictionary<int, string>());
+            var authors = authorsMock.Object;
+            var rootsMock = Mocker.GetMock<NzbDrone.Core.RootFolders.IRootFolderService>();
+            rootsMock.Setup(r => r.All()).Returns(new System.Collections.Generic.List<NzbDrone.Core.RootFolders.RootFolder>());
+            var roots = rootsMock.Object;
+            var appMock = Mocker.GetMock<NzbDrone.Common.EnvironmentInfo.IAppFolderInfo>();
+            appMock.SetupGet(a => a.StartUpFolder).Returns("/app/bin");
+            appMock.SetupGet(a => a.AppDataFolder).Returns("/config");
+            var app = appMock.Object;
+
+            return new TestableController(Mocker.GetMock<IConfigService>().Object,
+                new PathExistsValidator(disk.Object), new FolderChmodValidator(disk.Object), new FolderWritableValidator(disk.Object),
+                new AuthorPathValidator(authors), new StartupFolderValidator(app), new SystemFolderValidator(),
+                new RootFolderAncestorValidator(roots), new RootFolderValidator(roots), new InsideRootFolderValidator(roots),
+                new PathExistsValidator(disk.Object), new FolderWritableValidator(disk.Object),
+                new AuthorPathValidator(authors), new StartupFolderValidator(app), new SystemFolderValidator(),
+                new RootFolderAncestorValidator(roots), new RootFolderValidator(roots));
+        }
+
+        [Test]
+        public void a_missing_pdf_originals_folder_is_refused_without_a_recycle_bin()
+        {
+            var resource = ValidResource();
+            resource.PdfOriginalsFolder = "/does/not/exist";
+
+            RealController().ValidateShared(resource).Errors.Should().Contain(e => e.PropertyName == "PdfOriginalsFolder");
+        }
+
+        [Test]
+        public void a_missing_recycle_bin_is_refused_without_a_pdf_originals_folder()
+        {
+            var resource = ValidResource();
+            resource.RecycleBin = "/does/not/exist";
+
+            RealController().ValidateShared(resource).Errors.Should().Contain(e => e.PropertyName == "RecycleBin");
+        }
+
         public class TestableController : MediaManagementConfigController
         {
             public TestableController(IConfigService configService,
@@ -88,8 +136,16 @@ namespace NzbDrone.Core.Test.Api.Config
                                        StartupFolderValidator startupFolderValidator,
                                        SystemFolderValidator systemFolderValidator,
                                        RootFolderAncestorValidator rootFolderAncestorValidator,
-                                       RootFolderValidator rootFolderValidator)
-                : base(configService, pathExistsValidator, folderChmodValidator, folderWritableValidator, authorPathValidator, startupFolderValidator, systemFolderValidator, rootFolderAncestorValidator, rootFolderValidator)
+                                       RootFolderValidator rootFolderValidator,
+                                       InsideRootFolderValidator insideRootFolderValidator,
+                                       PathExistsValidator pdfPathExistsValidator,
+                                       FolderWritableValidator pdfFolderWritableValidator,
+                                       AuthorPathValidator pdfAuthorPathValidator,
+                                       StartupFolderValidator pdfStartupFolderValidator,
+                                       SystemFolderValidator pdfSystemFolderValidator,
+                                       RootFolderAncestorValidator pdfRootFolderAncestorValidator,
+                                       RootFolderValidator pdfRootFolderValidator)
+                : base(configService, pathExistsValidator, folderChmodValidator, folderWritableValidator, authorPathValidator, startupFolderValidator, systemFolderValidator, rootFolderAncestorValidator, rootFolderValidator, insideRootFolderValidator, pdfPathExistsValidator, pdfFolderWritableValidator, pdfAuthorPathValidator, pdfStartupFolderValidator, pdfSystemFolderValidator, pdfRootFolderAncestorValidator, pdfRootFolderValidator)
             {
             }
 

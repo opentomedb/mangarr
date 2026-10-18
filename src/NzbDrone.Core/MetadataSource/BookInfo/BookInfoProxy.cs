@@ -212,6 +212,29 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
             return existingName.IsNotNullOrWhiteSpace() ? existingName : resolved;
         }
 
+        // Mushoku Tensei (2026-10-17): the provider builds its alternate titles around its own display name and
+        // leaves that name out, so when the stored name is kept (ResolveDisplayName) the provider's title -- AniList's
+        // English one, the name releases carry -- was an alias nowhere. It leads the list unless it is the kept
+        // name or already there (compared as the parser compares names).
+        public static List<string> AliasesWithProviderName(List<string> aliases, string providerName, string keptName)
+        {
+            var result = aliases ?? new List<string>();
+
+            if (providerName.IsNullOrWhiteSpace() || keptName.IsNullOrWhiteSpace())
+            {
+                return result;
+            }
+
+            var clean = providerName.CleanAuthorName();
+
+            if (clean == keptName.CleanAuthorName() || result.Any(a => a.CleanAuthorName() == clean))
+            {
+                return result;
+            }
+
+            return new[] { providerName.Trim() }.Concat(result).ToList();
+        }
+
         // Preferred Edition (2026-09-24, spec §1/§4): which edition this resolve is for. An existing series
         // keeps its own (null = English, whatever the chain says now -- a chain change only affects new
         // adds); an add names one or takes the chain; a search candidate takes the chain. Null = the
@@ -454,7 +477,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 Overview = stored?.Overview ?? KeptOnDisplayMiss(series, existing?.Metadata?.Value?.Overview) ?? series.Overview,
                 Status = stored?.Status ?? series.Status,
                 TotalVolumes = stored?.TotalVolumes ?? series.OriginTotal,
-                Aliases = stored?.Aliases?.Any() == true ? stored.Aliases : series.AltTitles ?? new List<string>(),
+                Aliases = stored?.Aliases?.Any() == true ? stored.Aliases : AliasesWithProviderName(series.AltTitles, series.MatchedVia == null ? null : series.DisplayName, displayName),
                 Ratings = seriesRating.JsonClone(),
                 ParentName = series.ParentName,
                 ParentForeignAuthorId = series.ParentName.IsNullOrWhiteSpace() ? null : ForeignAuthorIdFor(series.ParentName, library),

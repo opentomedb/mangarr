@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Configuration;
@@ -65,53 +66,64 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 var historyForBook = _historyService.GetByBook(book.Id, null)
                                                     .Where(h => HistoryService.MediaTypeOf(h) == subject.MediaType)
                                                     .ToList();
-                var lastGrabbed = historyForBook.FirstOrDefault(h => h.EventType == EntityHistoryEventType.Grabbed);
 
-                if (lastGrabbed == null)
+                // Every grab that imported counts, not only the newest grab: a later grab of the same release
+                // that never imported (Berserk Vol. 43, 2026-10-15: "Has the same filesize as existing file")
+                // must not hide the one that did.
+                var importedGrabs = historyForBook
+                    .Where(h => h.EventType == EntityHistoryEventType.Grabbed &&
+                                historyForBook.Any(i => i.EventType == EntityHistoryEventType.BookFileImported && i.DownloadId == h.DownloadId));
+
+                foreach (var grabbed in importedGrabs)
                 {
-                    continue;
-                }
+                    var imported = historyForBook.First(h =>
+                        h.EventType == EntityHistoryEventType.BookFileImported &&
+                        h.DownloadId == grabbed.DownloadId);
 
-                var imported = historyForBook.FirstOrDefault(h =>
-                    h.EventType == EntityHistoryEventType.BookFileImported &&
-                    h.DownloadId == lastGrabbed.DownloadId);
-
-                if (imported == null)
-                {
-                    continue;
-                }
-
-                // This is really only a guard against redownloading the same release over
-                // and over when the grabbed and imported qualities do not match, if they do
-                // match skip this check.
-                if (lastGrabbed.Quality.Equals(imported.Quality))
-                {
-                    continue;
-                }
-
-                var release = subject.Release;
-
-                if (release.DownloadProtocol == DownloadProtocol.Torrent)
-                {
-                    var torrentInfo = release as TorrentInfo;
-
-                    if (torrentInfo?.InfoHash != null && torrentInfo.InfoHash.ToUpper() == lastGrabbed.DownloadId)
+                    // This is really only a guard against redownloading the same release over
+                    // and over when the grabbed and imported qualities do not match, if they do
+                    // match skip this check.
+                    if (grabbed.Quality.Equals(imported.Quality))
                     {
-                        _logger.Debug("Has same torrent hash as a grabbed and imported release");
-                        return Decision.Reject("Has same torrent hash as a grabbed and imported release");
+                        continue;
                     }
-                }
 
-                // Only based on title because a release with the same title on another indexer/released at
-                // a different time very likely has the exact same content and we don't need to also try it.
-                if (release.Title.Equals(lastGrabbed.SourceTitle, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    _logger.Debug("Has same release name as a grabbed and imported release");
-                    return Decision.Reject("Has same release name as a grabbed and imported release");
+                    var release = subject.Release;
+
+                    if (release.DownloadProtocol == DownloadProtocol.Torrent)
+                    {
+                        var torrentInfo = release as TorrentInfo;
+
+                        if (torrentInfo?.InfoHash != null && torrentInfo.InfoHash.ToUpper() == grabbed.DownloadId)
+                        {
+                            _logger.Debug("Has same torrent hash as a grabbed and imported release");
+                            return Decision.Reject("Has same torrent hash as a grabbed and imported release");
+                        }
+                    }
+
+                    // Only based on title because a release with the same title on another indexer/released at
+                    // a different time very likely has the exact same content and we don't need to also try it.
+                    // Indexers re-punctuate the same post ("Dark.Horse.-.Berserk" vs "Dark.Horse.Berserk"), so
+                    // only letters and digits are compared.
+                    if (SameTitle(release.Title, grabbed.SourceTitle))
+                    {
+                        _logger.Debug("Has same release name as a grabbed and imported release");
+                        return Decision.Reject("Has same release name as a grabbed and imported release");
+                    }
                 }
             }
 
             return Decision.Accept();
+        }
+
+        private static bool SameTitle(string a, string b)
+        {
+            return a != null && b != null && LettersAndDigits(a) == LettersAndDigits(b);
+        }
+
+        private static string LettersAndDigits(string title)
+        {
+            return Regex.Replace(title, @"[^\p{L}\p{N}]+", string.Empty).ToLowerInvariant();
         }
     }
 }

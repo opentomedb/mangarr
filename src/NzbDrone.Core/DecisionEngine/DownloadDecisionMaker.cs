@@ -69,6 +69,7 @@ namespace NzbDrone.Core.DecisionEngine
             foreach (var report in reports)
             {
                 DownloadDecision decision = null;
+                var specificationsRan = false;
                 _logger.ProgressTrace("Processing release {0}/{1}", reportNumber, reports.Count);
                 _logger.Debug("Processing release '{0}' from '{1}'", report.Title, report.Indexer);
 
@@ -162,6 +163,7 @@ namespace NzbDrone.Core.DecisionEngine
 
                             remoteBook.DownloadAllowed = remoteBook.Books.Any();
                             decision = GetDecisionForReport(remoteBook, searchCriteria);
+                            specificationsRan = true;
                         }
                     }
 
@@ -219,6 +221,15 @@ namespace NzbDrone.Core.DecisionEngine
 
                 reportNumber++;
 
+                // Mushoku Tensei Vol. 23 (2026-10-17): a search release Mangarr cannot map ("Unable to parse
+                // release", "Unknown Series") skips every specification, so a Japanese release for the English
+                // edition showed only the parse reason and looked worth a forced grab. The series' language rule
+                // still judges it against the searched series, and its reason comes first.
+                if (decision != null && !specificationsRan && decision.Rejected && searchCriteria?.Author != null)
+                {
+                    decision = WithLanguageRejection(decision, searchCriteria);
+                }
+
                 if (decision != null)
                 {
                     var source = pushedRelease ? ReleaseSourceType.ReleasePush : ReleaseSourceType.Rss;
@@ -253,6 +264,25 @@ namespace NzbDrone.Core.DecisionEngine
                     yield return decision;
                 }
             }
+        }
+
+        private DownloadDecision WithLanguageRejection(DownloadDecision decision, SearchCriteriaBase searchCriteria)
+        {
+            var probe = new RemoteBook
+            {
+                Release = decision.RemoteBook.Release,
+                Author = searchCriteria.Author,
+                MediaType = decision.RemoteBook.MediaType
+            };
+
+            var language = new EditionLanguageSpecification(_logger).IsSatisfiedBy(probe, searchCriteria);
+
+            if (language.Accepted)
+            {
+                return decision;
+            }
+
+            return new DownloadDecision(decision.RemoteBook, decision.Rejections.Prepend(new Rejection(language)).ToArray());
         }
 
         private DownloadDecision GetDecisionForReport(RemoteBook remoteBook, SearchCriteriaBase searchCriteria = null)

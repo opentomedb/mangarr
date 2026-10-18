@@ -396,6 +396,18 @@ namespace NzbDrone.Core.Parser
                         return searchCriteria.Author;
                     }
 
+                    // Mushoku Tensei (2026-10-17): a release series that is one of the searched series' own names
+                    // (its aliases: AniList's English title when the stored name is shorter) is that series, however
+                    // much longer than the stored name it is.
+                    var knownNames = KnownNames(searchCriteria.Author);
+
+                    if (MangaVolumeParser.ExpandDualTitles(releaseSeries).Any(s =>
+                            knownNames.Contains(s.CleanAuthorName()) ||
+                            knownNames.Contains(MangaVolumeParser.StripParentheticals(s).CleanAuthorName())))
+                    {
+                        return searchCriteria.Author;
+                    }
+
                     // The release's series EXTENDS the searched author with extra tokens -> it is a
                     // DIFFERENT series (a sequel/spin-off like "Tokyo Ghoul:re" parsed as "Tokyo Ghoul
                     // - re"). Reject rather than letting the ParseBookTitle mis-parse grab the wrong
@@ -451,6 +463,23 @@ namespace NzbDrone.Core.Parser
             }
 
             return author;
+        }
+
+        private static HashSet<string> KnownNames(Author author)
+        {
+            var meta = author?.Metadata?.Value;
+
+            if (meta == null)
+            {
+                return new HashSet<string>();
+            }
+
+            return new[] { meta.Name, meta.AnchorName }
+                .Concat(meta.Aliases ?? new List<string>())
+                .Where(n => n.IsNotNullOrWhiteSpace())
+                .Select(n => n.CleanAuthorName())
+                .Where(n => n.IsNotNullOrWhiteSpace())
+                .ToHashSet();
         }
 
         // Whether the release's class is already known to be ebook / audio: the parsed quality says

@@ -227,8 +227,11 @@ namespace NzbDrone.Core.MetadataSource.Gcd
         //      the edition language as English (BookInfoProxy), so a Japanese line's dates and ISBNs
         //      would be presented as English data. No English line -> null -> the live-source chain,
         //      exactly what the English-only artifact did before.
-        //   2. A line NAMED what was asked for beats one that merely carries the name as an alias.
-        //   3. The work's main line for the market, then manga before light novels of the same name.
+        //   2. The library's own class first: in a manga library a manga line beats a light-novel line,
+        //      even one NAMED exactly what was asked for (OpenTome round C, 2026-10-02: The Water
+        //      Magician's novel line is the bare title, the manga's "(Part 1)" carries it as an alias).
+        //   3. A line NAMED what was asked for beats one that merely carries the name as an alias, then
+        //      the work's main line for the market.
         //   4. Non-omnibus (the standard tankoubon-equivalent people collect), then the line with
         //      the most dated volumes, then the most volumes, then the lowest id (deterministic).
         //   0. Library gate (2026-09): a light-novel entry binds to a novel line (light_novel /
@@ -242,9 +245,9 @@ namespace NzbDrone.Core.MetadataSource.Gcd
             return candidates
                 .Where(s => s.Language == "en")
                 .Where(s => !wantNovel || IsLightNovel(s.Medium))
-                .OrderByDescending(s => Normalize(s.Name) == normalizedQuery)
+                .OrderBy(s => IsLightNovel(s.Medium))
+                .ThenByDescending(s => Normalize(s.Name) == normalizedQuery)
                 .ThenByDescending(s => s.IsMain)
-                .ThenBy(s => IsLightNovel(s.Medium))
                 .ThenBy(s => s.IsOmnibus)
                 .ThenByDescending(s => s.DatedCount ?? 0)
                 .ThenByDescending(s => s.VolumeCount)
@@ -263,9 +266,9 @@ namespace NzbDrone.Core.MetadataSource.Gcd
                 .Where(s => s.Language != null && order.Contains(s.Language))
                 .Where(s => !wantNovel || IsLightNovel(s.Medium))
                 .OrderBy(s => order.IndexOf(s.Language))
+                .ThenBy(s => IsLightNovel(s.Medium))
                 .ThenByDescending(s => Normalize(s.Name) == normalizedQuery)
                 .ThenByDescending(s => s.IsMain)
-                .ThenBy(s => IsLightNovel(s.Medium))
                 .ThenBy(s => s.IsOmnibus)
                 .ThenByDescending(s => s.DatedCount ?? 0)
                 .ThenByDescending(s => s.VolumeCount)

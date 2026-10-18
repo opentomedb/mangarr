@@ -143,6 +143,35 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
             Mocker.GetMock<IAuthorService>().Verify(s => s.FindByName("Syougo Kinugasa", It.IsAny<LibraryType>()), Times.AtLeastOnce());
         }
 
+        // Mushoku Tensei (2026-10-17): the entry is stored as "Mushoku Tensei", and the English pack names the
+        // series "Mushoku Tensei - Jobless Reincarnation" -- longer than the stored name, so it read as a sequel.
+        // A release series that is one of the searched series' own aliases is that series.
+        [Test]
+        public void should_attribute_release_whose_series_is_an_alias_of_the_searched_author()
+        {
+            var author = Builder<Author>.CreateNew()
+                                        .With(a => a.CleanName = "mushokutensei")
+                                        .With(a => a.Metadata = new AuthorMetadata { Name = "Mushoku Tensei", Aliases = new List<string> { "Mushoku Tensei: Jobless Reincarnation" } })
+                                        .Build();
+
+            var parsed = new ParsedBookInfo
+            {
+                ReleaseTitle = "Mushoku Tensei - Jobless Reincarnation v01-23 (2015-2026) (Digital) (danke-Empire)",
+                AuthorName = "Mushoku Tensei",
+                VolumeStart = 1,
+                VolumeEnd = 23,
+                Quality = new QualityModel()
+            };
+
+            Mocker.GetMock<IBookService>()
+                  .Setup(s => s.GetBooksByAuthor(It.IsAny<int>()))
+                  .Returns(new List<Book>());
+
+            var remoteBook = Subject.Map(parsed, new AuthorSearchCriteria { Author = author });
+
+            remoteBook.Author.Should().Be(author);
+        }
+
         [Test]
         public void should_reject_sequel_release_whose_series_extends_the_searched_author()
         {

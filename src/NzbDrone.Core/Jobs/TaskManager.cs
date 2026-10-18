@@ -166,6 +166,13 @@ namespace NzbDrone.Core.Jobs
                         TypeName = typeof(ConvertPdfToCbzCommand).FullName
                     },
 
+                    // PDF originals retention: daily only when the user has set a number of days (0 = keep forever).
+                    new ScheduledTask
+                    {
+                        Interval = GetPdfOriginalsCleanupInterval(),
+                        TypeName = typeof(CleanUpPdfOriginalsCommand).FullName
+                    },
+
                     // Settings tidy (2026-09-23): library-wide light-novel maintenance, manual only
                     // (0 = never scheduled; GetPending ignores it) -- run from System -> Tasks. Each
                     // service already refuses/no-ops when it does not apply (EPUB delivery or ebooks
@@ -276,6 +283,11 @@ namespace NzbDrone.Core.Jobs
             return _configService.PdfToCbzSweep ? 24 * 60 : 0;
         }
 
+        private int GetPdfOriginalsCleanupInterval()
+        {
+            return _configService.PdfOriginalsCleanupDays > 0 ? 24 * 60 : 0;
+        }
+
         private int GetBookSearchInterval()
         {
             var interval = _configService.BookSearchInterval;
@@ -349,6 +361,7 @@ namespace NzbDrone.Core.Jobs
             _cache.Find(backup.TypeName).Interval = backup.Interval;
 
             SetInterval(typeof(ConvertPdfToCbzCommand), GetPdfSweepInterval());
+            SetInterval(typeof(CleanUpPdfOriginalsCommand), GetPdfOriginalsCleanupInterval());
         }
     }
 }

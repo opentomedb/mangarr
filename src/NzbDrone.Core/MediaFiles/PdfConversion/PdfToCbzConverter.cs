@@ -21,6 +21,9 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
         public int PageCount { get; set; }
         public bool Reversed { get; set; }
         public string Reason { get; set; }
+
+        // The file itself can never convert (not a 1:1 image PDF): trying it again unchanged gives the same answer.
+        public bool NotConvertible { get; set; }
     }
 
     public interface IPdfToCbzConverter
@@ -57,6 +60,13 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
                 return new PdfConvertResult { Status = PdfConvertStatus.Skipped, Reason = "Not a PDF" };
             }
 
+            // Checked before any extraction (Dandadan Vol. 19, 2026-10-17: a PDF tracked beside its own CBZ was
+            // rebuilt in full every night only to be thrown away here). Checked again after the build below.
+            if (_diskProvider.FileExists(outputCbzPath))
+            {
+                return new PdfConvertResult { Status = PdfConvertStatus.Skipped, Reason = "Target CBZ already exists" };
+            }
+
             var workDir = outputCbzPath + ".mangarr-pdfwork";
             var tempCbz = outputCbzPath + ".mangarr-tmp";
 
@@ -72,7 +82,7 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
                 if (pageCount <= 0 || images.Count != pageCount)
                 {
                     _logger.Warn("Skipping {0}: {1} pages but {2} extracted images (not a 1:1 image PDF)", pdfPath, pageCount, images.Count);
-                    return new PdfConvertResult { Status = PdfConvertStatus.Skipped, PageCount = pageCount, Reason = $"{pageCount} pages vs {images.Count} images" };
+                    return new PdfConvertResult { Status = PdfConvertStatus.Skipped, PageCount = pageCount, Reason = $"{pageCount} pages vs {images.Count} images", NotConvertible = true };
                 }
 
                 // Reversed-layout PDFs (cover last, colophon first) read back-to-front; flip so the

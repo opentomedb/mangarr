@@ -21,6 +21,8 @@ services:
     volumes:
       # Settings, database, logs, backups and the downloaded catalogue.
       - ./config:/config
+      # Converted PDFs' originals are kept in /config/pdf-originals by default; set "PDF Originals Folder" in
+      # Media Management to a dedicated empty mounted path (e.g. /data/pdf-originals) to keep them elsewhere.
       # One root folder per library (Settings -> Media Management -> Root Folders).
       - /path/to/manga:/data/manga
       - /path/to/lightnovels:/data/lightnovels

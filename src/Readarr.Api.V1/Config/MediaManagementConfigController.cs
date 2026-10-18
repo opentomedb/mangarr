@@ -24,9 +24,20 @@ namespace Readarr.Api.V1.Config
                                            StartupFolderValidator startupFolderValidator,
                                            SystemFolderValidator systemFolderValidator,
                                            RootFolderAncestorValidator rootFolderAncestorValidator,
-                                           RootFolderValidator rootFolderValidator)
+                                           RootFolderValidator rootFolderValidator,
+                                           InsideRootFolderValidator insideRootFolderValidator,
+                                           PathExistsValidator pdfPathExistsValidator,
+                                           FolderWritableValidator pdfFolderWritableValidator,
+                                           AuthorPathValidator pdfAuthorPathValidator,
+                                           StartupFolderValidator pdfStartupFolderValidator,
+                                           SystemFolderValidator pdfSystemFolderValidator,
+                                           RootFolderAncestorValidator pdfRootFolderAncestorValidator,
+                                           RootFolderValidator pdfRootFolderValidator)
             : base(configService)
         {
+            // The PDF originals rule gets its own validator instances: .When() adds its condition to every
+            // validator in the rule, so an instance shared with the Recycle Bin rule would only run when BOTH
+            // folders are set (neither rule would validate on its own).
             SharedValidator.RuleFor(c => c.RecycleBin).IsValidPath()
                                                       .SetValidator(folderWritableValidator)
                                                       .SetValidator(rootFolderValidator)
@@ -37,6 +48,17 @@ namespace Readarr.Api.V1.Config
                                                       .SetValidator(systemFolderValidator)
                                                       .When(c => !string.IsNullOrWhiteSpace(c.RecycleBin));
             SharedValidator.RuleFor(c => c.RecycleBinCleanupDays).GreaterThanOrEqualTo(0);
+            SharedValidator.RuleFor(c => c.PdfOriginalsFolder).IsValidPath()
+                                                              .SetValidator(pdfFolderWritableValidator)
+                                                              .SetValidator(pdfRootFolderValidator)
+                                                              .SetValidator(pdfPathExistsValidator)
+                                                              .SetValidator(pdfAuthorPathValidator)
+                                                              .SetValidator(pdfRootFolderAncestorValidator)
+                                                              .SetValidator(insideRootFolderValidator)
+                                                              .SetValidator(pdfStartupFolderValidator)
+                                                              .SetValidator(pdfSystemFolderValidator)
+                                                              .When(c => !string.IsNullOrWhiteSpace(c.PdfOriginalsFolder));
+            SharedValidator.RuleFor(c => c.PdfOriginalsCleanupDays).GreaterThanOrEqualTo(0);
             SharedValidator.RuleFor(c => c.ChmodFolder).SetValidator(folderChmodValidator).When(c => !string.IsNullOrEmpty(c.ChmodFolder) && (OsInfo.IsLinux || OsInfo.IsOsx));
             SharedValidator.RuleFor(c => c.MinimumFreeSpaceWhenImporting).GreaterThanOrEqualTo(100);
 

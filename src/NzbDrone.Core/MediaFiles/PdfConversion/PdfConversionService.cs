@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -22,6 +24,7 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
     public class PdfConversionService : IExecute<ConvertPdfToCbzCommand>, IExecute<ConvertBookPdfToCbzCommand>
     {
         private const string PopplerMissingMessage = "PDF conversion unavailable: poppler (pdfimages) is not installed";
+        private const string OriginalsFolderUnusableMessage = "PDF originals folder is not usable (check that it exists, is writable and is empty or already a Mangarr PDF originals folder); nothing was converted";
         private const string MangaOnlyMessage = "PDF to CBZ conversion is for manga only";
 
         private readonly IPdfToCbzConverter _converter;
@@ -33,6 +36,11 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
         private readonly IAppFolderInfo _appFolderInfo;
         private readonly IConfigService _configService;
         private readonly Logger _logger;
+
+        // Berserk Vol. 43 (2026-10-17): a PDF the converter refused as not 1:1 was extracted again by every
+        // sweep. The sweep remembers each refused file (path and size) and leaves it alone until it changes;
+        // the volume's own Convert action still tries it. Held in memory: a restart tries each one once more.
+        private readonly ConcurrentDictionary<string, bool> _notConvertible = new ConcurrentDictionary<string, bool>();
 
         public PdfConversionService(IPdfToCbzConverter converter,
                                     IComicInfoWriter comicInfoWriter,
@@ -61,6 +69,13 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
             {
                 _logger.Error("PDF conversion unavailable: poppler (pdfimages) is not installed in the container");
                 message.ResultMessage = PopplerMissingMessage;
+                return;
+            }
+
+            if (!OriginalsFolderUsable())
+            {
+                _logger.Error("PDF originals folder is not usable; no PDF was converted");
+                message.ResultMessage = OriginalsFolderUnusableMessage;
                 return;
             }
 
@@ -95,7 +110,7 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
             {
                 foreach (var book in _bookService.GetBooksByAuthor(author.Id))
                 {
-                    ConvertBookFiles(author, book, ref converted, ref skipped, ref failed);
+                    ConvertBookFiles(author, book, true, ref converted, ref skipped, ref failed);
                 }
             }
 
@@ -111,6 +126,13 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
             {
                 _logger.Error("PDF conversion unavailable: poppler (pdfimages) is not installed in the container");
                 message.ResultMessage = PopplerMissingMessage;
+                return;
+            }
+
+            if (!OriginalsFolderUsable())
+            {
+                _logger.Error("PDF originals folder is not usable; no PDF was converted");
+                message.ResultMessage = OriginalsFolderUnusableMessage;
                 return;
             }
 
@@ -145,14 +167,14 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
             var skipped = 0;
             var failed = 0;
 
-            ConvertBookFiles(author, book, ref converted, ref skipped, ref failed);
+            ConvertBookFiles(author, book, false, ref converted, ref skipped, ref failed);
 
             _logger.Info("PDF->CBZ conversion complete for {0}: {1} converted, {2} skipped, {3} failed", book.Title, converted, skipped, failed);
 
             SetResult(message, converted, failed);
         }
 
-        private void ConvertBookFiles(Author author, Book book, ref int converted, ref int skipped, ref int failed)
+        private void ConvertBookFiles(Author author, Book book, bool sweep, ref int converted, ref int skipped, ref int failed)
         {
             foreach (var file in _mediaFileService.GetFilesByBook(book.Id))
             {
@@ -161,11 +183,25 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
                     continue;
                 }
 
+                var refusedKey = file.Path + "|" + file.Size;
+
+                if (sweep && _notConvertible.ContainsKey(refusedKey))
+                {
+                    _logger.Debug("Skipping {0}: already refused as not a 1:1 image PDF", file.Path);
+                    skipped++;
+                    continue;
+                }
+
                 var cbzPath = Path.ChangeExtension(file.Path, ".cbz");
                 var result = _converter.Convert(file.Path, cbzPath);
 
                 if (result.Status != PdfConvertStatus.Converted)
                 {
+                    if (result.NotConvertible)
+                    {
+                        _notConvertible[refusedKey] = true;
+                    }
+
                     if (result.Status == PdfConvertStatus.Skipped)
                     {
                         skipped++;
@@ -223,21 +259,90 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
             }
         }
 
-        // Originals are moved, never deleted — recoverable under <appdata>/pdf-originals/<series>/.
+        // The folder must be usable BEFORE the first PDF is touched: the library record is repointed at the
+        // CBZ before the original moves, so a failing move would strand a PDF next to its CBZ.
+        private bool OriginalsFolderUsable()
+        {
+            var root = PdfOriginalsLocation.Root(_configService, _appFolderInfo);
+
+            try
+            {
+                if (PdfOriginalsLocation.IsDefault(_configService))
+                {
+                    _diskProvider.CreateFolder(root);
+                }
+                else if (!_diskProvider.FolderExists(root))
+                {
+                    // Never create a user-chosen folder: a missing mount would become a plain directory inside
+                    // the container, and the originals would be lost when it is recreated.
+                    _logger.Error("PDF originals folder does not exist (is the drive or share mounted?): {0}", root);
+                    return false;
+                }
+
+                if (!_diskProvider.FolderWritable(root))
+                {
+                    return false;
+                }
+
+                var marker = Path.Combine(root, PdfOriginalsLocation.MarkerFileName);
+
+                if (_diskProvider.FileExists(marker))
+                {
+                    return true;
+                }
+
+                // A custom folder is adopted only when empty; it is then marked so retention may clean it.
+                if (!PdfOriginalsLocation.IsDefault(_configService) && _diskProvider.GetFiles(root, true).Any())
+                {
+                    _logger.Error("PDF originals folder is not empty and is not a Mangarr PDF originals folder: {0}", root);
+                    return false;
+                }
+
+                _diskProvider.WriteAllText(marker, "Mangarr keeps the original PDFs it converted in this folder.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "PDF originals folder is not usable: {0}", root);
+                return false;
+            }
+        }
+
+        // Originals are moved, never deleted (unless the user sets a retention in Media Management) and never
+        // overwritten: a name already held gets a timestamp before its extension.
         private void MoveToHolding(Author author, string pdfPath)
         {
-            var holdingDir = Path.Combine(_appFolderInfo.AppDataFolder, "pdf-originals", FileNameBuilder.CleanFileName(author.Name));
+            var holdingDir = Path.Combine(PdfOriginalsLocation.Root(_configService, _appFolderInfo), FileNameBuilder.CleanFileName(author.Name));
             _diskProvider.CreateFolder(holdingDir);
 
             var target = Path.Combine(holdingDir, Path.GetFileName(pdfPath));
-            _diskProvider.MoveFile(pdfPath, target, true);
+
+            if (_diskProvider.FileExists(target))
+            {
+                var stem = Path.GetFileNameWithoutExtension(pdfPath) + "." + DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+                var extension = Path.GetExtension(pdfPath);
+
+                target = Path.Combine(holdingDir, stem + extension);
+
+                // The timestamp has one-second resolution: a name still held gets a counter.
+                for (var n = 1; _diskProvider.FileExists(target); n++)
+                {
+                    target = Path.Combine(holdingDir, stem + "." + n + extension);
+                }
+            }
+
+            _diskProvider.MoveFile(pdfPath, target, false);
+
+            // Retention counts from the day the original was set aside, not from the day it was downloaded.
+            _diskProvider.FileSetLastWriteTime(target, DateTime.UtcNow);
         }
 
         // What the toolbar button reports back. Skipped volumes (already CBZ, or upgraded by an
         // import while the conversion ran) are noise to the person who pressed the button — the
         // log lines keep them.
         //
-        // A run that did nothing at all sets no result, so the executor falls back to the command's
+        // A run that did nothing at all sets no result (the exceptions are the unusable-originals-folder and
+        // poppler-missing runs above, which say why nothing happened), so the executor falls back to the command's
         // "Completed". ConvertPdfToCbzCommand is also the nightly scheduled sweep and
         // PdfImportConversionService pushes it per-author after an import; neither suppresses
         // client messages, so reporting "Converted 0 PDF volume(s) to CBZ, 0 failed" would toast

@@ -82,11 +82,11 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             return book;
         }
 
-        private void GivenGrabbedHistory()
+        private void GivenGrabbedHistory(string sourceTitle = null)
         {
             Mocker.GetMock<IHistoryService>()
                 .Setup(s => s.FindByDownloadId(It.IsAny<string>()))
-                .Returns(new List<EntityHistory> { new EntityHistory { EventType = EntityHistoryEventType.Grabbed } });
+                .Returns(new List<EntityHistory> { new EntityHistory { EventType = EntityHistoryEventType.Grabbed, SourceTitle = sourceTitle } });
         }
 
         private void GivenPayloadFiles(params string[] files)
@@ -268,6 +268,46 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             Subject.Import(_trackedDownload);
 
             AssertNotImported();
+        }
+
+        // Mushoku Tensei Vol. 23 (2026-10-17, the maintainer: "clear the grab if it is wrong language or wrong type"): a
+        // Japanese release force-grabbed for the English edition finished as loose page images and sat in the
+        // client. A grab in a language the series does not take is failed and removed like a wrong-class one.
+        [Test]
+        public void a_grab_in_a_language_the_series_does_not_take_is_failed_and_removed()
+        {
+            GivenGrabbedHistory("(一般小説) [フジカワユカ] 無職転生 ～異世界行ったら本気だす～ 第23巻 [Mushoku Tensei Isekai Ittara Honki dasu vol 23]");
+            GivenNothingImportedFrom("001.jpg", "002.jpg", "003.jpg");
+
+            Mocker.GetMock<IDownloadClient>()
+                  .SetupGet(c => c.Definition)
+                  .Returns(new DownloadClientDefinition { Id = 1, Name = "testClient", RemoveFailedDownloads = true });
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IFailedDownloadService>().Verify(v => v.MarkAsFailed(_trackedDownload.DownloadItem.DownloadId, false, "Release is Japanese, the series is the English edition"), Times.Once());
+            Mocker.GetMock<IDownloadClient>().Verify(v => v.RemoveItem(_trackedDownload.DownloadItem, true), Times.Once());
+            _trackedDownload.State.Should().Be(TrackedDownloadState.DownloadFailed);
+            Mocker.GetMock<IDownloadedBooksImportService>().Verify(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [Test]
+        public void an_approved_grab_held_under_a_native_name_is_imported_as_before()
+        {
+            GivenGrabbedHistory("Mushoku Tensei - Jobless Reincarnation v23 (2026) (Digital) (danke-Empire)");
+            GivenNothingImportedFrom("Mushoku Tensei v23.cbz");
+
+            // The client holds it under its native name; the grabbed title is what is judged.
+            _trackedDownload.DownloadItem.Title = "無職転生 ～異世界行ったら本気だす～ 第23巻";
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IFailedDownloadService>().Verify(v => v.MarkAsFailed(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IDownloadedBooksImportService>().Verify(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Once());
+
+            ExceptionVerification.IgnoreWarns();
         }
 
         [Test]

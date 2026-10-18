@@ -244,7 +244,7 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
 
             // only the images: the rest of the presentation is this pass's (AniList resolved fine)
             meta.Overview.Should().Be("Rudeus starts over.");
-            meta.Aliases.Should().Equal("Mushoku Tensei: Isekai Ittara Honki Dasu");
+            meta.Aliases.Should().Equal("Mushoku Tensei: Jobless Reincarnation", "Mushoku Tensei: Isekai Ittara Honki Dasu");
         }
 
         [Test]
@@ -326,7 +326,8 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
 
             meta.Overview.Should().Be("Rudeus starts over.");
             meta.Images.Should().ContainSingle(i => i.Url == "https://s4.anilist.co/bx85564.jpg");
-            meta.Aliases.Should().Equal("Mushoku Tensei: Isekai Ittara Honki Dasu");
+            // the kept stored name is shorter than AniList's: AniList's title leads the aliases (2026-10-17)
+            meta.Aliases.Should().Equal("Mushoku Tensei: Jobless Reincarnation", "Mushoku Tensei: Isekai Ittara Honki Dasu");
             meta.TotalVolumes.Should().Be(24);
         }
 

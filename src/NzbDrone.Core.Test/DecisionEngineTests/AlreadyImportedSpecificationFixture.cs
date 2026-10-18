@@ -202,6 +202,43 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             Subject.IsSatisfiedBy(_remoteBook, null).Accepted.Should().BeFalse();
         }
 
+        // Berserk Vol. 43 (2026-10-15): the same usenet release came back from another indexer as
+        // "Dark.Horse.-.Berserk..." against the imported "Dark.Horse.Berserk..." and was downloaded again.
+        [Test]
+        public void should_be_rejected_if_release_title_differs_from_the_imported_one_only_in_punctuation()
+        {
+            GivenHistoryItem("nzb1", "Dark.Horse.Berserk.Vol.43.2026.Retail.Comic.eBook-BitBook", _mp3, EntityHistoryEventType.Grabbed);
+            GivenHistoryItem("nzb1", "Dark.Horse.Berserk.Vol.43.2026.Retail.Comic.eBook-BitBook", _flac, EntityHistoryEventType.BookFileImported);
+
+            _remoteBook.Release.Title = "Dark.Horse.-.Berserk.Vol.43.2026.Retail.Comic.eBook-BitBook";
+
+            Subject.IsSatisfiedBy(_remoteBook, null).Accepted.Should().BeFalse();
+        }
+
+        // A newer grab of the release that never imported must not hide the older one that did.
+        [Test]
+        public void should_be_rejected_if_an_older_imported_grab_had_the_same_title_as_a_newer_failed_one()
+        {
+            GivenHistoryItem("nzb2", "Dark.Horse.-.Berserk.Vol.43.2026.Retail.Comic.eBook-BitBook", _mp3, EntityHistoryEventType.Grabbed);
+            GivenHistoryItem("nzb1", "Dark.Horse.Berserk.Vol.43.2026.Retail.Comic.eBook-BitBook", _flac, EntityHistoryEventType.BookFileImported);
+            GivenHistoryItem("nzb1", "Dark.Horse.Berserk.Vol.43.2026.Retail.Comic.eBook-BitBook", _mp3, EntityHistoryEventType.Grabbed);
+
+            _remoteBook.Release.Title = "Dark Horse - Berserk Vol 43 2026 Retail Comic eBook-BitBook";
+
+            Subject.IsSatisfiedBy(_remoteBook, null).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void should_be_accepted_if_release_title_differs_from_the_imported_one_in_words()
+        {
+            GivenHistoryItem("nzb1", "Dark.Horse.Berserk.Vol.43.2026.Retail.Comic.eBook-BitBook", _mp3, EntityHistoryEventType.Grabbed);
+            GivenHistoryItem("nzb1", "Dark.Horse.Berserk.Vol.43.2026.Retail.Comic.eBook-BitBook", _flac, EntityHistoryEventType.BookFileImported);
+
+            _remoteBook.Release.Title = "Dark.Horse.Berserk.Vol.43.2026.Hybrid.Comic.eBook-Stick";
+
+            Subject.IsSatisfiedBy(_remoteBook, null).Accepted.Should().BeTrue();
+        }
+
         [Test]
         public void should_only_consider_history_of_the_releases_media_type()
         {

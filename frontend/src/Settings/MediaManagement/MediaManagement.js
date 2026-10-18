@@ -332,6 +332,36 @@ class MediaManagement extends Component {
                     />
                   </FormGroup>
 
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>
+                      {translate('PdfOriginalsFolder')}
+                    </FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.PATH}
+                      name="pdfOriginalsFolder"
+                      helpText={translate('PdfOriginalsFolderHelpText')}
+                      onChange={onInputChange}
+                      {...settings.pdfOriginalsFolder}
+                    />
+                  </FormGroup>
+
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>
+                      {translate('PdfOriginalsCleanupDays')}
+                    </FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.NUMBER}
+                      name="pdfOriginalsCleanupDays"
+                      min={0}
+                      helpText={translate('PdfOriginalsCleanupDaysHelpText')}
+                      helpTextWarning={translate('PdfOriginalsCleanupDaysHelpTextWarning')}
+                      onChange={onInputChange}
+                      {...settings.pdfOriginalsCleanupDays}
+                    />
+                  </FormGroup>
+
                   <FormGroup
                     advancedSettings={advancedSettings}
                     isAdvanced={true}

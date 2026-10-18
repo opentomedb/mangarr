@@ -134,6 +134,19 @@ namespace NzbDrone.Core.Download
                 return;
             }
 
+            // Mushoku Tensei Vol. 23 (2026-10-17, the maintainer: "clear the grab if it is wrong language or wrong type"): a
+            // release in a language the series does not take (a forced grab of a rejected result) can never be
+            // the volume the series collects. Fail it (blocklist + re-search) and remove it, as a wrong-class one.
+            var language = WrongLanguage(trackedDownload);
+
+            if (language != null)
+            {
+                trackedDownload.Warn(language);
+                FailUnusablePayload(trackedDownload, language.English);
+
+                return;
+            }
+
             // The one media class every payload file belongs to (null: none, or mixed). Read by the
             // known-book rule below and by the wrong-class check after it. LN PDF fix round 1
             // (2026-09-22): the PDF-is-ebook read only applies when Ebook PDF (id 8) is actually
@@ -562,6 +575,37 @@ namespace NzbDrone.Core.Download
         // refresh for hours without failing anything (2026-09-25; beta polish 2026-09-28). A restart
         // re-evaluates it once and parks it again. It is never removed from the client: it isn't
         // Mangarr's download.
+        // Judged on the title Mangarr grabbed -- the one its decision was made on -- never the client's own name
+        // for the item: an approved English release can sit in the client under its native title.
+        private ServerText WrongLanguage(TrackedDownload trackedDownload)
+        {
+            var remoteBook = trackedDownload.RemoteBook;
+
+            if (remoteBook?.Author == null)
+            {
+                return null;
+            }
+
+            var grabbed = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId)
+                .FirstOrDefault(h => h.EventType == EntityHistoryEventType.Grabbed);
+
+            if (grabbed?.SourceTitle == null)
+            {
+                return null;
+            }
+
+            var probe = new RemoteBook
+            {
+                Release = new ReleaseInfo { Title = grabbed.SourceTitle },
+                Author = remoteBook.Author,
+                MediaType = remoteBook.MediaType
+            };
+
+            var decision = new DecisionEngine.Specifications.EditionLanguageSpecification(_logger).IsSatisfiedBy(probe, null);
+
+            return decision.Accepted ? null : decision.Text;
+        }
+
         private void FailUnusablePayload(TrackedDownload trackedDownload, string reason)
         {
             if (HasGrabbedHistory(trackedDownload))

@@ -277,6 +277,38 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _pass3.Verify(c => c.IsSatisfiedBy(It.IsAny<RemoteBook>(), null), Times.Never());
         }
 
+        // Mushoku Tensei Vol. 23 (2026-10-17): a Japanese release the parser cannot read skipped every
+        // specification, so Interactive Search showed only "Unable to parse release" and it was force-grabbed
+        // for the English edition. The series' language rule still judges it, and its reason comes first.
+        [Test]
+        public void an_unparsable_search_release_in_another_language_shows_the_language_rejection()
+        {
+            GivenSpecifications(_pass1);
+            _reports[0].Title = "(一般小説) [フジカワユカ] 無職転生 ～異世界行ったら本気だす～ 第23巻 [Mushoku Tensei Isekai Ittara Honki dasu vol 23]";
+
+            var author = new Author { Name = "Mushoku Tensei", Metadata = new AuthorMetadata { Name = "Mushoku Tensei" } };
+            var books = new List<Book> { new Book { Title = "Mushoku Tensei Vol. 23", Editions = new List<Edition> { new Edition { Title = "Mushoku Tensei Vol. 23" } } } };
+
+            var result = Subject.GetSearchDecision(_reports, new BookSearchCriteria { Author = author, Books = books }).Single();
+
+            result.Rejected.Should().BeTrue();
+            result.Rejections.First().Reason.Should().Be("Release is Japanese, the series is the English edition");
+        }
+
+        [Test]
+        public void an_unparsable_search_release_with_no_other_language_keeps_only_the_parse_rejection()
+        {
+            GivenSpecifications(_pass1);
+            _reports[0].Title = "1937 - Snow White and the Seven Dwarves";
+
+            var author = new Author { Name = "Some Author", Metadata = new AuthorMetadata { Name = "Some Author" } };
+            var books = new List<Book> { new Book { Title = "Some Book", Editions = new List<Edition> { new Edition { Title = "Some Edition Title" } } } };
+
+            var result = Subject.GetSearchDecision(_reports, new BookSearchCriteria { Author = author, Books = books }).Single();
+
+            result.Rejections.Select(r => r.Reason).Should().BeEquivalentTo(new[] { "Unable to parse release" });
+        }
+
         [Test]
         public void should_not_attempt_to_make_decision_if_author_is_unknown()
         {

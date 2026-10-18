@@ -206,8 +206,10 @@ the display title in Calibre and the series and title in Audiobookshelf.
   them in.
 - **Convert PDFs to CBZ Daily** (Settings → Media Management → File Management), off by
   default: converts every manga PDF in the library to CBZ once a day. Originals are moved to
-  `pdf-originals` in `/config`, never deleted. Downloaded manga PDFs are converted on import
-  either way.
+  `pdf-originals` in `/config` by default and kept unless you set a retention. They can take a lot of
+  space (one large manga library produced about 14 GB), so Media Management lets you choose another folder,
+  for example a mounted volume on your big storage (use a dedicated empty folder), and optionally delete
+  originals after a number of days. Downloaded manga PDFs are converted on import either way.
 
 ## The OpenTome catalogue
 

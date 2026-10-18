@@ -25,6 +25,8 @@ namespace NzbDrone.Core.Configuration
         bool AutoUnmonitorPreviouslyDownloadedBooks { get; set; }
         string RecycleBin { get; set; }
         int RecycleBinCleanupDays { get; set; }
+        string PdfOriginalsFolder { get; set; }
+        int PdfOriginalsCleanupDays { get; set; }
         ProperDownloadTypes DownloadPropersAndRepacks { get; set; }
         bool CreateEmptyAuthorFolders { get; set; }
         bool DeleteEmptyFolders { get; set; }

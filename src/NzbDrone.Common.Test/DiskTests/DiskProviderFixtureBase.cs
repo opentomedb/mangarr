@@ -72,6 +72,7 @@ namespace NzbDrone.Common.Test.DiskTests
                 var result = Subject.FolderWritable(tempFolder);
 
                 result.Should().BeFalse();
+                ExceptionVerification.ExpectedWarns(1);
             }
             finally
             {

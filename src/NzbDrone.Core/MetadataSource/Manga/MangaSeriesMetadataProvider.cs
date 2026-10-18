@@ -2123,8 +2123,23 @@ namespace NzbDrone.Core.MetadataSource.Manga
             var byName = _gcdMetadataService.FindSeriesByTitle(name, library);
 
             return library == LibraryType.LightNovel
-                ? byName
+                ? byName ?? FindByQualifiedName(name)
                 : byName ?? _gcdMetadataService.FindSeriesBySubtitle(name, library);
+        }
+
+        // A light-novel entry is named after its line with the "(novel series)"-style qualifier stripped
+        // (StripLightNovelQualifier). A line that carries only the qualified name ("The Water Magician
+        // (novel series)", 2026-10-02) must still be found by that stored name, or every refresh is refused.
+        private GcdSeries FindByQualifiedName(string name)
+        {
+            if (name.IsNullOrWhiteSpace() || StripLightNovelQualifier(name) != name)
+            {
+                return null;
+            }
+
+            return LightNovelQualifiers
+                .Select(q => _gcdMetadataService.FindSeriesByTitle(name.TrimEnd() + q, LibraryType.LightNovel))
+                .FirstOrDefault(s => s != null && StripLightNovelQualifier(s.Name) == name.TrimEnd());
         }
 
         // Search-box cache key. The library changes the query shape (D2), so it is part of the key.

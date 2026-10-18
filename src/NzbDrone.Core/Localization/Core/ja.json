@@ -909,7 +909,7 @@
     "ConvertLightNovelToFormat": "{format}に変換",
     "ConvertLightNovelToFormatTooltip": "このシリーズの電子書籍のうち、{format}がまだないものすべてについて、Calibreでの変換をキューに追加します",
     "ConvertPdfToCbz": "PDFを変換",
-    "ConvertPdfToCbzTooltip": "この巻のPDFをCBZに変換します（ロスレス）。元のPDFは保管用フォルダーに移動され、削除されることはありません。",
+    "ConvertPdfToCbzTooltip": "この巻のPDFをCBZに変換します（ロスレス）。元のPDFは保管用フォルダーに移動され、Delete PDF Originals After を設定しない限り削除されません。",
     "ConvertToFormat": "フォーマットに変換",
     "Cookie": "Cookie",
     "CopyInPendingMessage": "インポート待ち：所有済みの電子書籍とオーディオブックをインポートしています。完了するまで自動検索は待機します。",
@@ -2692,7 +2692,7 @@
     "LightNovelStorageAudiobookshelfRenameOff": "巻の名前を変更 がオフです。Audiobookshelf のフォルダー構成でオーディオブックを保存するにはこの設定が必要です — 巻の名前を変更（設定 → メディア管理）",
     "ServerProgressBackingUpMetadataPins": "固定したメタデータをバックアップ中",
     "PdfToCbzSweep": "PDFを毎日CBZに変換",
-    "PdfToCbzSweepHelpText": "1 日 1 回、ライブラリにあるすべてのマンガの PDF を CBZ に変換します。元のファイルは Mangarr のアプリデータフォルダー内の pdf-originals に移動され、削除されることはありません。オフの場合は、システム → タスク → PDFをCBZに変換 から手動で実行してください。ダウンロードした PDF は、どちらの場合もインポート時に変換されます。",
+    "PdfToCbzSweepHelpText": "1 日 1 回、ライブラリにあるすべてのマンガの PDF を CBZ に変換します。元のファイルは Mangarr のアプリデータフォルダー内の pdf-originals（または設定した PDF Originals Folder）に移動され、Delete PDF Originals After を設定しない限り削除されません。オフの場合は、システム → タスク → PDFをCBZに変換 から手動で実行してください。ダウンロードした PDF は、どちらの場合もインポート時に変換されます。",
     "CheckForNewReleases": "新しいリリースを確認",
     "CheckForNewReleasesHelpText": "1 日に 2 回ほど GitHub に Mangarr の新しいリリースが出ているかを問い合わせ、出ていればシステム → 状態 にお知らせを表示します。ダウンロードやインストールは行いません。",
     "NewReleaseCheckMessage": "Mangarr {release} が利用可能です（現在のバージョン: {version}）",
@@ -2724,5 +2724,13 @@
     "SwitchLineConfirmAdded": "{count} 巻が追加されます。",
     "SwitchLineConfirmNoAniList": "このラインには AniList の一致がありません。メタデータはタイトルで再解決されます。",
     "EditionFallbackNote": "{language}版 — ご利用の言語では提供されていません",
-    "Donations": "寄付"
+    "Donations": "寄付",
+    "PdfOriginalsCleanupDays": "Delete PDF Originals After",
+    "PdfOriginalsCleanupDaysHelpText": "Set to 0 to keep originals forever",
+    "PdfOriginalsCleanupDaysHelpTextWarning": "PDF originals older than this many days are deleted, counted by file date: originals kept before you turned this on count from when they were downloaded, so some may go the same day. Only .pdf files in the originals folder are removed.",
+    "PdfOriginalsFolder": "PDF Originals Folder",
+    "PdfOriginalsFolderHelpText": "Original PDFs are moved here after they are converted to CBZ. Leave empty to use pdf-originals in Mangarr's app data folder. They can take a lot of space, so a folder on your large storage is a good choice. Use a dedicated empty folder: Mangarr marks it and refuses one that already holds files. Changing it does not move originals already kept.",
+    "TaskNameCleanUpPdfOriginals": "PDF原本をクリーンアップ",
+    "ServerProgressPdfOriginalsFolderUnusable": "PDF originals folder is not usable (check that it exists, is writable and is empty or already a Mangarr PDF originals folder); nothing was converted",
+    "ServerValidationInsideRootFolder": "Path '{path}' is inside a library root folder; keep PDF originals in their own folder outside your libraries"
 }

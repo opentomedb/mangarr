@@ -145,7 +145,9 @@ namespace NzbDrone.Common.Disk
             }
             catch (Exception e)
             {
-                Logger.Trace("Directory '{0}' isn't writable. {1}", path, e.Message);
+                // Warn, not Trace (2026-10-17): a root folder's "not writable" health error must say why in the
+                // normal log -- a transient /lightnovels failure left no cause behind.
+                Logger.Warn("Directory '{0}' isn't writable. {1}", path, e.Message);
                 return false;
             }
         }

@@ -102,6 +102,18 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("RecycleBinCleanupDays", value); }
         }
 
+        public string PdfOriginalsFolder
+        {
+            get { return GetValue("PdfOriginalsFolder", string.Empty); }
+            set { SetValue("PdfOriginalsFolder", value); }
+        }
+
+        public int PdfOriginalsCleanupDays
+        {
+            get { return GetValueInt("PdfOriginalsCleanupDays", 0); }
+            set { SetValue("PdfOriginalsCleanupDays", value); }
+        }
+
         public int RssSyncInterval
         {
             get { return GetValueInt("RssSyncInterval", 15); }

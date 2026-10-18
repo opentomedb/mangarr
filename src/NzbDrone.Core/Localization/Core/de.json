@@ -1278,7 +1278,7 @@
     "ConvertLightNovelToFormat": "In {format} umwandeln",
     "ConvertLightNovelToFormatTooltip": "Für jedes E-Book dieser Serie, das noch nicht in {format} vorliegt, eine Calibre-Umwandlung in die Warteschlange stellen",
     "ConvertPdfToCbz": "PDF umwandeln",
-    "ConvertPdfToCbzTooltip": "Das PDF dieses Bandes verlustfrei in CBZ umwandeln. Das ursprüngliche PDF wird in einen Warteordner verschoben, nie gelöscht.",
+    "ConvertPdfToCbzTooltip": "Das PDF dieses Bandes verlustfrei in CBZ umwandeln. Das ursprüngliche PDF wird in einen Warteordner verschoben und behalten, solange Sie Delete PDF Originals After nicht einstellen.",
     "Cookie": "Cookie",
     "CopyInPendingMessage": "Import ausstehend: Die E-Books und Hörbücher, die Sie bereits besitzen, werden importiert; automatische Suchen warten, bis der Import abgeschlossen ist.",
     "CopyInPendingSearchHeld": "Suchen warten, bis die Dateien, die Sie bereits besitzen, importiert sind",
@@ -2694,7 +2694,7 @@
     "LightNovelStorageAudiobookshelfRenameOff": "Bände umbenennen ist aus; Hörbücher brauchen es für die Ordnerstruktur von Audiobookshelf — Bände umbenennen (Einstellungen → Medienverwaltung)",
     "ServerProgressBackingUpMetadataPins": "Fixierte Metadaten werden gesichert",
     "PdfToCbzSweep": "PDFs täglich in CBZ umwandeln",
-    "PdfToCbzSweepHelpText": "Wandelt einmal täglich jedes Manga-PDF, das bereits in der Bibliothek liegt, in CBZ um. Die Originale werden nach pdf-originals im App-Datenordner von Mangarr verschoben, nie gelöscht. Aus: Starten Sie es selbst unter System → Aufgaben → PDF in CBZ umwandeln. Heruntergeladene PDFs werden in jedem Fall beim Import umgewandelt.",
+    "PdfToCbzSweepHelpText": "Wandelt einmal täglich jedes Manga-PDF, das bereits in der Bibliothek liegt, in CBZ um. Die Originale werden nach pdf-originals im App-Datenordner von Mangarr (oder in den eingestellten PDF Originals Folder) verschoben und behalten, solange Sie Delete PDF Originals After nicht einstellen. Aus: Starten Sie es selbst unter System → Aufgaben → PDF in CBZ umwandeln. Heruntergeladene PDFs werden in jedem Fall beim Import umgewandelt.",
     "CheckForNewReleases": "Nach neuen Versionen suchen",
     "CheckForNewReleasesHelpText": "Fragt etwa zweimal täglich bei GitHub nach, ob eine neuere Mangarr-Version erschienen ist, und zeigt dann einen Hinweis unter System → Status. Es wird nichts heruntergeladen oder installiert.",
     "NewReleaseCheckMessage": "Mangarr {release} ist verfügbar (Sie verwenden {version})",
@@ -2726,5 +2726,13 @@
     "SwitchLineConfirmAdded": "{count} Band/Bände werden hinzugefügt.",
     "SwitchLineConfirmNoAniList": "Keine AniList-Zuordnung für diese Reihe; die Metadaten werden über den Titel neu aufgelöst.",
     "EditionFallbackNote": "Ausgabe {language} – in Ihren Sprachen nicht verfügbar",
-    "Donations": "Spenden"
+    "Donations": "Spenden",
+    "PdfOriginalsCleanupDays": "Delete PDF Originals After",
+    "PdfOriginalsCleanupDaysHelpText": "Set to 0 to keep originals forever",
+    "PdfOriginalsCleanupDaysHelpTextWarning": "PDF originals older than this many days are deleted, counted by file date: originals kept before you turned this on count from when they were downloaded, so some may go the same day. Only .pdf files in the originals folder are removed.",
+    "PdfOriginalsFolder": "PDF Originals Folder",
+    "PdfOriginalsFolderHelpText": "Original PDFs are moved here after they are converted to CBZ. Leave empty to use pdf-originals in Mangarr's app data folder. They can take a lot of space, so a folder on your large storage is a good choice. Use a dedicated empty folder: Mangarr marks it and refuses one that already holds files. Changing it does not move originals already kept.",
+    "TaskNameCleanUpPdfOriginals": "PDF-Originale bereinigen",
+    "ServerProgressPdfOriginalsFolderUnusable": "PDF originals folder is not usable (check that it exists, is writable and is empty or already a Mangarr PDF originals folder); nothing was converted",
+    "ServerValidationInsideRootFolder": "Path '{path}' is inside a library root folder; keep PDF originals in their own folder outside your libraries"
 }

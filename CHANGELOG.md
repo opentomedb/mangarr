@@ -3,7 +3,25 @@
 Mangarr's user-facing changes, newest first. Each beta image also carries a build number
 (`10.0.0.N`, shown in System → Status); the release notes on GitHub give both.
 
-## Unreleased
+## 0.1.0-beta.2
+
+### Matching
+
+- **A manga series takes the catalogue's manga line** even when a light-novel line carries the
+  series' exact name and the manga line has it only as an alternate name. Light novels likewise
+  prefer novel lines. Existing series move to the right line on their next refresh.
+- A light novel whose catalogue line is named "… (novel series)" is found again on refresh;
+  before, the entry stayed empty.
+- When you kept your own name for a series, AniList's English title is now one of its alternate
+  names, so releases named after the English title are no longer rejected as another series.
+
+### Downloads
+
+- A release that was already imported is not grabbed again when another indexer lists it under a
+  slightly different name.
+- A finished download whose title is in a language the series doesn't take is failed
+  (blocklisted, then searched again) instead of imported. In search results, a release Mangarr
+  can't parse is still checked against the series' language rule, and that reason shows first.
 
 ### Editions
 
@@ -17,6 +35,17 @@ Mangarr's user-facing changes, newest first. Each beta image also carries a buil
   Korean or Chinese edition accepts them.
 - Existing Korean- or Chinese-edition series keep their names; on their next refresh their volume
   titles (and Calibre titles) read 5권 / 第5卷 instead of Vol. 5.
+
+### PDFs
+
+- PDF originals: choose the folder they are kept in (a dedicated empty folder) and optionally delete them after N days (Media Management). Defaults are unchanged.
+- The nightly PDF sweep leaves alone a PDF it refused (not one image per page) until the file
+  changes; the volume's own Convert action still tries it. A PDF whose CBZ already exists is
+  skipped before anything is extracted.
+
+### Health
+
+- When a root folder can't be written to, the log now says why.
 
 ## 0.1.0-beta.1
 

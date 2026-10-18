@@ -166,5 +166,27 @@ namespace NzbDrone.Core.Test.Configuration
 
             Mocker.GetMock<IConfigRepository>().Verify(c => c.Upsert("downloadedepisodesfolder", It.IsAny<string>()), Times.Never());
         }
+
+        [Test]
+        public void pdf_originals_folder_should_default_to_empty_so_existing_behavior_is_kept()
+        {
+            Subject.PdfOriginalsFolder.Should().Be(string.Empty);
+        }
+
+        [Test]
+        public void pdf_originals_cleanup_days_should_default_to_zero_so_originals_are_kept_forever()
+        {
+            Subject.PdfOriginalsCleanupDays.Should().Be(0);
+        }
+
+        [Test]
+        public void pdf_originals_settings_should_be_persisted()
+        {
+            Subject.PdfOriginalsFolder = "/data/pdf-originals";
+            AssertUpsert("PdfOriginalsFolder", "/data/pdf-originals");
+
+            Subject.PdfOriginalsCleanupDays = 30;
+            AssertUpsert("PdfOriginalsCleanupDays", 30);
+        }
     }
 }

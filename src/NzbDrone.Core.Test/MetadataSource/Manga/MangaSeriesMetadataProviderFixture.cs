@@ -248,6 +248,22 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         [Test]
+        public void light_novel_stored_without_its_catalogue_qualifier_refinds_the_line()
+        {
+            // The Water Magician (2026-10-02): the add names the entry after the line with the qualifier
+            // stripped ("The Water Magician (novel series)" -> "The Water Magician"). Refresh searches that
+            // stored name; the line carries only the qualified name, so the lookup must retry with it.
+            GivenAniList(new AniListSeries { EnglishTitle = "The Water Magician: The Central Provinces Arc" });
+            GivenCatalogueLine("The Water Magician (novel series)", LibraryType.LightNovel, Line(6, "The Water Magician (novel series)", 7));
+
+            var series = Subject.GetSeries("The Water Magician", 0, resolveVolumeDetails: false, LibraryType.LightNovel);
+
+            series.NotInCatalogue.Should().BeFalse();
+            series.VolumeCount.Should().Be(7);
+            series.DisplayName.Should().Be("The Water Magician");
+        }
+
+        [Test]
         public void light_novel_missing_on_both_lookups_is_not_in_catalogue()
         {
             var series = Subject.GetSeries(RawName, 0, resolveVolumeDetails: false, LibraryType.LightNovel);

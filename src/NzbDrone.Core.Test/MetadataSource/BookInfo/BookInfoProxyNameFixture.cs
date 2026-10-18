@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.MetadataSource.BookInfo;
@@ -32,6 +33,27 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             BookInfoProxy.ResolveDisplayName(Proper, null).Should().Be(Proper);
             BookInfoProxy.ResolveDisplayName(Proper, string.Empty).Should().Be(Proper);
             BookInfoProxy.ResolveDisplayName(Fallback, null).Should().Be(Fallback);
+        }
+
+        // Mushoku Tensei (2026-10-17): the provider's alternate titles leave out its own display name, so when
+        // the stored name wins, AniList's English title "Mushoku Tensei: Jobless Reincarnation" was an alias
+        // nowhere -- and every "Mushoku Tensei - Jobless Reincarnation" release was rejected as another series.
+        [Test]
+        public void the_providers_name_becomes_an_alias_when_the_stored_name_is_kept()
+        {
+            var aliases = new List<string> { "Mushoku Tensei: Isekai Ittara Honki Dasu" };
+
+            BookInfoProxy.AliasesWithProviderName(aliases, "Mushoku Tensei: Jobless Reincarnation", "Mushoku Tensei")
+                .Should().Equal("Mushoku Tensei: Jobless Reincarnation", "Mushoku Tensei: Isekai Ittara Honki Dasu");
+        }
+
+        [Test]
+        public void the_providers_name_is_not_added_when_it_is_the_stored_name_or_already_an_alias()
+        {
+            var aliases = new List<string> { "Mushoku Tensei: Jobless Reincarnation" };
+
+            BookInfoProxy.AliasesWithProviderName(aliases, "Mushoku Tensei", "Mushoku Tensei").Should().Equal("Mushoku Tensei: Jobless Reincarnation");
+            BookInfoProxy.AliasesWithProviderName(aliases, "mushoku tensei - jobless reincarnation", "Mushoku Tensei").Should().Equal("Mushoku Tensei: Jobless Reincarnation");
         }
     }
 }

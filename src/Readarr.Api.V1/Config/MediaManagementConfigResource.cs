@@ -35,6 +35,8 @@ namespace Readarr.Api.V1.Config
         public bool PdfToCbzSweep { get; set; }
         public string RecycleBin { get; set; }
         public int RecycleBinCleanupDays { get; set; }
+        public string PdfOriginalsFolder { get; set; }
+        public int PdfOriginalsCleanupDays { get; set; }
         public ProperDownloadTypes DownloadPropersAndRepacks { get; set; }
         public bool CreateEmptyAuthorFolders { get; set; }
         public bool DeleteEmptyFolders { get; set; }
@@ -80,6 +82,8 @@ namespace Readarr.Api.V1.Config
                 PdfToCbzSweep = model.PdfToCbzSweep,
                 RecycleBin = model.RecycleBin,
                 RecycleBinCleanupDays = model.RecycleBinCleanupDays,
+                PdfOriginalsFolder = model.PdfOriginalsFolder,
+                PdfOriginalsCleanupDays = model.PdfOriginalsCleanupDays,
                 DownloadPropersAndRepacks = model.DownloadPropersAndRepacks,
                 CreateEmptyAuthorFolders = model.CreateEmptyAuthorFolders,
                 DeleteEmptyFolders = model.DeleteEmptyFolders,

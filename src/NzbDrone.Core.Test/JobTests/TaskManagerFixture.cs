@@ -154,6 +154,38 @@ namespace NzbDrone.Core.Test.JobTests
             Subject.GetAll().Single(t => t.TypeName == typeof(ConvertPdfToCbzCommand).FullName).Interval.Should().Be(1440);
         }
 
+        [TestCase(30, 1440)]
+        [TestCase(0, 0)]
+        public void pdf_originals_cleanup_is_daily_only_when_a_retention_is_set(int days, int expected)
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsCleanupDays).Returns(days);
+
+            Subject.Handle(new ApplicationStartedEvent());
+
+            var task = Subject.GetAll().Single(t => t.TypeName == typeof(CleanUpPdfOriginalsCommand).FullName);
+
+            task.Interval.Should().Be(expected);
+        }
+
+        // Saving a retention in Media Management takes effect without a restart, like the sweep checkbox.
+        [Test]
+        public void setting_a_pdf_originals_retention_schedules_the_cleanup_daily()
+        {
+            var days = 0;
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsCleanupDays).Returns(() => days);
+            Mocker.GetMock<IScheduledTaskRepository>()
+                  .Setup(s => s.GetDefinition(It.IsAny<Type>()))
+                  .Returns<Type>(t => new ScheduledTask { TypeName = t.FullName });
+
+            Subject.Handle(new ApplicationStartedEvent());
+            Subject.GetAll().Single(t => t.TypeName == typeof(CleanUpPdfOriginalsCommand).FullName).Interval.Should().Be(0);
+
+            days = 30;
+            Subject.HandleAsync(new ConfigSavedEvent());
+
+            Subject.GetAll().Single(t => t.TypeName == typeof(CleanUpPdfOriginalsCommand).FullName).Interval.Should().Be(1440);
+        }
+
         // Beta readiness (2026-09-28, F1): without a catalogue the metadata check retries hourly; with one,
         // daily as before. Re-evaluated after each run, so the first successful fetch restores the day.
         [TestCase(false, 60)]

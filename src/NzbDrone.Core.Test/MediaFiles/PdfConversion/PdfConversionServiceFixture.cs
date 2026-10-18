@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FluentAssertions;
 using Moq;
@@ -66,6 +67,14 @@ namespace NzbDrone.Core.Test.MediaFiles.PdfConversion
             Mocker.GetMock<IAppFolderInfo>()
                 .Setup(x => x.AppDataFolder)
                 .Returns("/config");
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(x => x.FolderWritable(It.IsAny<string>()))
+                .Returns(true);
+
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(x => x.FolderExists(It.IsAny<string>()))
+                .Returns(true);
         }
 
         // Beta readiness (2026-09-28, review M3): Write ComicInfo To = Never also covers the converted CBZ.
@@ -80,6 +89,53 @@ namespace NzbDrone.Core.Test.MediaFiles.PdfConversion
 
             Mocker.GetMock<IComicInfoWriter>()
                 .Verify(w => w.WriteForFile(It.IsAny<Author>(), It.IsAny<Book>(), It.IsAny<BookFile>()), Times.Exactly(writes));
+        }
+
+        // Berserk Vol. 43 (2026-10-17): a PDF the converter refuses as not 1:1 was extracted again by every
+        // nightly sweep (232 images out of a 761 MB file, every day). The sweep now leaves an unchanged
+        // refused file alone; the volume's own Convert action still tries it, and a replaced file is tried again.
+        private void GivenTheConverterRefusesTheFile()
+        {
+            Mocker.GetMock<IPdfToCbzConverter>()
+                .Setup(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(new PdfConvertResult { Status = PdfConvertStatus.Skipped, PageCount = 216, NotConvertible = true });
+        }
+
+        [Test]
+        public void the_sweep_does_not_retry_a_pdf_the_converter_refused()
+        {
+            GivenTheConverterRefusesTheFile();
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+
+            Mocker.GetMock<IPdfToCbzConverter>().Verify(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+        }
+
+        [Test]
+        public void the_sweep_retries_a_refused_pdf_once_the_file_changes()
+        {
+            GivenTheConverterRefusesTheFile();
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+            Mocker.GetMock<IMediaFileService>().Object.GetFilesByBook(11)[0].Size = 999;
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+
+            Mocker.GetMock<IPdfToCbzConverter>().Verify(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(2));
+        }
+
+        [Test]
+        public void the_volume_convert_action_still_tries_a_refused_pdf()
+        {
+            GivenTheConverterRefusesTheFile();
+
+            Mocker.GetMock<IBookService>().Setup(x => x.GetBook(11)).Returns(new Book { Id = 11, AuthorMetadataId = 3 });
+            Mocker.GetMock<IAuthorService>().Setup(x => x.GetAuthorByMetadataId(3)).Returns(new Author { Id = 5, Name = "Test Series" });
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+            Subject.Execute(new ConvertBookPdfToCbzCommand(11));
+
+            Mocker.GetMock<IPdfToCbzConverter>().Verify(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(2));
         }
 
         [Test]
@@ -265,6 +321,164 @@ namespace NzbDrone.Core.Test.MediaFiles.PdfConversion
             Mocker.GetMock<IMediaFileService>().Verify(x => x.GetFilesByBook(12), Times.Never());
             Mocker.GetMock<IPdfToCbzConverter>().Verify(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
             command.ResultMessage.Should().Be("PDF to CBZ conversion is for manga only");
+        }
+
+        [Test]
+        public void should_move_the_original_into_the_configured_folder()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns("/data/pdf-originals");
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(x => x.MoveFile("/manga/Test Series/Test Series - Vol 001.pdf",
+                                        It.Is<string>(t => t.StartsWith("/data/pdf-originals") && t.EndsWith("Test Series - Vol 001.pdf")),
+                                        false),
+                        Times.Once());
+        }
+
+        [Test]
+        public void should_default_to_pdf_originals_under_the_app_data_folder()
+        {
+            Mocker.GetMock<IAppFolderInfo>().SetupGet(a => a.AppDataFolder).Returns("/config");
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns(string.Empty);
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(x => x.MoveFile(It.IsAny<string>(), It.Is<string>(t => t.StartsWith("/config") && t.Contains("pdf-originals")), false), Times.Once());
+        }
+
+        // Review Focus 1: a folder that cannot be written must leave every PDF untouched.
+        [Test]
+        public void should_not_convert_anything_when_the_originals_folder_is_unusable()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns("/data/pdf-originals");
+            Mocker.GetMock<IDiskProvider>().Setup(x => x.FolderWritable("/data/pdf-originals")).Returns(false);
+
+            var command = new ConvertPdfToCbzCommand(5);
+            Subject.Execute(command);
+
+            Mocker.GetMock<IPdfToCbzConverter>().Verify(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IMediaFileService>().Verify(x => x.Update(It.IsAny<BookFile>()), Times.Never());
+            command.ResultMessage.Should().Contain("PDF originals folder");
+        }
+
+        // Review Focus 2: an original already held under the same name is never overwritten.
+        [Test]
+        public void should_not_overwrite_an_original_that_is_already_held()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns("/data/pdf-originals");
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(x => x.FileExists(It.Is<string>(p => p.EndsWith("Test Series - Vol 001.pdf") && p.StartsWith("/data/pdf-originals"))))
+                .Returns(true);
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(x => x.MoveFile("/manga/Test Series/Test Series - Vol 001.pdf",
+                                        It.Is<string>(t => t.StartsWith("/data/pdf-originals") && !t.EndsWith("Test Series - Vol 001.pdf") && t.EndsWith(".pdf")),
+                                        false),
+                        Times.Once());
+        }
+
+        private const string CustomRoot = "/data/pdf-originals";
+        private const string CustomMarker = "/data/pdf-originals/.mangarr-pdf-originals";
+
+        [Test]
+        public void should_mark_an_empty_custom_folder_and_convert()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns(CustomRoot);
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+
+            Mocker.GetMock<IDiskProvider>().Verify(x => x.WriteAllText(CustomMarker, It.IsAny<string>()), Times.Once());
+            Mocker.GetMock<IPdfToCbzConverter>().Verify(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+        }
+
+        // A custom folder that already holds someone's files is never adopted: retention could delete them.
+        [Test]
+        public void should_refuse_a_non_empty_unmarked_custom_folder()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns(CustomRoot);
+            Mocker.GetMock<IDiskProvider>().Setup(x => x.GetFiles(CustomRoot, true)).Returns(new[] { CustomRoot + "/mine.pdf" });
+
+            var command = new ConvertPdfToCbzCommand(5);
+            Subject.Execute(command);
+
+            Mocker.GetMock<IPdfToCbzConverter>().Verify(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IDiskProvider>().Verify(x => x.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+            command.ResultMessage.Should().Contain("empty");
+        }
+
+        [Test]
+        public void should_mark_the_default_folder_even_when_it_holds_files()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns(string.Empty);
+            Mocker.GetMock<IDiskProvider>().Setup(x => x.GetFiles(It.IsAny<string>(), true)).Returns(new[] { "/config/pdf-originals/Old/a.pdf" });
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+
+            Mocker.GetMock<IDiskProvider>().Verify(x => x.WriteAllText(It.Is<string>(p => p.StartsWith("/config") && p.EndsWith(".mangarr-pdf-originals")), It.IsAny<string>()), Times.Once());
+            Mocker.GetMock<IPdfToCbzConverter>().Verify(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+        }
+
+        [Test]
+        public void should_accept_a_marked_custom_folder_without_scanning_it()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns(CustomRoot);
+            Mocker.GetMock<IDiskProvider>().Setup(x => x.FileExists(CustomMarker)).Returns(true);
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+
+            Mocker.GetMock<IDiskProvider>().Verify(x => x.GetFiles(It.IsAny<string>(), It.IsAny<bool>()), Times.Never());
+            Mocker.GetMock<IDiskProvider>().Verify(x => x.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IPdfToCbzConverter>().Verify(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+        }
+
+        // A custom folder that is not there (an unmounted drive) must not be created: it would be a plain
+        // directory inside the container and the originals would vanish on recreate.
+        [Test]
+        public void should_not_create_or_use_a_custom_folder_that_does_not_exist()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns(CustomRoot);
+            Mocker.GetMock<IDiskProvider>().Setup(x => x.FolderExists(CustomRoot)).Returns(false);
+
+            var command = new ConvertPdfToCbzCommand(5);
+            Subject.Execute(command);
+
+            Mocker.GetMock<IDiskProvider>().Verify(x => x.CreateFolder(CustomRoot), Times.Never());
+            Mocker.GetMock<IPdfToCbzConverter>().Verify(x => x.Convert(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IMediaFileService>().Verify(x => x.Update(It.IsAny<BookFile>()), Times.Never());
+            command.ResultMessage.Should().Contain("PDF originals folder");
+        }
+
+        // Retention counts from the day the original was set aside.
+        [Test]
+        public void should_reset_the_moved_originals_date()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns(CustomRoot);
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(x => x.FileSetLastWriteTime(It.Is<string>(t => t.StartsWith(CustomRoot) && t.EndsWith("Test Series - Vol 001.pdf")),
+                                                    It.Is<DateTime>(d => Math.Abs((DateTime.UtcNow - d).TotalSeconds) < 30)),
+                        Times.Once());
+        }
+
+        [Test]
+        public void should_add_a_counter_when_the_timestamped_name_is_also_held()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(s => s.PdfOriginalsFolder).Returns(CustomRoot);
+            Mocker.GetMock<IDiskProvider>()
+                .Setup(x => x.FileExists(It.Is<string>(p => p.StartsWith(CustomRoot + "/") && p.EndsWith(".pdf") && !p.EndsWith(".1.pdf"))))
+                .Returns(true);
+
+            Subject.Execute(new ConvertPdfToCbzCommand(5));
+
+            Mocker.GetMock<IDiskProvider>()
+                .Verify(x => x.MoveFile("/manga/Test Series/Test Series - Vol 001.pdf", It.Is<string>(t => t.EndsWith(".1.pdf")), false), Times.Once());
         }
     }
 }

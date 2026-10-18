@@ -4,6 +4,8 @@
   { "file": "src/NzbDrone.Core/Messaging/Commands/Command.cs", "arg": "*", "why": "carrier infrastructure: builds the ServerText from its caller's template" },
   { "file": "src/NzbDrone.Core/Validation/ServerRuleMessages.cs", "arg": "*", "why": "carrier infrastructure: builds the ServerText from its caller's template" },
   { "file": "src/NzbDrone.Core/DecisionEngine/DownloadDecisionMaker.cs", "arg": "result", "why": "wraps a spec's Decision; its ServerText travels via Rejection(Decision)" },
+  { "file": "src/NzbDrone.Core/DecisionEngine/DownloadDecisionMaker.cs", "arg": "language", "why": "wraps EditionLanguageSpecification's Decision; its ServerText travels via Rejection(Decision)" },
+  { "file": "src/NzbDrone.Core/Download/CompletedDownloadService.cs", "arg": "language", "why": "EditionLanguageSpecification's Decision.Text: the spec's own keyed template" },
   { "file": "src/NzbDrone.Core/DecisionEngine/DownloadDecisionMaker.cs", "text": "{0}: {1}", "why": "no words to translate: a check's class name and an exception message" },
   { "file": "src/NzbDrone.Core/DecisionEngine/Specifications/EditionLanguageSpecification.cs", "arg": "name", "why": "a language's English name as a nested argument: the ServerRejectionLanguage* keys translate the known ones, any other (or a joined \"French/German\") stays English" },
   { "file": "src/NzbDrone.Core/MediaFiles/BookImport/ImportDecisionMaker.cs", "arg": "result", "why": "wraps a spec's Decision; its ServerText travels via Rejection(Decision)" },

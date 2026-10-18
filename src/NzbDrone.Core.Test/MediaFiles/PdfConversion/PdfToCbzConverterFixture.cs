@@ -163,6 +163,22 @@ namespace NzbDrone.Core.Test.MediaFiles.PdfConversion
             File.ReadAllText(cbz).Should().Be("existing cbz"); // untouched
         }
 
+        // Dandadan Vol. 19 (2026-10-17): a PDF tracked beside its own CBZ was extracted and rebuilt in full every
+        // night before the existing CBZ was noticed. The existing CBZ is checked before any extraction.
+        [Test]
+        public void should_not_extract_anything_when_the_cbz_already_exists()
+        {
+            GivenPdf(2, 2, new byte[] { 0xFF, 0xD8 });
+            var pdf = Path.Combine(_dir, "vol.pdf");
+            File.WriteAllText(pdf, "pdf");
+            var cbz = Path.Combine(_dir, "vol.cbz");
+            File.WriteAllText(cbz, "existing cbz");
+
+            Subject.Convert(pdf, cbz).Status.Should().Be(PdfConvertStatus.Skipped);
+
+            Mocker.GetMock<IPdfImageExtractor>().Verify(e => e.ExtractImages(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+        }
+
         [Test]
         public void should_leave_no_work_dir_or_temp_behind()
         {

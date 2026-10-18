@@ -75,6 +75,39 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
             GcdMetadataService.Rank(onlyNovel, "overlord", LibraryType.Manga).GcdSeriesId.Should().Be(2);
         }
 
+        // The Water Magician (OpenTome round C, 2026-10-02): the light novel's line is named the bare title and
+        // the manga's line "(Part 1)", which carries the bare title only as an alias. A manga entry must still
+        // get the manga line -- the library's own class outranks an exact name in the other class.
+        private static readonly List<GcdSeries> WaterMagician = new List<GcdSeries>
+        {
+            Line(5, "The Water Magician (Part 1)", "manga", 4),
+            Line(6, "The Water Magician", "light_novel", 7)
+        };
+
+        [Test]
+        public void manga_prefers_a_manga_line_over_an_exact_novel_name()
+        {
+            GcdMetadataService.Rank(WaterMagician, "the water magician", LibraryType.Manga).GcdSeriesId.Should().Be(5);
+        }
+
+        [Test]
+        public void light_novel_still_takes_the_exact_novel_name()
+        {
+            GcdMetadataService.Rank(WaterMagician, "the water magician", LibraryType.LightNovel).GcdSeriesId.Should().Be(6);
+        }
+
+        [Test]
+        public void preferred_edition_ranking_also_puts_the_library_class_first()
+        {
+            var french = new List<GcdSeries>
+            {
+                Line(7, "Le Magicien de l'eau (Partie 1)", "manga", 4, "fr"),
+                Line(8, "Le Magicien de l'eau", "light_novel", 7, "fr")
+            };
+
+            GcdMetadataService.RankInLanguages(french, "le magicien de l eau", LibraryType.Manga, new List<string> { "fr" }).GcdSeriesId.Should().Be(7);
+        }
+
         [Test]
         public void default_library_is_manga()
         {
