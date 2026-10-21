@@ -6,15 +6,12 @@ import { LIGHT_NOVEL, MANGA } from 'Utilities/Author/libraries';
 import translate from 'Utilities/String/translate';
 import styles from './AuthorIndexLibraryTabs.css';
 
-// The library switch under the toolbar: Manga <n> · Light Novels <n>, the same look as a
-// light-novel series page's Ebook | Audiobook tabs. The tab is the route; the counts are each
-// library's entries before any filter. Shared by Library, Volumes, Collections, Wanted and Add
-// New; a page with no meaningful count (Wanted, Add New) omits them.
+// The library switch under the toolbar: Manga · Light Novels, the same look as a light-novel
+// series page's Ebook | Audiobook tabs. The tab is the route. Shared by Library, Volumes,
+// Collections, Wanted and Add New. Titles only, no counts (the maintainer, 2026-10-20).
 function AuthorIndexLibraryTabs(props) {
   const {
     library,
-    mangaCount,
-    lightNovelCount,
     onLibrarySelect
   } = props;
 
@@ -25,7 +22,7 @@ function AuthorIndexLibraryTabs(props) {
         size={sizes.MEDIUM}
         onPress={() => onLibrarySelect(MANGA)}
       >
-        {translate('Manga')}{mangaCount == null ? null : <span className={styles.tabCount}> {mangaCount}</span>}
+        {translate('Manga')}
       </Button>
 
       <Button
@@ -33,7 +30,7 @@ function AuthorIndexLibraryTabs(props) {
         size={sizes.MEDIUM}
         onPress={() => onLibrarySelect(LIGHT_NOVEL)}
       >
-        {translate('LightNovels')}{lightNovelCount == null ? null : <span className={styles.tabCount}> {lightNovelCount}</span>}
+        {translate('LightNovels')}
       </Button>
     </div>
   );
@@ -41,8 +38,6 @@ function AuthorIndexLibraryTabs(props) {
 
 AuthorIndexLibraryTabs.propTypes = {
   library: PropTypes.string.isRequired,
-  mangaCount: PropTypes.number,
-  lightNovelCount: PropTypes.number,
   onLibrarySelect: PropTypes.func.isRequired
 };
 

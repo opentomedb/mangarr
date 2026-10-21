@@ -184,8 +184,6 @@ class Collections extends Component {
       addError,
       authorsById,
       library,
-      mangaCount,
-      lightNovelCount,
       onLibrarySelect,
       onAddMembersPress,
       onSearchAllPress
@@ -202,8 +200,6 @@ class Collections extends Component {
           isPopulated ?
             <AuthorIndexLibraryTabs
               library={library}
-              mangaCount={mangaCount}
-              lightNovelCount={lightNovelCount}
               onLibrarySelect={onLibrarySelect}
             /> :
             null
@@ -342,8 +338,6 @@ Collections.propTypes = {
   addError: PropTypes.object,
   authorsById: PropTypes.object.isRequired,
   library: PropTypes.string.isRequired,
-  mangaCount: PropTypes.number.isRequired,
-  lightNovelCount: PropTypes.number.isRequired,
   onLibrarySelect: PropTypes.func.isRequired,
   onAddMembersPress: PropTypes.func.isRequired,
   onAddMemberPress: PropTypes.func.isRequired,

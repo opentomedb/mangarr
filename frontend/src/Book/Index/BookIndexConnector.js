@@ -11,14 +11,14 @@ import scrollPositions from 'Store/scrollPositions';
 import createBookClientSideCollectionItemsSelector from 'Store/Selectors/createBookClientSideCollectionItemsSelector';
 import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
 import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
-import { filtersForLibrary, LIGHT_NOVEL, MANGA } from 'Utilities/Author/libraries';
+import { filtersForLibrary } from 'Utilities/Author/libraries';
 import getPathWithUrlBase from 'Utilities/getPathWithUrlBase';
 import BookIndex from './BookIndex';
 import { bookIndexLibraryRoute } from './bookIndexLibraries';
 
 // The index shows one library at a time: the route's `library` (the tab) scopes the filtered and
 // sorted list -- filters and sort are per item and keep their order, so scoping after them equals
-// scoping before them -- and the tab row's counts are each library's entries before any filter. A
+// scoping before them -- and totalItems is the library's entries before any filter. A
 // volume's library is its series': createBookClientSideCollectionItemsSelector's stripped items
 // keep authorId, state.authors holds the author records (Author/Index/AuthorIndexConnector, same
 // shape).
@@ -36,17 +36,12 @@ function createLibraryItemsSelector() {
 
       const libraryOf = (authorId) => (authorsById[authorId] || {}).library;
 
-      const mangaCount = allBooks.filter((b) => libraryOf(b.authorId) === MANGA).length;
-      const lightNovelCount = allBooks.filter((b) => libraryOf(b.authorId) === LIGHT_NOVEL).length;
-
       return {
         ...book,
         library,
         filters: filtersForLibrary(book.filters, library),
         items: book.items.filter((b) => libraryOf(b.authorId) === library),
-        totalItems: library === LIGHT_NOVEL ? lightNovelCount : mangaCount,
-        mangaCount,
-        lightNovelCount
+        totalItems: allBooks.filter((b) => libraryOf(b.authorId) === library).length
       };
     }
   );

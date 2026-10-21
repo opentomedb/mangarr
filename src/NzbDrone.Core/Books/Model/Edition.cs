@@ -90,6 +90,14 @@ namespace NzbDrone.Core.Books
         [MemberwiseEqualityIgnore]
         public bool CoverMissed { get; set; }
 
+        // 2026-10-20: set by BookInfoProxy when the volume's image is the series poster (no source
+        // had a cover, Google answered, no rejected record): the poster URLs this pass and the
+        // stored series had. UseDbFieldsFrom then keeps a stored Google cover -- the plain search
+        // Google still serves (isbn:/intitle: answer nothing since 10-17) misses volumes an earlier
+        // pass matched. Not a column.
+        [MemberwiseEqualityIgnore]
+        public List<string> PosterFallbackUrls { get; set; }
+
         // These are dynamically queried from other tables
         [MemberwiseEqualityIgnore]
         public LazyLoaded<Book> Book { get; set; }
@@ -221,6 +229,19 @@ namespace NzbDrone.Core.Books
             {
                 Images = other.Images;
             }
+
+            // 2026-10-20: only the poster this pass, and the stored row has a Google cover that was
+            // not itself a poster -- keep it. Catalogue and MangaDex covers are not kept: those
+            // sources answer the same every pass, so a cover they stopped giving was withdrawn.
+            else if (PosterFallbackUrls != null && other.Images.Any(i => IsKeptGoogleCover(i.Url)))
+            {
+                Images = other.Images;
+            }
+        }
+
+        private bool IsKeptGoogleCover(string url)
+        {
+            return url.IsNotNullOrWhiteSpace() && url.StartsWith("https://books.google.com/", StringComparison.OrdinalIgnoreCase) && !PosterFallbackUrls.Contains(url);
         }
 
         public override void ApplyChanges(Edition other)

@@ -362,9 +362,11 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
 
             // Preferred Edition (2026-09-24, M13 pre-review fix, ruling (c)): an English entry that still
             // carries an AnchorName (localized, then changed back to English without Rename) keeps its pins
-            // under its stored name -- the six-argument call, unchanged, inside a scope naming it. No
-            // AnchorName (every never-localized series): no scope, today's key.
-            var englishPinName = edition == null && anchorName.IsNotNullOrWhiteSpace() ? existing.Name : null;
+            // under its stored name -- the six-argument call, unchanged, inside a scope naming it.
+            // 2026-10-18: every existing English series, not only an anchored one -- the pin screen writes
+            // under the stored name, and the catalogue's display name can differ ("Marriagetoxin" stored,
+            // "Marriage Toxin" resolved), which left a pinned cover unapplied.
+            var englishPinName = edition == null && existing != null && existing.Name.IsNotNullOrWhiteSpace() ? existing.Name : null;
             MangaSeriesMetadata series;
 
             // KR/CN consumer (2026-09-29, spec §3.2): only a NEW entry (add or search candidate) may fall back to a line
@@ -588,6 +590,21 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 var editions = mediaTypes
                     .Select(mediaType => MintEdition(foreignBookId, title, mediaType, vol, seriesRating, volumeCoverUrl, series.AudibleAnswered, releaseLanguage, series.AudioSkipped))
                     .ToList();
+
+                // 2026-10-20: the poster stood in for a volume Google answered for without a match (not a
+                // miss, not a rejected record): name every poster URL -- this pass's and the stored
+                // series' -- so Edition.UseDbFieldsFrom keeps a stored Google cover that was not one.
+                if (vol.CoverUrl.IsNullOrWhiteSpace() && !vol.GoogleMissed && !vol.GoogleRejected && volumeCoverUrl.IsNotNullOrWhiteSpace())
+                {
+                    var posterUrls = new[] { volumeCoverUrl, series.CoverUrl }
+                        .Concat(meta.Images.Select(i => i.Url))
+                        .Concat(existing?.Metadata?.Value?.Images?.Select(i => i.Url) ?? Enumerable.Empty<string>())
+                        .Where(u => u.IsNotNullOrWhiteSpace())
+                        .Distinct()
+                        .ToList();
+
+                    editions.ForEach(e => e.PosterFallbackUrls = posterUrls);
+                }
 
                 var book = new Book
                 {

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Books.Commands
@@ -16,6 +17,10 @@ namespace NzbDrone.Core.Books.Commands
         // Copy-in hold (2026-09-16, D2): the user's "search on add" intent, run by the command once
         // the hold is clear (never while the copy-in is still running or has errors).
         public bool SearchAfter { get; set; }
+
+        // Adopt before search (2026-10-21): volumes a refresh added, searched by the command once a
+        // clean run has adopted what is already owned (BookAddedService queues this, not the search).
+        public List<int> SearchBookIds { get; set; }
 
         public ImportExistingLightNovelsCommand()
         {

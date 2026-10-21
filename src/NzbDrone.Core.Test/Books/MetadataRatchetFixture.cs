@@ -556,6 +556,74 @@ namespace NzbDrone.Core.Test.BookTests
             local.Equals(remote).Should().BeFalse();
         }
 
+        // 2026-10-20: Google's plain search (its isbn:/intitle: operators answer nothing since
+        // 10-17) does not find every volume an earlier pass matched -- Fairy Tail Vol. 38's English
+        // record is not in the top 20 for "Fairy Tail Vol 38". A pass that ends with only the series
+        // poster for a volume keeps the Google cover it stored instead of downgrading to the poster.
+        [Test]
+        public void a_poster_fallback_remote_keeps_the_stored_google_cover()
+        {
+            var local = StoredAudioEdition(coveredBy: null, source: null);
+            local.Images.Add(new MediaCover.MediaCover(MediaCoverTypes.Cover, "https://books.google.com/books/publisher/content?id=02WQEAAAQBAJ&printsec=frontcover&img=1&zoom=1"));
+            var remote = RemoteAudioEdition();
+            remote.Images.Add(new MediaCover.MediaCover(MediaCoverTypes.Cover, "https://covers.openlibrary.org/b/id/2405586-L.jpg"));
+            remote.PosterFallbackUrls = new List<string> { "https://covers.openlibrary.org/b/id/2405586-L.jpg" };
+
+            remote.UseDbFieldsFrom(local);
+
+            remote.Images.Should().ContainSingle(i => i.Url.Contains("02WQEAAAQBAJ"));
+            local.Equals(remote).Should().BeTrue();
+        }
+
+        // Only a Google cover is kept: the catalogue (OpenTome) and MangaDex answer the same every
+        // pass, so a cover they no longer give was withdrawn, not missed.
+        [Test]
+        public void a_poster_fallback_remote_does_not_keep_a_stored_catalogue_cover()
+        {
+            var local = StoredAudioEdition(coveredBy: null, source: null);
+            local.Images.Add(new MediaCover.MediaCover(MediaCoverTypes.Cover, "https://covers.openlibrary.org/b/id/7382174-L.jpg"));
+            var remote = RemoteAudioEdition();
+            remote.Images.Add(new MediaCover.MediaCover(MediaCoverTypes.Cover, "https://covers.openlibrary.org/b/id/2405586-L.jpg"));
+            remote.PosterFallbackUrls = new List<string> { "https://covers.openlibrary.org/b/id/2405586-L.jpg" };
+
+            remote.UseDbFieldsFrom(local);
+
+            remote.Images.Should().ContainSingle(i => i.Url.Contains("2405586"));
+        }
+
+        // A stored image that was itself the poster (this pass's or the stored one) is not a volume
+        // cover: the volume follows the poster, so a replaced (e.g. Japanese) poster does not stick.
+        [Test]
+        public void a_poster_fallback_remote_does_not_keep_a_stored_image_that_was_the_poster()
+        {
+            var local = StoredAudioEdition(coveredBy: null, source: null);
+            local.Images.Add(new MediaCover.MediaCover(MediaCoverTypes.Cover, "https://books.google.com/books/publisher/content?id=OLDPOSTER&printsec=frontcover&img=1&zoom=4"));
+            var remote = RemoteAudioEdition();
+            remote.Images.Add(new MediaCover.MediaCover(MediaCoverTypes.Cover, "https://books.google.com/books/publisher/content?id=NEWPOSTER&printsec=frontcover&img=1&zoom=4"));
+            remote.PosterFallbackUrls = new List<string>
+            {
+                "https://books.google.com/books/publisher/content?id=NEWPOSTER&printsec=frontcover&img=1&zoom=4",
+                "https://books.google.com/books/publisher/content?id=OLDPOSTER&printsec=frontcover&img=1&zoom=4"
+            };
+
+            remote.UseDbFieldsFrom(local);
+
+            remote.Images.Should().ContainSingle(i => i.Url.Contains("NEWPOSTER"));
+        }
+
+        [Test]
+        public void a_remote_with_its_own_volume_cover_replaces_the_stored_google_cover()
+        {
+            var local = StoredAudioEdition(coveredBy: null, source: null);
+            local.Images.Add(new MediaCover.MediaCover(MediaCoverTypes.Cover, "https://books.google.com/books/publisher/content?id=02WQEAAAQBAJ&printsec=frontcover&img=1&zoom=1"));
+            var remote = RemoteAudioEdition();
+            remote.Images.Add(new MediaCover.MediaCover(MediaCoverTypes.Cover, "https://books.google.com/books/publisher/content?id=02WQEAAAQBAJ&printsec=frontcover&img=1&zoom=1&fife=w1200"));
+
+            remote.UseDbFieldsFrom(local);
+
+            remote.Images.Should().ContainSingle(i => i.Url.EndsWith("fife=w1200"));
+        }
+
         private static Edition StoredAudioEdition(double? coveredBy, string source)
         {
             var edition = RemoteAudioEdition();

@@ -1078,13 +1078,13 @@ namespace NzbDrone.Core.MetadataSource.Manga
                     }
                 }
 
-                TakeGoogleCover(volume, recordCover);
+                TakeGoogleCover(volume, recordCover, recordCoverSize);
             }
 
             // What the loop takes from a title-search hit, likewise in one place: page count and date
             // where still missing, the ISBN and its cover only for a volume with no ISBN of its own, the
             // description through D2 only where the record gave none.
-            void TakeTitleHit(MangaVolumeMetadata volume, VolumeDetails byTitle, List<string> rejections, ref string googleCover, ref string googleCoverSize)
+            void TakeTitleHit(MangaVolumeMetadata volume, VolumeDetails byTitle, List<string> rejections, ref string googleCover, ref string googleCoverSize, bool isbnAnsweredNothing = false)
             {
                 var i = (int)volume.VolumeNumber;
 
@@ -1103,7 +1103,15 @@ namespace NzbDrone.Core.MetadataSource.Manga
                     volume.Isbn13 = byTitle.Isbn13;
                     googleCover = byTitle.CoverUrl;
                     googleCoverSize = byTitle.CoverSize;
-                    TakeGoogleCover(volume, googleCover);
+                    TakeGoogleCover(volume, googleCover, googleCoverSize);
+                }
+                else if (isbnAnsweredNothing && googleCover == null && byTitle.CoverUrl != null)
+                {
+                    // Google outage (2026-10-18): isbn: answered nothing; the title search's volume
+                    // (validated to this series and volume number) gives the cover. The ISBN stays.
+                    googleCover = byTitle.CoverUrl;
+                    googleCoverSize = byTitle.CoverSize;
+                    TakeGoogleCover(volume, googleCover, googleCoverSize);
                 }
 
                 if (volume.Overview == null && byTitle.Description != null)
@@ -1291,7 +1299,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
 
                     if (byTitle != null)
                     {
-                        TakeTitleHit(volume, byTitle, rejections, ref googleCover, ref googleCoverSize);
+                        TakeTitleHit(volume, byTitle, rejections, ref googleCover, ref googleCoverSize, byIsbn != null && byIsbn.Title.IsNullOrWhiteSpace());
                     }
                 }
 
@@ -1417,7 +1425,8 @@ namespace NzbDrone.Core.MetadataSource.Manga
             _metadataOverrides.Apply(LibraryTypes.PinKey(pinName ?? displayName, library), volumes);
 
             // D4: the series poster is the English volume-1 cover — MangaDex's en-locale volume 1
-            // (manga only), else the artifact's volume-1 cover, else Google's volume-1 record cover
+            // (manga only), else Google's medium/large volume-1 scan (2026-10-18), else the artifact's
+            // volume-1 cover, else Google's volume-1 record cover
             // when it is a scan (small/medium/large), else Google's volume-1 thumbnail asked at the
             // size Google holds (2026-09-24: most records declare only the thumbnail — 783 of 925 on
             // the dev server — so the scan-only rule left 14 of 55 entries on AniList's Japanese art; see
@@ -1445,6 +1454,13 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 posterUrl = mangaDexCovers.Volume1;
                 posterSource = mangaDexSource;
             }
+            else if (googleVolume1Cover != null && SharpCoverSizes.Contains(googleVolume1CoverSize ?? string.Empty))
+            {
+                // Sharp posters (2026-10-18): a medium/large Google scan (575-800 px) over the catalogue's
+                // cover, which is Open Library's at ~500 px at best (40 of 63 posters on the dev server looked soft).
+                posterUrl = googleVolume1Cover;
+                posterSource = "google";
+            }
             else if (artifactVolume1Cover != null)
             {
                 posterUrl = artifactVolume1Cover;
@@ -1459,6 +1475,13 @@ namespace NzbDrone.Core.MetadataSource.Manga
             {
                 posterUrl = PosterGradeThumbnail(googleVolume1Cover);
                 posterSource = "google-thumbnail";
+            }
+            else if (FirstVolumeCover(volumes, mangaDexSource) is string laterCover)
+            {
+                // Re:Zero Chapter 4 (2026-10-18): no English volume-1 cover anywhere, but a later
+                // volume has one -- English art beats AniList's Japanese art.
+                posterUrl = PosterGradeThumbnail(laterCover);
+                posterSource = "english-volume";
             }
             else if (aniCoverUrl != null)
             {
@@ -1609,6 +1632,18 @@ namespace NzbDrone.Core.MetadataSource.Manga
 
         private static readonly Regex GoogleContentUrl = new Regex(@"^https?://books\.google\.com/books/(?:publisher/)?content\?", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly HashSet<string> SharpCoverSizes = new HashSet<string> { "medium", "large" };
+
+        // The lowest-numbered volume whose cover came from a provider or a pin (not the series fallback).
+        private static string FirstVolumeCover(List<MangaVolumeMetadata> volumes, string mangaDexSource)
+        {
+            return volumes
+                .Where(v => v.CoverUrl.IsNotNullOrWhiteSpace() && (v.CoverSource == "opentome" || v.CoverSource == "google" || v.CoverSource == "pin" || v.CoverSource == mangaDexSource))
+                .OrderBy(v => v.VolumeNumber)
+                .Select(v => v.CoverUrl)
+                .FirstOrDefault();
+        }
+
         // A Google thumbnail URL asked at poster size (2026-09-24): books/content's `fife=w800` returns the
         // SAME picture scaled to at most the stored image — 300×450 for a catalogue-only record, 800 px
         // wide for a publisher's scan — never the grey "image not available" PNG that a synthesized zoom
@@ -1667,11 +1702,13 @@ namespace NzbDrone.Core.MetadataSource.Manga
             }
         }
 
-        // D5: Google's cover is the volume's only below the artifact's, MangaDex's and a pin's — the one
-        // cover rule, applied wherever a Google cover (an ISBN record's, the title search's) arrives.
-        private static void TakeGoogleCover(MangaVolumeMetadata volume, string googleCover)
+        // D5: Google's cover is the volume's only below MangaDex's and a pin's, and below the artifact's
+        // unless it is a medium/large scan (2026-10-19, as the poster since 910: the artifact's cover is
+        // Open Library's, ~500 px at best) -- the one cover rule, applied wherever a Google cover (an ISBN
+        // record's, the title search's) arrives.
+        private static void TakeGoogleCover(MangaVolumeMetadata volume, string googleCover, string googleCoverSize)
         {
-            if (googleCover != null && volume.CoverSource == "series")
+            if (googleCover != null && (volume.CoverSource == "series" || (volume.CoverSource == "opentome" && SharpCoverSizes.Contains(googleCoverSize ?? string.Empty))))
             {
                 volume.CoverUrl = googleCover;
                 volume.CoverSource = "google";

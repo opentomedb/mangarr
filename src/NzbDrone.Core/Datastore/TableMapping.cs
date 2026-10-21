@@ -164,6 +164,7 @@ namespace NzbDrone.Core.Datastore
                 .Ignore(e => e.OverviewRejected)
                 .Ignore(e => e.CoveredAsserted)
                 .Ignore(e => e.CoverMissed)
+                .Ignore(e => e.PosterFallbackUrls)
                 .HasOne(r => r.Book, r => r.BookId)
                 .LazyLoad(x => x.BookFiles,
                           (db, edition) => db.Query<BookFile>(new SqlBuilder(db.DatabaseType).Where<BookFile>(f => f.EditionId == edition.Id)).ToList(),

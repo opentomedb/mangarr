@@ -613,6 +613,23 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
             bodies[1]["changes"]["title"].Value<string>().Should().Be("KonoSuba (Vol. 1)");
         }
 
+        // Audit 2026-10-18: calibre's added_formats ext is the bare format ("epub"). With the dot,
+        // calibre 9.16 stored an upgrade as a "_EPUB" format ("… ._epub"), the light-novel path
+        // lookup found no EPUB, and the row kept the deleted download's path.
+        [Test]
+        public void add_and_convert_sends_the_added_format_ext_without_the_dot()
+        {
+            GivenCalibreAccepts(7);
+            var file = GivenFile("local-konosuba~ln", "Natsume Akatsuki", 7);
+            var epub = GetTempFilePath() + ".epub";
+            File.WriteAllBytes(epub, new byte[] { 1, 2, 3 });
+            file.Path = epub;
+
+            Subject.AddAndConvert(file, _settings);
+
+            SetFieldsBodies()[0]["changes"]["added_formats"][0]["ext"].Value<string>().Should().Be("epub");
+        }
+
         // Final review I1 (2026-09-22): the file is in calibre once add + SetFields succeed; a
         // conversion that cannot START (book-data or conversion/start refused) is logged and the
         // import still returns the file. In the upgrade path the old row is already gone, so a

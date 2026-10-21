@@ -112,6 +112,31 @@ namespace NzbDrone.Core.MetadataSource
         private readonly object _isbnStoreMutex = new object();
         private Dictionary<string, IsbnCacheEntry> _isbnStore;
 
+        // The title-search answers (2026-10-20), beside the ISBN records: <appdata>/metadata/
+        // googlebooks-title-cache.json, keyed "<language>|<series, lower case>|<volume>". The nightly
+        // refresh asked Google the same title searches every day (3-7 queries a volume) and spent the
+        // 1,000/day quota by mid-morning, before the volumes still missing a sharp cover were reached.
+        // An answer is kept 30 days (a complete one for good, like an ISBN record); a no-match 7 days,
+        // so a volume Google adds later is still found. A 429/5xx is never stored.
+        private const string TitleCacheFileName = "googlebooks-title-cache.json";
+        private static readonly TimeSpan NoMatchLifetime = TimeSpan.FromDays(7);
+
+        private Dictionary<string, TitleCacheEntry> _titleStore;
+
+        public class TitleCacheEntry
+        {
+            public DateTime FetchedAt { get; set; }
+            public VolumeDetails Details { get; set; }   // null = Google answered and nothing matched
+        }
+
+        // Since 2026-10-17 intitle: answers no items for any query, and each volume spent three queries
+        // on it before the plain-words search. After a run of empty intitle: answers the operator is
+        // skipped for a while; the first query after that probes it again.
+        private const int EmptyIntitleRunLimit = 25;
+        private static readonly TimeSpan IntitleSkipLifetime = TimeSpan.FromHours(6);
+        private int _emptyIntitleRun;
+        private DateTime _skipIntitleUntil = DateTime.MinValue;
+
         public class IsbnCacheEntry
         {
             public DateTime FetchedAt { get; set; }
@@ -292,7 +317,7 @@ namespace NzbDrone.Core.MetadataSource
             // A 429 (GoogleBooksQuotaException) passes through uncached to the provider's breaker.
             try
             {
-                return _cache.Get($"vol:{seriesTitle}:{volumeNumber}", () => LookupVolumeUncached(seriesTitle, volumeNumber), TimeSpan.FromDays(7));
+                return _cache.Get($"vol:{seriesTitle}:{volumeNumber}", () => FindStoredTitleAnswer(TitleKey("en", seriesTitle, volumeNumber), out var stored) ? stored : LookupVolumeUncached(seriesTitle, volumeNumber), TimeSpan.FromDays(7));
             }
             catch (TransientLookupException)
             {
@@ -321,7 +346,7 @@ namespace NzbDrone.Core.MetadataSource
             // not cached. The key carries the language, so an edition never reads an English answer.
             try
             {
-                return _cache.Get($"vol:{code}:{seriesTitle}:{volumeNumber}", () => LookupVolumeUncached(seriesTitle, volumeNumber, code), TimeSpan.FromDays(7));
+                return _cache.Get($"vol:{code}:{seriesTitle}:{volumeNumber}", () => FindStoredTitleAnswer(TitleKey(code, seriesTitle, volumeNumber), out var stored) ? stored : LookupVolumeUncached(seriesTitle, volumeNumber, code), TimeSpan.FromDays(7));
             }
             catch (TransientLookupException)
             {
@@ -332,6 +357,11 @@ namespace NzbDrone.Core.MetadataSource
 
         private VolumeDetails LookupVolumeUncached(string seriesTitle, int volumeNumber, string language = "en")
         {
+            var titleKey = TitleKey(language, seriesTitle, volumeNumber);
+
+            // A fallback query that hit a blip could not ask: the volume's no-match is then not stored.
+            var blip = false;
+
             try
             {
                 // Viz canonical title form is "<Series>, Vol. <N>" — a precise exact-phrase selector
@@ -362,6 +392,7 @@ namespace NzbDrone.Core.MetadataSource
                     catch (TransientLookupException)
                     {
                         // A fallback blip must not nullify a good primary match — keep what we have.
+                        blip = true;
                     }
                 }
 
@@ -383,6 +414,7 @@ namespace NzbDrone.Core.MetadataSource
                     catch (TransientLookupException)
                     {
                         // Keep the existing match on a fallback blip.
+                        blip = true;
                     }
                 }
 
@@ -406,6 +438,43 @@ namespace NzbDrone.Core.MetadataSource
                         catch (TransientLookupException)
                         {
                             // Keep the null; the outer handler treats this volume as transient next cycle.
+                            blip = true;
+                        }
+                    }
+                }
+
+                // Google outage (2026-10-18): intitle: answered no items for every query while plain words
+                // still found the volumes. Plain words rank other series too, so the hit must name this
+                // one. Punctuation goes (Google reads "-Starting" as "not Starting"); "Vol N" ranks the
+                // volume first for most titles, a bare number for some long ones, and a long arc title is
+                // retried as its first word plus the subtitle after its last colon.
+                if (match == null || !HasThumbnail(match))
+                {
+                    var words = PlainWords(seriesTitle);
+                    var lastColon = seriesTitle.LastIndexOf(':');
+                    var queries = new List<string> { $"{words} Vol {volumeNumber}", $"{words} {volumeNumber}" };
+
+                    if (lastColon > 0 && lastColon < seriesTitle.Length - 1)
+                    {
+                        queries.Add($"{PlainWords(seriesTitle.Split(' ')[0])} {PlainWords(seriesTitle.Substring(lastColon + 1))} {volumeNumber}");
+                    }
+
+                    foreach (var query in queries.Distinct())
+                    {
+                        try
+                        {
+                            var plain = QueryBestVolume(query, volumeNumber, null, 20, language, seriesTitle);
+
+                            if (plain != null && (match == null || HasThumbnail(plain)))
+                            {
+                                match = plain;
+                                break;
+                            }
+                        }
+                        catch (TransientLookupException)
+                        {
+                            // Keep the existing match on a fallback blip.
+                            blip = true;
                         }
                     }
                 }
@@ -413,7 +482,7 @@ namespace NzbDrone.Core.MetadataSource
                 if (match == null)
                 {
                     _logger.Debug("GoogleBooks: no match for '{0}' v{1}", seriesTitle, volumeNumber);
-                    return null;
+                    return StoreTitleNoMatch(titleKey, !blip);
                 }
 
                 // The list projection's description is another edition's abridged text as often as the
@@ -432,7 +501,7 @@ namespace NzbDrone.Core.MetadataSource
                     details.Isbn13,
                     details.Language,
                     details.Description?.Length ?? 0);
-                return details;
+                return StoreTitleAnswer(titleKey, details);
             }
             catch (TransientLookupException)
             {
@@ -457,8 +526,15 @@ namespace NzbDrone.Core.MetadataSource
         // the pool so the right edition surfaces alongside stubs. Preferred Edition (2026-09-24): language
         // is the edition's ("en" everywhere on the English path) -- the restriction, the record filter and
         // the blurb gate all follow it.
-        private JToken QueryBestVolume(string queryString, int volumeNumber, string filter, int maxResults = 10, string language = "en")
+        private JToken QueryBestVolume(string queryString, int volumeNumber, string filter, int maxResults = 10, string language = "en", string requiredSeries = null)
         {
+            var intitle = queryString.StartsWith("intitle:", StringComparison.Ordinal);
+
+            if (intitle && DateTime.UtcNow < _skipIntitleUntil)
+            {
+                return null;
+            }
+
             var builder = new HttpRequestBuilder(BooksUrl)
                 .AddQueryParam("q", queryString)
                 .AddQueryParam("country", "US")   // mandatory — omitting it returns HTTP 403
@@ -490,6 +566,12 @@ namespace NzbDrone.Core.MetadataSource
             }
 
             var items = JObject.Parse(response.Content)["items"] as JArray;
+
+            if (intitle)
+            {
+                CountIntitleAnswer(items != null && items.Count > 0);
+            }
+
             if (items == null || items.Count == 0)
             {
                 return null;
@@ -498,7 +580,8 @@ namespace NzbDrone.Core.MetadataSource
             var rightVolumes = items
                 .Where(x => x["volumeInfo"] != null &&
                     IsRightVolume($"{(string)x["volumeInfo"]["title"]} {(string)x["volumeInfo"]["subtitle"]}", volumeNumber, language) &&
-                    IsLanguage(x, language))
+                    IsLanguage(x, language) &&
+                    (requiredSeries == null || NamesSeries((string)x["volumeInfo"]["title"], requiredSeries)))
                 .ToList();
 
             // Google Books returns BOTH a metadata-only catalog stub (no cover/blurb) and the real
@@ -507,6 +590,22 @@ namespace NzbDrone.Core.MetadataSource
             return rightVolumes.FirstOrDefault(x => HasThumbnail(x) && HasAcceptableBlurb(x, language))
                 ?? rightVolumes.FirstOrDefault(HasThumbnail)
                 ?? rightVolumes.FirstOrDefault();
+        }
+
+        private void CountIntitleAnswer(bool hadItems)
+        {
+            if (hadItems)
+            {
+                _emptyIntitleRun = 0;
+                return;
+            }
+
+            if (++_emptyIntitleRun >= EmptyIntitleRunLimit)
+            {
+                _emptyIntitleRun = 0;
+                _skipIntitleUntil = DateTime.UtcNow + IntitleSkipLifetime;
+                _logger.Info("GoogleBooks: intitle: answered nothing {0} times in a row; plain-words search only until {1:HH:mm} UTC", EmptyIntitleRunLimit, _skipIntitleUntil);
+            }
         }
 
         // The asked language ("en" on the English path), or no language field at all (unknown, accepted —
@@ -587,9 +686,15 @@ namespace NzbDrone.Core.MetadataSource
 
                 // D6: a record written before this build carries no Title and is re-fetched once,
                 // whatever its age — a 429 on that re-fetch is a miss for the pass, the ratchet keeps everything.
-                if (entry.Details == null || entry.Details.Title.IsNullOrWhiteSpace() || (!IsPermanent(entry) && entry.FetchedAt + IsbnCacheLifetime < DateTime.UtcNow))
+                if (entry.Details == null || entry.Details.Title.IsNullOrWhiteSpace())
                 {
                     store.Remove(isbn13);
+                    return null;
+                }
+
+                // Expired: re-fetched, but kept for StoreIsbnRecord's fallback.
+                if (!IsPermanent(entry) && entry.FetchedAt + IsbnCacheLifetime < DateTime.UtcNow)
+                {
                     return null;
                 }
 
@@ -608,6 +713,15 @@ namespace NzbDrone.Core.MetadataSource
             lock (_isbnStoreMutex)
             {
                 var store = LoadIsbnStore();
+
+                // Google outage (2026-10-18: isbn: answered no items for every ISBN): an ISBN-only answer
+                // never replaces a record Google gave before -- that record is served and kept as it is.
+                if (details.Title.IsNullOrWhiteSpace() && store.TryGetValue(isbn13, out var previous) && previous.Details?.Title.IsNotNullOrWhiteSpace() == true)
+                {
+                    _logger.Debug("GoogleBooks isbn:{0}: no record this time; keeping the one from {1:yyyy-MM-dd}", isbn13, previous.FetchedAt);
+                    return previous.Details;
+                }
+
                 store[isbn13] = new IsbnCacheEntry { FetchedAt = DateTime.UtcNow, Details = details };
                 WriteIsbnStore(store);
             }
@@ -615,12 +729,114 @@ namespace NzbDrone.Core.MetadataSource
             return details;
         }
 
+        // ---- the on-disk title-search store ----
+
+        private string TitleCachePath => Path.Combine(_appFolderInfo.AppDataFolder, "metadata", TitleCacheFileName);
+
+        private static string TitleKey(string language, string seriesTitle, int volumeNumber)
+        {
+            return $"{language}|{seriesTitle.Trim().ToLowerInvariant()}|{volumeNumber}";
+        }
+
+        // True when the store answers for this volume (details may be null: a stored no-match).
+        private bool FindStoredTitleAnswer(string key, out VolumeDetails details)
+        {
+            details = null;
+
+            lock (_isbnStoreMutex)
+            {
+                if (!LoadTitleStore().TryGetValue(key, out var entry))
+                {
+                    return false;
+                }
+
+                var lifetime = entry.Details == null ? NoMatchLifetime : IsbnCacheLifetime;
+
+                if (!IsComplete(entry.Details) && entry.FetchedAt + lifetime < DateTime.UtcNow)
+                {
+                    return false;
+                }
+
+                details = entry.Details;
+                return true;
+            }
+        }
+
+        private VolumeDetails StoreTitleAnswer(string key, VolumeDetails details)
+        {
+            lock (_isbnStoreMutex)
+            {
+                var store = LoadTitleStore();
+                store[key] = new TitleCacheEntry { FetchedAt = DateTime.UtcNow, Details = details };
+                WriteStore(TitleCachePath, store);
+            }
+
+            return details;
+        }
+
+        // Plain search does not always rank a volume it found before: an expired answer is kept
+        // (re-dated) over a no-match. write = false (a blip) stores nothing.
+        private VolumeDetails StoreTitleNoMatch(string key, bool write)
+        {
+            lock (_isbnStoreMutex)
+            {
+                var store = LoadTitleStore();
+                var previous = store.TryGetValue(key, out var entry) ? entry.Details : null;
+
+                if (write)
+                {
+                    store[key] = new TitleCacheEntry { FetchedAt = DateTime.UtcNow, Details = previous };
+                    WriteStore(TitleCachePath, store);
+                }
+
+                return previous;
+            }
+        }
+
+        // Caller holds _isbnStoreMutex.
+        private Dictionary<string, TitleCacheEntry> LoadTitleStore()
+        {
+            if (_titleStore != null)
+            {
+                return _titleStore;
+            }
+
+            var store = new Dictionary<string, TitleCacheEntry>();
+
+            try
+            {
+                if (_diskProvider.FileExists(TitleCachePath))
+                {
+                    var raw = Json.Deserialize<Dictionary<string, TitleCacheEntry>>(_diskProvider.ReadAllText(TitleCachePath)) ?? new Dictionary<string, TitleCacheEntry>();
+
+                    foreach (var pair in raw.Where(p => p.Value != null))
+                    {
+                        store[pair.Key] = pair.Value;
+                    }
+
+                    _logger.Debug("GoogleBooks: loaded {0} title-search answers from the cache", store.Count);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Debug(ex, "GoogleBooks: could not read the title-search cache, starting empty");
+            }
+
+            _titleStore = store;
+            return _titleStore;
+        }
+
         // Caller holds _isbnStoreMutex.
         private void WriteIsbnStore(Dictionary<string, IsbnCacheEntry> store)
         {
+            WriteStore(IsbnCachePath, store);
+        }
+
+        // Caller holds _isbnStoreMutex.
+        private void WriteStore<T>(string path, Dictionary<string, T> store)
+        {
             try
             {
-                var path = IsbnCachePath;
                 var dir = Path.GetDirectoryName(path);
 
                 if (!_diskProvider.FolderExists(dir))
@@ -636,7 +852,7 @@ namespace NzbDrone.Core.MetadataSource
             {
                 // The store is an optimisation: a write failure costs the record its next
                 // process, not this lookup.
-                _logger.Debug(ex, "GoogleBooks: could not write the ISBN cache");
+                _logger.Debug(ex, "GoogleBooks: could not write {0}", Path.GetFileName(path));
             }
         }
 
@@ -661,12 +877,15 @@ namespace NzbDrone.Core.MetadataSource
                     var cutoff = DateTime.UtcNow - IsbnCacheLifetime;
 
                     // D6: a Title-less (pre-build) record is expired whatever its age — see FindStoredIsbnRecord.
-                    foreach (var pair in raw.Where(p => p.Value?.Details != null && p.Value.Details.Title.IsNotNullOrWhiteSpace() && (IsPermanent(p.Value) || p.Value.FetchedAt > cutoff)))
+                    // An expired record with a title stays loaded (2026-10-18): FindStoredIsbnRecord re-fetches
+                    // it, and StoreIsbnRecord falls back to it when that re-fetch answers nothing.
+                    foreach (var pair in raw.Where(p => p.Value?.Details != null && p.Value.Details.Title.IsNotNullOrWhiteSpace()))
                     {
                         store[pair.Key] = pair.Value;
                     }
 
-                    _logger.Debug("GoogleBooks: loaded {0} ISBN records from the cache ({1} expired)", store.Count, raw.Count - store.Count);
+                    var fresh = store.Values.Count(e => IsPermanent(e) || e.FetchedAt > cutoff);
+                    _logger.Debug("GoogleBooks: loaded {0} ISBN records from the cache ({1} expired)", fresh, raw.Count - fresh);
                 }
             }
             catch (Exception ex)
@@ -834,6 +1053,25 @@ namespace NzbDrone.Core.MetadataSource
             {
                 details.ReleaseDate = ol.ReleaseDate;
             }
+        }
+
+        // The plain-words fallback's series check: the title, letters and digits only, contains the
+        // series name the same way ("Marriage Toxin, Vol. 2" names "Marriagetoxin").
+        private static bool NamesSeries(string title, string seriesTitle)
+        {
+            var series = LettersAndDigits(seriesTitle);
+
+            return series.Length > 0 && LettersAndDigits(title).Contains(series);
+        }
+
+        private static string PlainWords(string text)
+        {
+            return Regex.Replace(text ?? string.Empty, @"[^\p{L}\p{N}]+", " ").Trim();
+        }
+
+        private static string LettersAndDigits(string text)
+        {
+            return Regex.Replace((text ?? string.Empty).ToLowerInvariant(), @"[^\p{L}\p{N}]", string.Empty);
         }
 
         private static bool IsRightVolume(string title, int volumeNumber, string language = "en")

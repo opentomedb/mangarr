@@ -6,7 +6,6 @@ import * as commandNames from 'Commands/commandNames';
 import { addCollectionMembers, fetchCollections, setCollectionsLibrary } from 'Store/Actions/collectionActions';
 import { executeCommand } from 'Store/Actions/commandActions';
 import { fetchRootFolders } from 'Store/Actions/settingsActions';
-import { LIGHT_NOVEL, MANGA } from 'Utilities/Author/libraries';
 import getPathWithUrlBase from 'Utilities/getPathWithUrlBase';
 import { collectionAddDefaults } from './collectionAddDefaults';
 import { cardsOf } from './collectionCards';
@@ -35,9 +34,6 @@ function createLibraryItemsSelector() {
         return { collection, cards: cardsOf(collection, authorsById) };
       });
 
-      const mangaCount = withCards.filter(({ cards }) => cards.some((c) => c.library === MANGA)).length;
-      const lightNovelCount = withCards.filter(({ cards }) => cards.some((c) => c.library === LIGHT_NOVEL)).length;
-
       // A collection shown on this tab only because one of its members carries this library's
       // medium keeps collection.defaults sourced from its own root's library (CollectionController's
       // `sample`), the wrong library for that member -- the same per-library defaults a fresh add
@@ -58,9 +54,7 @@ function createLibraryItemsSelector() {
         ...collectionsState,
         library,
         items,
-        authorsById,
-        mangaCount,
-        lightNovelCount
+        authorsById
       };
     }
   );

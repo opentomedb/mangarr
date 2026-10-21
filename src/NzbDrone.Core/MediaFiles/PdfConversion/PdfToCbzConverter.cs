@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -11,7 +12,7 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
     public enum PdfConvertStatus
     {
         Converted,
-        Skipped,   // not a 1:1 image PDF, or already cbz — left alone, flagged
+        Skipped,   // no pages, or already cbz — left alone
         Failed     // nothing written; original untouched
     }
 
@@ -22,7 +23,7 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
         public bool Reversed { get; set; }
         public string Reason { get; set; }
 
-        // The file itself can never convert (not a 1:1 image PDF): trying it again unchanged gives the same answer.
+        // The file itself can never convert (no pages): trying it again unchanged gives the same answer.
         public bool NotConvertible { get; set; }
     }
 
@@ -32,10 +33,13 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
         PdfConvertResult Convert(string pdfPath, string outputCbzPath);
     }
 
-    // Turns a manga PDF into a CBZ without quality loss. Extracts the embedded page images verbatim,
-    // then REFUSES unless the image count matches the PDF's page count exactly (1:1) — a mismatch
-    // means the PDF isn't a clean one-image-per-page scan (vector/text pages, spreads, ads), which
-    // would produce a wrong or lossy CBZ, so it's skipped for manual handling rather than guessed.
+    // Turns a manga PDF into a CBZ, one entry per PDF page. A page drawn from exactly one JPEG, and that
+    // looks like that JPEG when drawn (no lettering or art over it, nothing clipped), keeps the JPEG
+    // verbatim -- no quality loss. Any other page (layered images, a soft mask or overlay,
+    // vector art, text, 1-bit or flate images) is rendered as the reader would draw it, at the volume's
+    // own resolution up to 600 dpi (Berserk 43, 2026-10-19: 13 of 216 pages layered, refused whole by the
+    // old one-image-per-page rule; and its 1-bit stencil pages come out of pdfimages INVERTED, so a
+    // non-JPEG image is never lifted -- pdfimages ignores stencil and Decode semantics).
     // The output is built in a temp file and verified before it is placed; the source PDF is never
     // touched here (the caller moves it to a holding dir only after this succeeds).
     public class PdfToCbzConverter : IPdfToCbzConverter
@@ -76,13 +80,33 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
                 _diskProvider.CreateFolder(workDir);
 
                 var pageCount = _extractor.GetPageCount(pdfPath);
-                var images = _extractor.ExtractImages(pdfPath, workDir);
 
-                // The 1:1 guard: refuse anything that isn't a clean one-image-per-page manga scan.
-                if (pageCount <= 0 || images.Count != pageCount)
+                if (pageCount <= 0)
                 {
-                    _logger.Warn("Skipping {0}: {1} pages but {2} extracted images (not a 1:1 image PDF)", pdfPath, pageCount, images.Count);
-                    return new PdfConvertResult { Status = PdfConvertStatus.Skipped, PageCount = pageCount, Reason = $"{pageCount} pages vs {images.Count} images", NotConvertible = true };
+                    _logger.Warn("Skipping {0}: pdfinfo found no pages", pdfPath);
+                    return new PdfConvertResult { Status = PdfConvertStatus.Skipped, Reason = "No pages", NotConvertible = true };
+                }
+
+                var extracted = _extractor.ExtractImagesByPage(pdfPath, workDir);
+                var listed = _extractor.ListImages(pdfPath);
+                var dpi = RenderDpi(listed);
+                var images = new List<string>();
+                var rendered = 0;
+
+                for (var page = 1; page <= pageCount; page++)
+                {
+                    var files = extracted.TryGetValue(page, out var f) ? f : new List<string>();
+                    var drawn = listed.Where(i => i.Page == page).ToList();
+
+                    if (files.Count == 1 && drawn.Count == 1 && drawn[0].Type == "image" && LiftedExtensions.Contains(Path.GetExtension(files[0]).ToLowerInvariant()) &&
+                        LooksLikeThePage(_extractor.PageDifference(pdfPath, page, files[0])))
+                    {
+                        images.Add(files[0]);
+                        continue;
+                    }
+
+                    images.Add(_extractor.RenderPage(pdfPath, page, dpi, RenderModeOf(drawn), workDir));
+                    rendered++;
                 }
 
                 // Reversed-layout PDFs (cover last, colophon first) read back-to-front; flip so the
@@ -113,7 +137,7 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
 
                 File.Move(tempCbz, outputCbzPath);
 
-                _logger.Info("Converted {0} -> {1} ({2} pages, lossless{3})", Path.GetFileName(pdfPath), Path.GetFileName(outputCbzPath), pageCount, reversed ? ", page order flipped" : "");
+                _logger.Info("Converted {0} -> {1} ({2} pages: {3} lossless, {4} rendered at {5} dpi{6})", Path.GetFileName(pdfPath), Path.GetFileName(outputCbzPath), pageCount, pageCount - rendered, rendered, dpi, reversed ? ", page order flipped" : "");
                 return new PdfConvertResult { Status = PdfConvertStatus.Converted, PageCount = pageCount, Reversed = reversed };
             }
             catch (Exception ex)
@@ -127,7 +151,49 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
             }
         }
 
-        private void BuildCbz(System.Collections.Generic.List<string> images, string tempCbz)
+        // The page drawn small and its lone JPEG agree (see PageDifference); -1 (couldn't compare) renders.
+        private static bool LooksLikeThePage(double difference)
+        {
+            return difference >= 0 && difference <= 20;
+        }
+
+        private static readonly HashSet<string> LiftedExtensions = new HashSet<string> { ".jpg", ".jpeg" };
+        private static readonly HashSet<string> PageImageTypes = new HashSet<string> { "image", "stencil" };
+
+        // The resolution a rendered page is drawn at: the median of the volume's own page images
+        // (masks excluded), so it matches its neighbours; 72-600 dpi (600 is a 3000 x 4400 px page,
+        // past any reader's screen; Berserk 43's 1200 ppi line art made 5.5 MB pages), 300 when no
+        // page has an image.
+        internal static int RenderDpi(List<PdfImageInfo> listed)
+        {
+            var ppis = listed.Where(i => PageImageTypes.Contains(i.Type) && i.XPpi > 0).Select(i => i.XPpi).OrderBy(p => p).ToList();
+
+            if (ppis.Count == 0)
+            {
+                return 300;
+            }
+
+            return Math.Clamp(ppis[ppis.Count / 2], 72, 600);
+        }
+
+        // Line: every image on the page is 1-bit line art. Gray: every one is grayscale or 1-bit.
+        // Color otherwise -- including a page with no image at all (vector art or text).
+        private static PdfRenderMode RenderModeOf(List<PdfImageInfo> drawn)
+        {
+            if (drawn.Count == 0)
+            {
+                return PdfRenderMode.Color;
+            }
+
+            if (drawn.All(i => i.Bpc == 1))
+            {
+                return PdfRenderMode.Line;
+            }
+
+            return drawn.All(i => i.Bpc == 1 || i.Color == "gray") ? PdfRenderMode.Gray : PdfRenderMode.Color;
+        }
+
+        private void BuildCbz(List<string> images, string tempCbz)
         {
             using var outStream = File.Create(tempCbz);
             using var zip = new ZipArchive(outStream, ZipArchiveMode.Create);

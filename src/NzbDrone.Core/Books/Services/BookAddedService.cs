@@ -4,6 +4,7 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Cache;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Core.Books.Commands;
 using NzbDrone.Core.Books.Events;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Messaging.Commands;
@@ -25,6 +26,7 @@ namespace NzbDrone.Core.Books
     {
         private readonly IManageCommandQueue _commandQueueManager;
         private readonly IBookService _bookService;
+        private readonly IAuthorService _authorService;
         private readonly Logger _logger;
         private readonly ICached<List<int>> _addedBooksCache;
         private readonly HashSet<int> _skipNextSearch = new HashSet<int>();
@@ -32,8 +34,10 @@ namespace NzbDrone.Core.Books
         public BookAddedService(ICacheManager cacheManager,
                                    IManageCommandQueue commandQueueManager,
                                    IBookService bookService,
+                                   IAuthorService authorService,
                                    Logger logger)
         {
+            _authorService = authorService;
             _commandQueueManager = commandQueueManager;
             _bookService = bookService;
             _logger = logger;
@@ -60,7 +64,18 @@ namespace NzbDrone.Core.Books
 
             if (toSearch.Any())
             {
-                _commandQueueManager.Push(new BookSearchCommand(toSearch.Select(e => e.Id).ToList()));
+                var ids = toSearch.Select(e => e.Id).ToList();
+
+                // Adopt before search (2026-10-21): new light-novel volumes may already be in Calibre or
+                // Audiobookshelf; the adoption runs first and searches them after a clean run.
+                if (_authorService.GetAuthor(authorId)?.Library == LibraryType.LightNovel)
+                {
+                    _commandQueueManager.Push(new ImportExistingLightNovelsCommand(authorId) { SearchBookIds = ids });
+                }
+                else
+                {
+                    _commandQueueManager.Push(new BookSearchCommand(ids));
+                }
             }
 
             _addedBooksCache.Remove(authorId.ToString());

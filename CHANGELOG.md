@@ -3,6 +3,51 @@
 Mangarr's user-facing changes, newest first. Each beta image also carries a build number
 (`10.0.0.N`, shown in System → Status); the release notes on GitHub give both.
 
+## 0.1.0-beta.3
+
+### Covers
+
+- **Sharper covers.** A medium or large Google Books scan now replaces the catalogue's cover, which
+  is about 500 px at best. This applies both to a series' poster (taken from volume 1) and to each
+  volume. MangaDex's English art and covers you pinned still come first.
+- When volume 1 has no English cover anywhere, a later volume's English cover becomes the poster
+  instead of AniList's Japanese art.
+- A volume keeps the Google cover it already had when a refresh can only offer the series poster.
+- Pinned covers now apply to series whose stored name differs from the catalogue's spelling.
+
+### Google Books
+
+- **Works through Google's search outage.** Since mid-October Google Books answers nothing to
+  `isbn:` and `intitle:` searches. Mangarr now falls back to a plain-words search, checks that the
+  hit names the series, and never replaces a good stored record with an empty one. After 25 empty
+  `intitle:` answers in a row it stops asking for 6 hours, then tries again.
+- **Lookups are remembered.** Title-search answers are stored on disk (`metadata/googlebooks-title-cache.json`):
+  30 days for an answer, 7 days for "no match". The nightly refresh no longer spends the daily
+  quota on the same searches every day.
+- Plain-words searches drop punctuation Google reads as operators, and ask for "Series Vol N"
+  before the bare number.
+
+### PDFs
+
+- **PDFs that are not one image per page now convert.** A page drawn from a single JPEG is still
+  copied as is. Any other page, for example layered images, overlays, vector lettering or text, is
+  rendered at the volume's own resolution (capped at 600 dpi). Black-and-white line art comes out
+  as grayscale PNG, everything else as high-quality JPEG.
+- A JPEG page with lettering drawn over it is detected and rendered, so the lettering isn't lost.
+
+### Light novels
+
+- **Volumes you already own are not downloaded again.** When a refresh finds new volumes, Mangarr
+  first looks for them in Calibre and Audiobookshelf, then searches only for what is still missing.
+- Calibre 9.16: an upgraded EPUB is stored as a proper EPUB format again (it was saved as
+  "_EPUB" and Mangarr lost track of the file).
+
+### Interface
+
+- **Volumes → Missing** leaves out volumes that are not out yet. A volume counts as missing from
+  its release date onward; a volume without a date still counts.
+- The Manga / Light Novels switch shows just the library names, without counts.
+
 ## 0.1.0-beta.2
 
 ### Matching

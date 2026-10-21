@@ -577,6 +577,59 @@ namespace NzbDrone.Core.Test.MetadataSource
             Requests(ListPath + "?").Should().Be(1);
         }
 
+        // Google outage (2026-10-18): isbn: answers no items for every ISBN. An expired record with a
+        // title is kept (served, not overwritten) when the re-fetch comes back ISBN-only.
+        [Test]
+        public void an_expired_record_is_kept_when_the_re_fetch_answers_nothing()
+        {
+            GivenOnDiskRecord("9781974700523", DateTime.UtcNow.AddDays(-31), "Demon Slayer 1", "thumbnail", Blurb, "en");
+
+            var record = Subject.LookupByIsbn("9781974700523");
+
+            record.Title.Should().Be("Demon Slayer 1");
+            record.Description.Should().Be(Blurb);
+            Requests(ListPath + "?").Should().Be(1);
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.WriteAllText(It.IsAny<string>(), It.IsAny<string>()), Times.Never());
+        }
+
+        // intitle: answers nothing either; a plain-words search finds the volume, and its title must
+        // name the series (a plain search ranks other series' volumes too).
+        [Test]
+        public void title_search_falls_back_to_plain_words_and_checks_the_series()
+        {
+            _lists["Marriagetoxin Vol 2"] = new[]
+            {
+                Item("x1", "Edens Zero, Vol. 2", "en", Blurb, Thumbnails, isbn13: "9781632367000"),
+                Item("m2", "Marriage Toxin, Vol. 2", "en", Blurb, Thumbnails, isbn13: "9781974743728")
+            };
+            _records["m2"] = Item("m2", "Marriage Toxin, Vol. 2", "en", Blurb, Thumbnails, isbn13: "9781974743728");
+
+            Subject.LookupVolume("Marriagetoxin", 2).Isbn13.Should().Be("9781974743728");
+        }
+
+        // A long arc title: no punctuation, and the first word plus the subtitle after the last colon.
+        [Test]
+        public void a_long_arc_title_is_retried_as_its_first_word_and_subtitle()
+        {
+            const string series = "Re:ZERO -Starting Life in Another World- Chapter 4: The Sanctuary and the Witch of Greed";
+            const string title = "Re:ZERO -Starting Life in Another World-, Chapter 4: The Sanctuary and the Witch of Greed, Vol. 2 (manga)";
+            _lists["Re ZERO The Sanctuary and the Witch of Greed 2"] = new[] { Item("r2", title, "en", Blurb, Thumbnails, isbn13: "9781975323110") };
+            _records["r2"] = Item("r2", title, "en", Blurb, Thumbnails, isbn13: "9781975323110");
+
+            Subject.LookupVolume(series, 2).Isbn13.Should().Be("9781975323110");
+
+            _requests.Should().Contain(r => r.Contains("q=Re ZERO Starting Life in Another World Chapter 4 The Sanctuary and the Witch of Greed Vol 2&"));
+            _requests.Should().Contain(r => r.Contains("q=Re ZERO Starting Life in Another World Chapter 4 The Sanctuary and the Witch of Greed 2&"));
+        }
+
+        [Test]
+        public void a_plain_words_hit_naming_another_series_is_no_match()
+        {
+            _lists["Marriagetoxin Vol 2"] = new[] { Item("x1", "Edens Zero, Vol. 2", "en", Blurb, Thumbnails, isbn13: "9781632367000") };
+
+            Subject.LookupVolume("Marriagetoxin", 2).Should().BeNull();
+        }
+
         [Test]
         public void a_fresh_on_disk_record_is_served_without_http()
         {
@@ -620,6 +673,181 @@ namespace NzbDrone.Core.Test.MetadataSource
             Subject.LookupByIsbn("9781974700523").Description.Should().Be(Blurb);
 
             Requests(ListPath + "?").Should().Be(1);
+        }
+
+        // ---- the on-disk title-search store (2026-10-20) ----
+        // The nightly refresh asked Google the same title searches every day and spent the 1,000/day
+        // quota by mid-morning; answers (and no-matches, for a week) are kept on disk like ISBN records.
+
+        private string TitleCachePath => System.IO.Path.Combine(TestFolderInfo.AppDataFolder, "metadata", "googlebooks-title-cache.json");
+
+        private Func<string> CaptureTitleWrites()
+        {
+            var writes = new List<string>();
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.WriteAllText(TitleCachePath + ".tmp", It.IsAny<string>()))
+                  .Callback<string, string>((path, text) => writes.Add(text));
+            return () => writes.LastOrDefault();
+        }
+
+        private void GivenTitleCacheFile(string json)
+        {
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.FileExists(TitleCachePath))
+                  .Returns(true);
+            Mocker.GetMock<IDiskProvider>()
+                  .Setup(d => d.ReadAllText(TitleCachePath))
+                  .Returns(json);
+        }
+
+        private void GivenStoredTitleAnswer(string key, DateTime fetchedAt, VolumeDetails details)
+        {
+            GivenTitleCacheFile(new Dictionary<string, GoogleBooksService.TitleCacheEntry>
+            {
+                [key] = new GoogleBooksService.TitleCacheEntry { FetchedAt = fetchedAt, Details = details }
+            }.ToJson());
+        }
+
+        private void GivenMarriagetoxinVol2()
+        {
+            _lists["Marriagetoxin Vol 2"] = new[] { Item("m2", "Marriage Toxin, Vol. 2", "en", Blurb, Thumbnails, isbn13: "9781974743728") };
+            _records["m2"] = Item("m2", "Marriage Toxin, Vol. 2", "en", Blurb, Scanned, isbn13: "9781974743728");
+        }
+
+        [Test]
+        public void a_title_answer_is_written_through_and_read_back_by_a_new_process_without_http()
+        {
+            GivenMarriagetoxinVol2();
+            var written = CaptureTitleWrites();
+
+            Subject.LookupVolume("Marriagetoxin", 2).Isbn13.Should().Be("9781974743728");
+
+            written().Should().NotBeNull();
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.MoveFile(TitleCachePath + ".tmp", TitleCachePath, true), Times.AtLeastOnce());
+
+            GivenTitleCacheFile(written());
+            _requests.Clear();
+            var again = NewInstance().LookupVolume("Marriagetoxin", 2);
+
+            again.Isbn13.Should().Be("9781974743728");
+            again.CoverSize.Should().Be("large");
+            again.Description.Should().Be(Blurb);
+            _requests.Should().BeEmpty();
+        }
+
+        [Test]
+        public void a_no_match_is_stored_and_not_asked_again_within_a_week()
+        {
+            var written = CaptureTitleWrites();
+
+            Subject.LookupVolume("Fairy Tail", 38).Should().BeNull();
+
+            written().Should().NotBeNull();
+            GivenTitleCacheFile(written());
+            _requests.Clear();
+
+            NewInstance().LookupVolume("Fairy Tail", 38).Should().BeNull();
+            _requests.Should().BeEmpty();
+        }
+
+        [Test]
+        public void a_stored_no_match_older_than_a_week_is_asked_again()
+        {
+            GivenStoredTitleAnswer("en|fairy tail|38", DateTime.UtcNow.AddDays(-8), null);
+            _lists["Fairy Tail Vol 38"] = new[] { Item("f38", "Fairy Tail 38", "en", Blurb, Thumbnails) };
+            _records["f38"] = Item("f38", "Fairy Tail 38", "en", Blurb, Scanned);
+
+            Subject.LookupVolume("Fairy Tail", 38).CoverSize.Should().Be("large");
+        }
+
+        [Test]
+        public void a_fresh_stored_answer_is_served_without_http()
+        {
+            GivenStoredTitleAnswer("en|fairy tail|38", DateTime.UtcNow.AddDays(-20), new VolumeDetails { Title = "Fairy Tail 38", Description = Blurb, Language = "en", CoverUrl = "https://books.google.com/books/publisher/content?id=02WQEAAAQBAJ&printsec=frontcover&img=1&zoom=1", CoverSize = "thumbnail" });
+
+            Subject.LookupVolume("Fairy Tail", 38).Title.Should().Be("Fairy Tail 38");
+            _requests.Should().BeEmpty();
+        }
+
+        // Google's plain search does not always rank a volume it found before: an expired answer is
+        // re-asked, and kept (re-dated) when the new search finds nothing.
+        [Test]
+        public void an_expired_answer_is_kept_when_the_new_search_finds_nothing()
+        {
+            GivenStoredTitleAnswer("en|fairy tail|38", DateTime.UtcNow.AddDays(-31), new VolumeDetails { Title = "Fairy Tail 38", Description = Blurb, Language = "en", CoverSize = "thumbnail" });
+
+            Subject.LookupVolume("Fairy Tail", 38).Title.Should().Be("Fairy Tail 38");
+            Requests(ListPath + "?").Should().BeGreaterThan(0);
+        }
+
+        [Test]
+        public void a_complete_stored_answer_is_served_after_the_lifetime_without_http()
+        {
+            GivenStoredTitleAnswer("en|fairy tail|38", DateTime.UtcNow.AddDays(-90), new VolumeDetails { Title = "Fairy Tail 38", Description = Blurb, Language = "en", CoverUrl = "https://books.google.com/books/content?id=f38&zoom=4", CoverSize = "large" });
+
+            Subject.LookupVolume("Fairy Tail", 38).CoverSize.Should().Be("large");
+            _requests.Should().BeEmpty();
+        }
+
+        // A search that hit a blip (5xx) found nothing because it could not ask: not a no-match.
+        [Test]
+        public void a_blip_is_not_stored_as_a_no_match()
+        {
+            _listStatus = HttpStatusCode.ServiceUnavailable;
+
+            Subject.LookupVolume("Fairy Tail", 38).Should().BeNull();
+
+            Mocker.GetMock<IDiskProvider>().Verify(d => d.WriteAllText(TitleCachePath + ".tmp", It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public void a_language_edition_has_its_own_key()
+        {
+            GivenStoredTitleAnswer("en|fairy tail|38", DateTime.UtcNow.AddDays(-1), new VolumeDetails { Title = "Fairy Tail 38", Language = "en" });
+
+            Subject.LookupVolume("Fairy Tail", 38, "fr");
+
+            Requests(ListPath + "?").Should().BeGreaterThan(0);
+        }
+
+        // Since 10-17 intitle: answers no items at all; each volume spent three queries on it. After a
+        // run of empty intitle: answers the operator is skipped for a while (plain words still run).
+        [Test]
+        public void a_run_of_empty_intitle_answers_skips_intitle_for_a_while()
+        {
+            for (var volume = 1; volume <= 12; volume++)
+            {
+                Subject.LookupVolume("Fairy Tail", volume);
+            }
+
+            _requests.Clear();
+            Subject.LookupVolume("Fairy Tail", 13);
+
+            _requests.Should().NotContain(r => r.Contains("q=intitle:"));
+            _requests.Should().Contain(r => r.Contains("q=Fairy Tail Vol 13&"));
+        }
+
+        [Test]
+        public void an_intitle_answer_with_items_resets_the_run()
+        {
+            for (var volume = 1; volume <= 6; volume++)
+            {
+                Subject.LookupVolume("Fairy Tail", volume);
+            }
+
+            _lists["intitle:\"Fairy Tail, Vol. 7\""] = new[] { Item("f7", "Fairy Tail, Vol. 7", "en", Blurb, Thumbnails) };
+            _records["f7"] = Item("f7", "Fairy Tail, Vol. 7", "en", Blurb, Scanned);
+            Subject.LookupVolume("Fairy Tail", 7);
+
+            for (var volume = 8; volume <= 12; volume++)
+            {
+                Subject.LookupVolume("Fairy Tail", volume);
+            }
+
+            _requests.Clear();
+            Subject.LookupVolume("Fairy Tail", 13);
+
+            _requests.Should().Contain(r => r.Contains("q=intitle:"));
         }
 
         // ---- the record's title fields + complete records never expire (D6) ----

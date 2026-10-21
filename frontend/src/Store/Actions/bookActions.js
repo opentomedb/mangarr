@@ -64,6 +64,11 @@ export const filters = [
         key: 'missing',
         value: true,
         type: filterTypes.EQUAL
+      },
+      {
+        key: 'released',
+        value: true,
+        type: filterTypes.EQUAL
       }
     ]
   },
@@ -95,6 +100,14 @@ export const filterPredicates = {
     const { statistics = {} } = item;
 
     return !statistics.hasOwnProperty('bookFileCount') || statistics.bookFileCount === 0;
+  },
+
+  // Out on or before today. A volume not out yet is not missing (Sonarr's unaired episodes);
+  // an undated one counts as out, as the server's BookCount does.
+  released: function(item, filterValue) {
+    const released = !item.releaseDate || !moment(item.releaseDate).isAfter(moment(), 'day');
+
+    return released === filterValue;
   },
 
   releaseDate: function(item, filterValue, type) {

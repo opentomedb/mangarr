@@ -707,7 +707,8 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             return Subject.GetSeries("Fairy Tail", 0, resolveVolumeDetails: true, LibraryType.Manga, anilistId: 30598);
         }
 
-        [TestCase(true, true, true, OpenLibraryCover, "opentome")]
+        [TestCase(true, true, true, GoogleCover, "google")]      // a large Google scan beats the catalogue's cover (2026-10-19)
+        [TestCase(true, true, false, OpenLibraryCover, "opentome")]
         [TestCase(false, true, true, MangaDexCover, "mangadex-en")]
         [TestCase(false, false, true, GoogleCover, "google")]
         [TestCase(false, false, false, null, "series")]
@@ -731,7 +732,8 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         [TestCase(true, true, true, MangaDexCover, "mangadex-en")]
-        [TestCase(false, true, true, OpenLibraryCover, "opentome")]
+        [TestCase(false, true, true, GoogleCover, "google")]      // a large Google scan beats the catalogue's ~500 px cover (2026-10-18)
+        [TestCase(false, true, false, OpenLibraryCover, "opentome")]
         [TestCase(false, false, true, GoogleCover, "google")]
         [TestCase(false, false, false, AniListCover, "anilist")]
         public void the_poster_is_the_english_volume_one_cover(bool mangaDex, bool artifact, bool google, string expectedUrl, string expectedSource)
@@ -846,6 +848,88 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             series.Volumes.Single().CoverSource.Should().Be("google");
         }
 
+        // Google outage (2026-10-18): isbn: answers nothing (an ISBN-only record), the title search still
+        // finds the volume -- its cover is the volume's, as for a volume with no ISBN of its own.
+        [Test]
+        public void an_isbn_only_answer_takes_the_title_hits_cover()
+        {
+            GivenFairyTail(Row(1, "9780345501332"));
+            Mocker.GetMock<IGoogleBooksService>()
+                  .Setup(s => s.LookupByIsbn("9780345501332"))
+                  .Returns(new VolumeDetails { Isbn13 = "9780345501332", PageCount = 192 });
+            GivenTitleHit(1, EnglishBlurb, GoogleCover, isbn13: "9780345501333");
+
+            var volume = RefreshFairyTail().Volumes.Single();
+
+            volume.CoverUrl.Should().Be(GoogleCover);
+            volume.CoverSource.Should().Be("google");
+            volume.Isbn13.Should().Be("9780345501332");
+            volume.OverviewSource.Should().Be("title");
+        }
+
+        // A real ISBN record without a cover is not overridden by the title search's cover.
+        [Test]
+        public void a_titled_isbn_record_without_a_cover_does_not_take_the_title_hits_cover()
+        {
+            GivenFairyTail(Row(1, "9780345501332"));
+            GivenIsbnRecord("9780345501332", null, null);
+            GivenTitleHit(1, EnglishBlurb, GoogleCover, isbn13: "9780345501333");
+
+            RefreshFairyTail().Volumes.Single().CoverSource.Should().Be("series");
+        }
+
+        // Sharp posters (2026-10-18): a medium or large Google scan of volume 1 is the poster over the
+        // catalogue's cover (Open Library, ~500 px); a small one (~300 px) is not.
+        [TestCase("large", GoogleCover, "google")]
+        [TestCase("medium", GoogleCover, "google")]
+        [TestCase("small", OpenLibraryCover, "opentome")]
+        [TestCase("thumbnail", OpenLibraryCover, "opentome")]
+        public void a_sharp_google_scan_beats_the_catalogue_cover_for_the_poster(string coverSize, string expectedUrl, string expectedSource)
+        {
+            GivenFairyTail(Row(1, "9780345501332", OpenLibraryCover));
+            GivenIsbnRecord("9780345501332", EnglishBlurb, GoogleCover, coverSize: coverSize);
+
+            var series = RefreshFairyTail();
+
+            series.CoverUrl.Should().Be(expectedUrl);
+            series.PosterSource.Should().Be(expectedSource);
+
+            // The volume's own cover follows the same rule (2026-10-19).
+            series.Volumes.Single().CoverUrl.Should().Be(expectedUrl);
+            series.Volumes.Single().CoverSource.Should().Be(expectedSource);
+        }
+
+        // Re:Zero Chapter 4 (2026-10-18): no source has an English volume-1 cover, but volume 2 has one.
+        // The first English volume cover is the poster before AniList's Japanese art.
+        [Test]
+        public void a_later_english_volume_cover_makes_the_poster_before_anilist()
+        {
+            GivenFairyTail(Row(1, "9780345501332"), Row(2, "9780345503305"));
+            GivenIsbnRecord("9780345501332", EnglishBlurb, null);
+            GivenIsbnRecord("9780345503305", EnglishBlurb, CatalogueThumbnail, coverSize: "thumbnail");
+
+            var series = RefreshFairyTail();
+
+            series.PosterSource.Should().Be("english-volume");
+            series.CoverUrl.Should().Be(CatalogueThumbnail + "&fife=w800");
+            series.PosterFellBackOnMiss.Should().BeFalse();
+        }
+
+        // A volume-1 quota miss still keeps the stored poster when a later volume has a cover: that
+        // stored poster is volume 1's own English cover.
+        [Test]
+        public void a_volume_one_quota_miss_keeps_the_stored_poster_over_a_later_volume_cover()
+        {
+            GivenFairyTail(Row(1, "9780345501332"), Row(2, "9780345503305"));
+            GivenIsbnQuotaExceeded("9780345501332");
+            GivenIsbnRecord("9780345503305", EnglishBlurb, GoogleCover, coverSize: "large");
+
+            var series = RefreshFairyTail();
+
+            series.PosterSource.Should().Be("english-volume");
+            series.PosterFellBackOnMiss.Should().BeTrue();
+        }
+
         // A volume-1 quota miss leaves no Google cover this pass: the poster falls to AniList only for
         // that reason, so BookInfoProxy keeps the stored (English) poster — unchanged by the new tier.
         [Test]
@@ -955,7 +1039,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             series.Volumes.Select(v => v.OverviewSource).Should().OnlyContain(s => s == "none");
             series.Volumes.Select(v => v.CoverSource).Should().Equal("series", "series", "opentome");
             series.Volumes.Should().OnlyContain(v => v.GoogleMissed);
-            series.PosterSource.Should().Be("anilist");
+            series.PosterSource.Should().Be("english-volume");   // volume 3's English art beats AniList (2026-10-18)
             series.PosterFellBackOnMiss.Should().BeTrue();
             ExceptionVerification.ExpectedWarns(1);
             _log.Logs.Should().Contain("Warn|Google Books did not answer for 3 of 3 volumes of \"Fairy Tail\" this pass (rate limit, quota or transport); descriptions kept local, covers fell through");
@@ -1576,7 +1660,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
 
             RefreshFairyTail();
 
-            _log.Logs.Should().Contain("Info|Volume metadata Fairy Tail: descriptions 2/3 (isbn 1, title 1, none 1), covers 2/3 (opentome 1, mangadex-en 0, google 1, pin 0, series 1), poster via opentome");
+            _log.Logs.Should().Contain("Info|Volume metadata Fairy Tail: descriptions 2/3 (isbn 1, title 1, none 1), covers 2/3 (opentome 0, mangadex-en 0, google 2, pin 0, series 1), poster via google");
         }
 
         // ---- Audiobook identity B1 (2026-09-17, D1-D3): Audible products mapped onto the volumes ----
@@ -1800,7 +1884,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             series.Volumes.Should().OnlyContain(v => v.Audio == null && v.CoveredByVolume == null && v.Subtitle == null);
             Mocker.GetMock<IAudibleCatalogService>()
                   .Verify(s => s.GetSeries(It.IsAny<string>(), It.IsAny<IEnumerable<string>>()), Times.Never());
-            _log.Logs.Should().Contain("Info|Volume metadata Fairy Tail: descriptions 1/1 (isbn 1, title 0, none 0), covers 1/1 (opentome 1, mangadex-en 0, google 0, pin 0, series 0), poster via opentome");
+            _log.Logs.Should().Contain("Info|Volume metadata Fairy Tail: descriptions 1/1 (isbn 1, title 0, none 0), covers 1/1 (opentome 0, mangadex-en 0, google 1, pin 0, series 0), poster via google");
         }
 
         [Test]

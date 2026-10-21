@@ -315,6 +315,39 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             edition.CoverMissed.Should().BeFalse();
         }
 
+        // 2026-10-20: a volume that ends the pass with only the poster (no source had a cover, Google
+        // answered) names the poster as a fallback, so the ratchet keeps a stored Google cover.
+        [Test]
+        public void a_volume_without_a_cover_names_the_poster_as_a_fallback()
+        {
+            GivenVolume(new MangaVolumeMetadata { VolumeNumber = 1 });
+
+            var edition = Subject.GetAuthorInfo(MangaId).Books.Value.Single().Editions.Value.Single();
+
+            edition.PosterFallbackUrls.Should().Contain("https://uploads.mangadex.org/covers/bd6d0982/v1.jpg");
+        }
+
+        [Test]
+        public void a_volume_with_its_own_cover_names_no_poster_fallback()
+        {
+            GivenVolume(new MangaVolumeMetadata { VolumeNumber = 1, CoverUrl = "https://covers.openlibrary.org/b/id/7382174-L.jpg" });
+
+            var edition = Subject.GetAuthorInfo(MangaId).Books.Value.Single().Editions.Value.Single();
+
+            edition.PosterFallbackUrls.Should().BeNull();
+        }
+
+        // D5: the rejected record's cover must go -- the poster replaces it.
+        [Test]
+        public void a_volume_whose_record_was_rejected_names_no_poster_fallback()
+        {
+            GivenVolume(new MangaVolumeMetadata { VolumeNumber = 1, GoogleRejected = true });
+
+            var edition = Subject.GetAuthorInfo(MangaId).Books.Value.Single().Editions.Value.Single();
+
+            edition.PosterFallbackUrls.Should().BeNull();
+        }
+
         // D5 (2026-09-17): a volume whose Google ISBN record was rejected (its title does not name
         // the series) is NOT a miss — the poster is minted so the ratchet replaces the cover that
         // record gave — and both editions carry the flag that clears the blurb it gave.

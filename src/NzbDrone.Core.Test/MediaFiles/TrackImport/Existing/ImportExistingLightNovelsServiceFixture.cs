@@ -1476,6 +1476,27 @@ namespace NzbDrone.Core.Test.MediaFiles.BookImport.Existing
         }
 
         [Test]
+        public void search_book_ids_are_searched_after_a_clean_run()
+        {
+            Subject.Execute(new ImportExistingLightNovelsCommand(3) { SearchBookIds = new List<int> { 6 } });
+
+            Mocker.GetMock<IManageCommandQueue>()
+                .Verify(v => v.Push(It.Is<BookSearchCommand>(c => c.BookIds.Count == 1 && c.BookIds[0] == 6), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
+        }
+
+        [Test]
+        public void search_book_ids_are_not_searched_when_the_run_has_errors()
+        {
+            GivenAudiobookshelfFails();
+
+            Subject.Execute(new ImportExistingLightNovelsCommand(3) { SearchBookIds = new List<int> { 6 } });
+
+            Mocker.GetMock<IManageCommandQueue>()
+                .Verify(v => v.Push(It.IsAny<BookSearchCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
+            ExceptionVerification.ExpectedWarns(2);
+        }
+
+        [Test]
         public void a_report_with_errors_keeps_the_hold_and_queues_no_search()
         {
             _author.CopyInPending = true;

@@ -273,7 +273,8 @@ namespace NzbDrone.Core.Books.Calibre
 
         private void AddFormat(BookFile file, CalibreSettings settings)
         {
-            var format = Path.GetExtension(file.Path);
+            // the bare format ("epub"): with the dot calibre stores a "_EPUB" format (audit 2026-10-18)
+            var format = Path.GetExtension(file.Path).TrimStart('.');
             var bookData = Convert.ToBase64String(File.ReadAllBytes(file.Path));
 
             var payload = new CalibreChangesPayload

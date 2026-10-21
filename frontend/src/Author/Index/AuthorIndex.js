@@ -326,8 +326,6 @@ class AuthorIndex extends Component {
       onViewSelect,
       onRssSyncPress,
       library,
-      mangaCount,
-      lightNovelCount,
       onLibrarySelect,
       ...otherProps
     } = this.props;
@@ -480,8 +478,6 @@ class AuthorIndex extends Component {
           isPopulated ?
             <AuthorIndexLibraryTabs
               library={library}
-              mangaCount={mangaCount}
-              lightNovelCount={lightNovelCount}
               onLibrarySelect={onLibrarySelect}
             /> :
             null
@@ -604,8 +600,6 @@ AuthorIndex.propTypes = {
   totalItems: PropTypes.number.isRequired,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
   library: PropTypes.string.isRequired,
-  mangaCount: PropTypes.number.isRequired,
-  lightNovelCount: PropTypes.number.isRequired,
   columns: PropTypes.arrayOf(PropTypes.object).isRequired,
   selectedFilterKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   filters: PropTypes.arrayOf(PropTypes.object).isRequired,

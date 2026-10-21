@@ -528,13 +528,14 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
                   .Verify(s => s.GetSeries("Attack on Titan", It.IsAny<int>(), It.IsAny<bool>(), LibraryType.Manga, It.IsAny<int?>(), It.IsAny<string>()), Times.Once());
         }
 
-        // A curated English name (the Mushoku case) with no AnchorName: no scope, today's display-name key.
+        // A curated English name with no AnchorName (2026-10-18, Marriagetoxin): pins are read under the
+        // stored name too -- the name the pin screen writes them under.
         [Test]
-        public void an_english_series_with_a_curated_name_and_no_anchor_opens_no_scope()
+        public void an_english_series_with_a_curated_name_and_no_anchor_keeps_its_pins_under_its_stored_name()
         {
             Mocker.GetMock<IAuthorService>().Setup(s => s.FindById("local-attack-on-titan")).Returns(Existing("Mushoku Tensei", null, null, null));
 
-            CaptureScopedPinName().Should().BeNull();
+            CaptureScopedPinName().Should().Be("Mushoku Tensei");
         }
 
         [Test]

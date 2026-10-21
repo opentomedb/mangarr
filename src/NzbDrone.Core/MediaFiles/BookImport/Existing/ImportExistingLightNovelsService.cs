@@ -180,6 +180,10 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Existing
                 {
                     _commandQueueManager.Push(new MissingBookSearchCommand(author.Id));
                 }
+                else if (message.SearchBookIds?.Any() == true)
+                {
+                    _commandQueueManager.Push(new BookSearchCommand(message.SearchBookIds));
+                }
             }
         }
 

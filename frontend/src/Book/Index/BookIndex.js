@@ -289,8 +289,6 @@ class BookIndex extends Component {
       isDeleting,
       deleteError,
       library,
-      mangaCount,
-      lightNovelCount,
       onLibrarySelect,
       onScroll,
       onSortSelect,
@@ -454,8 +452,6 @@ class BookIndex extends Component {
           isPopulated ?
             <AuthorIndexLibraryTabs
               library={library}
-              mangaCount={mangaCount}
-              lightNovelCount={lightNovelCount}
               onLibrarySelect={onLibrarySelect}
             /> :
             null
@@ -590,8 +586,6 @@ BookIndex.propTypes = {
   isDeleting: PropTypes.bool.isRequired,
   deleteError: PropTypes.object,
   library: PropTypes.string.isRequired,
-  mangaCount: PropTypes.number.isRequired,
-  lightNovelCount: PropTypes.number.isRequired,
   onLibrarySelect: PropTypes.func.isRequired,
   onSortSelect: PropTypes.func.isRequired,
   onFilterSelect: PropTypes.func.isRequired,
