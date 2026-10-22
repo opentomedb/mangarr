@@ -362,6 +362,34 @@ class MediaManagement extends Component {
                     />
                   </FormGroup>
 
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>
+                      {translate('BuildVolumesFromChapters')}
+                    </FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.CHECK}
+                      name="buildVolumesFromChapters"
+                      helpText={translate('BuildVolumesFromChaptersHelpText')}
+                      onChange={onInputChange}
+                      {...settings.buildVolumesFromChapters}
+                    />
+                  </FormGroup>
+
+                  <FormGroup size={sizes.MEDIUM}>
+                    <FormLabel>
+                      {translate('UseMonthlyVolumePacks')}
+                    </FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.CHECK}
+                      name="useMonthlyVolumePacks"
+                      helpText={translate('UseMonthlyVolumePacksHelpText')}
+                      onChange={onInputChange}
+                      {...settings.useMonthlyVolumePacks}
+                    />
+                  </FormGroup>
+
                   <FormGroup
                     advancedSettings={advancedSettings}
                     isAdvanced={true}

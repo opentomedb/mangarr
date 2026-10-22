@@ -101,6 +101,7 @@ namespace NzbDrone.Core.Profiles.Qualities
 
                 AddDefaultProfile("Manga",
                     Quality.CBZ,
+                    Quality.CbzChapters,
                     Quality.CBZ,
                     Quality.CBR,
                     Quality.ZIP,

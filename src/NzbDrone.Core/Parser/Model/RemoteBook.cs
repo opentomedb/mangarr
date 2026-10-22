@@ -4,6 +4,7 @@ using System.Linq;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.Download.Clients;
+using NzbDrone.Core.MediaFiles.TorrentInfo;
 
 namespace NzbDrone.Core.Parser.Model
 {
@@ -23,6 +24,15 @@ namespace NzbDrone.Core.Parser.Model
         public List<CustomFormat> CustomFormats { get; set; }
         public int CustomFormatScore { get; set; }
         public ReleaseSourceType ReleaseSource { get; set; }
+
+        // Monthly multi-series packs: book id -> the file in the torrent that holds that volume.
+        // Null for normal grabs. PackTorrent is the already-fetched .torrent so the grab never re-fetches it.
+        public Dictionary<int, TorrentFileEntry> PackFiles { get; set; }
+        public byte[] PackTorrent { get; set; }
+
+        // True when history has a Grabbed row for this pack's info hash: Mangarr added the torrent before, so a
+        // copy already in the client is Mangarr's to take over. False means a copy there was added by hand.
+        public bool PackPreviouslyGrabbed { get; set; }
 
         public RemoteBook()
         {

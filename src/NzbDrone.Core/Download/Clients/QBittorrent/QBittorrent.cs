@@ -19,7 +19,7 @@ using NzbDrone.Core.Validation;
 
 namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
-    public class QBittorrent : TorrentClientBase<QBittorrentSettings>
+    public class QBittorrent : TorrentClientBase<QBittorrentSettings>, ISelectTorrentFiles
     {
         private readonly IQBittorrentProxySelector _proxySelector;
         private readonly ICached<SeedingTimeCacheEntry> _seedingTimeCache;
@@ -48,6 +48,8 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         private IQBittorrentProxy Proxy => _proxySelector.GetProxy(Settings);
         private Version ProxyApiVersion => _proxySelector.GetApiVersion(Settings);
+
+        public bool CanSelectFiles => ProxyApiVersion >= new Version(2, 0);
 
         public override void MarkItemAsImported(DownloadClientItem downloadClientItem)
         {
@@ -147,6 +149,11 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             var moveToTop = (isRecentBook && Settings.RecentTvPriority == (int)QBittorrentPriority.First) || (!isRecentBook && Settings.OlderTvPriority == (int)QBittorrentPriority.First);
             var forceStart = (QBittorrentState)Settings.InitialState == QBittorrentState.ForceStart;
 
+            if (remoteBook.PackFiles != null)
+            {
+                return AddPackFromTorrentFile(remoteBook, hash, filename, fileContent);
+            }
+
             try
             {
                 Proxy.AddTorrentFromFile(filename, fileContent, addHasSetShareLimits ? remoteBook.SeedConfiguration : null, Settings);
@@ -203,6 +210,173 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             return hash;
         }
 
+        // Monthly pack: the torrent is added stopped, every file but the matched ones is set to
+        // "do not download", then it starts. Any failure after the add removes the torrent again
+        // (nothing has downloaded yet) so a retry starts clean instead of finding a half-set-up pack.
+        private string AddPackFromTorrentFile(RemoteBook remoteBook, string hash, string filename, byte[] fileContent)
+        {
+            var lowerHash = hash.ToLower();
+
+            // Already in qBittorrent from an earlier pack grab: keep what it has, switch on this volume's
+            // file and make sure the torrent is running to fetch it. One Mangarr never grabbed was added by
+            // hand or another app, and is refused as any duplicate is: never relabelled, changed or started.
+            if (Proxy.IsTorrentLoaded(lowerHash, Settings))
+            {
+                if (!remoteBook.PackPreviouslyGrabbed)
+                {
+                    throw new DownloadClientRejectedReleaseException(remoteBook.Release, "qBittorrent already has this torrent ({0}) — added outside Mangarr, so it is not tracked here", hash);
+                }
+
+                Proxy.SetFilePriority(lowerHash, MapPackFiles(remoteBook, lowerHash).Wanted, 1, Settings);
+                ReturnPackToCategory(lowerHash);
+                StartPackTorrent(lowerHash);
+
+                return hash;
+            }
+
+            var setShareLimits = remoteBook.SeedConfiguration != null && (remoteBook.SeedConfiguration.Ratio.HasValue || remoteBook.SeedConfiguration.SeedTime.HasValue);
+            var addHasSetShareLimits = setShareLimits && ProxyApiVersion >= new Version(2, 8, 1);
+            var isRecentBook = remoteBook.IsRecentBook();
+            var moveToTop = (isRecentBook && Settings.RecentTvPriority == (int)QBittorrentPriority.First) || (!isRecentBook && Settings.OlderTvPriority == (int)QBittorrentPriority.First);
+
+            try
+            {
+                Proxy.AddTorrentFromFile(filename, fileContent, addHasSetShareLimits ? remoteBook.SeedConfiguration : null, Settings, true);
+            }
+            catch (DownloadClientException ex) when (IsDuplicateTorrent(ex))
+            {
+                throw new DownloadClientRejectedReleaseException(remoteBook.Release, "qBittorrent already has this torrent ({0}) — added by hand or another app, so it is not tracked here", ex, hash);
+            }
+
+            try
+            {
+                if (!WaitForTorrent(hash, PackLoadWaitAttempts))
+                {
+                    throw new DownloadClientException("qBittorrent did not load the pack torrent '{0}' in time to select its files", hash);
+                }
+
+                var (_, unwanted) = MapPackFiles(remoteBook, lowerHash);
+
+                if (unwanted.Any())
+                {
+                    Proxy.SetFilePriority(lowerHash, unwanted, 0, Settings);
+                }
+
+                if (!addHasSetShareLimits && setShareLimits)
+                {
+                    try
+                    {
+                        Proxy.SetTorrentSeedingConfiguration(lowerHash, remoteBook.SeedConfiguration, Settings);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn(ex, "Failed to set the torrent seed criteria for {0}.", hash);
+                    }
+                }
+
+                if (moveToTop)
+                {
+                    try
+                    {
+                        Proxy.MoveTorrentToTopInQueue(lowerHash, Settings);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn(ex, "Failed to set the torrent priority for {0}.", hash);
+                    }
+                }
+
+                StartPackTorrent(lowerHash);
+            }
+            catch
+            {
+                try
+                {
+                    // qBittorrent can accept the add yet list the torrent late; a delete sent
+                    // before it is listed is a silent no-op that would strand it with every file selected.
+                    if (WaitForTorrent(hash, PackLoadWaitAttempts))
+                    {
+                        Proxy.RemoveTorrent(lowerHash, false, Settings);
+                    }
+                    else
+                    {
+                        _logger.Warn("Pack torrent {0} never appeared in qBittorrent, so it could not be removed.", hash);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, "Failed to remove the half-configured pack torrent {0}.", hash);
+                }
+
+                throw;
+            }
+
+            return hash;
+        }
+
+        // An imported pack sits in the post-import category, which GetItems does not list: put it back in
+        // Mangarr's category so the newly selected volume is tracked and imported (the import moves it on again).
+        private void ReturnPackToCategory(string lowerHash)
+        {
+            if (Settings.MusicCategory.IsNullOrWhiteSpace() ||
+                Proxy.GetTorrents(Settings).Any(t => string.Equals(t.Hash, lowerHash, StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
+            Proxy.SetTorrentLabel(lowerHash, Settings.MusicCategory, Settings);
+        }
+
+        private void StartPackTorrent(string lowerHash)
+        {
+            switch ((QBittorrentState)Settings.InitialState)
+            {
+                case QBittorrentState.Start:
+                    Proxy.StartTorrent(lowerHash, Settings);
+                    break;
+                case QBittorrentState.ForceStart:
+                    Proxy.SetForceStart(lowerHash, true, Settings);
+                    break;
+            }
+        }
+
+        // The torrent file's own file order is not qBittorrent's: it hides BEP47 pad files and
+        // numbers filePrio ids without them. So map each wanted file onto qBittorrent's own list
+        // by path (qBittorrent prefixes multi-file names with the torrent's top folder).
+        private (List<int> Wanted, List<int> Unwanted) MapPackFiles(RemoteBook remoteBook, string lowerHash)
+        {
+            var clientFiles = Proxy.GetTorrentFiles(lowerHash, Settings);
+            var indexes = clientFiles.Select((f, position) => f.Index ?? position).ToList();
+            var byPath = new Dictionary<string, int>();
+
+            for (var i = 0; i < clientFiles.Count; i++)
+            {
+                var name = clientFiles[i].Name.Replace('\\', '/');
+                var slash = name.IndexOf('/');
+
+                byPath.TryAdd(name, indexes[i]);
+
+                if (slash >= 0)
+                {
+                    byPath[name.Substring(slash + 1)] = indexes[i];
+                }
+            }
+
+            var wanted = new List<int>();
+
+            foreach (var file in remoteBook.PackFiles.Values)
+            {
+                if (!byPath.TryGetValue(file.Path, out var index))
+                {
+                    throw new DownloadClientException("qBittorrent does not list the pack file '{0}' of torrent '{1}'", file.Path, lowerHash);
+                }
+
+                wanted.Add(index);
+            }
+
+            return (wanted, indexes.Except(wanted).ToList());
+        }
+
         // qBittorrent 5.x answers a duplicate torrents/add with 409 Conflict: the torrent is
         // already loaded (grabbed by hand, by Prowlarr, or seeding under another category). The
         // proxy wraps every non-2xx as "Failed to connect", which read as an outage and sent the
@@ -213,9 +387,11 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                    httpException.Response?.StatusCode == HttpStatusCode.Conflict;
         }
 
-        protected bool WaitForTorrent(string hash)
+        // 100 ms polls: 5 s for a monthly pack, whose torrent file is large enough to list slowly.
+        private const int PackLoadWaitAttempts = 50;
+
+        protected bool WaitForTorrent(string hash, int count = 10)
         {
-            var count = 10;
 
             while (count != 0)
             {
@@ -235,7 +411,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                 count--;
             }
 
-            _logger.Warn("Failed to load torrent '{0}' within 500 ms, skipping additional parameters.", hash);
+            _logger.Warn("Failed to load torrent '{0}' within the wait, skipping additional parameters.", hash);
             return false;
         }
 

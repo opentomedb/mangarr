@@ -369,6 +369,23 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("PdfToCbzSweep", value); }
         }
 
+        // Chapter packs (2026-10): build a volume from chapter releases when no volume release
+        // exists. A series can opt out (Author.BuildFromChapters). Default on.
+        public bool BuildVolumesFromChapters
+        {
+            get { return GetValueBoolean("BuildVolumesFromChapters", true); }
+
+            set { SetValue("BuildVolumesFromChapters", value); }
+        }
+
+        // Monthly packs (2026-10): take volumes from multi-series monthly packs. Default on.
+        public bool UseMonthlyVolumePacks
+        {
+            get { return GetValueBoolean("UseMonthlyVolumePacks", true); }
+
+            set { SetValue("UseMonthlyVolumePacks", value); }
+        }
+
         // Beta polish (2026-09-28): NewReleaseCheck asks GitHub for the latest Mangarr release (at most
         // every 12 h) and shows a notice when it is newer than the running build. Off = no request.
         public bool CheckForNewReleases

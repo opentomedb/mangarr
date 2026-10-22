@@ -62,6 +62,17 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             return ProfileComparisonResult.Upgrade;
         }
 
+        // A volume built from chapter packs is a stand-in: any real volume replaces it, whatever the
+        // profile's upgrade/cutoff settings say. CbzChapters over CbzChapters is not a replacement, and
+        // neither is an Unknown quality (not known to be a real volume).
+        public static bool ReplacesChapterBuilt(QualityModel existing, QualityModel incoming)
+        {
+            return existing?.Quality == Quality.CbzChapters &&
+                   incoming != null &&
+                   incoming.Quality != Quality.CbzChapters &&
+                   incoming.Quality != Quality.Unknown;
+        }
+
         public bool IsUpgradable(QualityProfile qualityProfile, QualityModel currentQualities, List<CustomFormat> currentCustomFormats, QualityModel newQuality, List<CustomFormat> newCustomFormats)
         {
             var qualityUpgrade = IsQualityUpgradable(qualityProfile, currentQualities, newQuality);

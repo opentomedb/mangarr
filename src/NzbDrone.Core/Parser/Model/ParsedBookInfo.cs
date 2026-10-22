@@ -22,6 +22,10 @@ namespace NzbDrone.Core.Parser.Model
         public double? VolumeStart { get; set; }
         public double? VolumeEnd { get; set; }
 
+        // Volumes built from chapter packs (2026-10-21): the chapters of a chapter release
+        // ("Series c001-073 (Digital)"); null for every other release.
+        public ChapterRange ChapterRange { get; set; }
+
         public string ReleaseGroup { get; set; }
         public string ReleaseHash { get; set; }
         public string ReleaseVersion { get; set; }

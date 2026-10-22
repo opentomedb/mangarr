@@ -127,7 +127,7 @@ namespace NzbDrone.Core.Extras.Metadata.ComicInfo
                         }
 
                         // Images are already compressed; storing avoids pointless CPU and keeps size stable.
-                        var copy = dest.CreateEntry(entry.FullName, CompressionLevel.NoCompression);
+                        var copy = dest.CreateFileEntry(entry.FullName, CompressionLevel.NoCompression);
                         copy.LastWriteTime = entry.LastWriteTime;
 
                         using var input = entry.Open();
@@ -135,7 +135,7 @@ namespace NzbDrone.Core.Extras.Metadata.ComicInfo
                         input.CopyTo(output);
                     }
 
-                    var infoEntry = dest.CreateEntry(EntryName, CompressionLevel.Optimal);
+                    var infoEntry = dest.CreateFileEntry(EntryName, CompressionLevel.Optimal);
                     using var infoStream = infoEntry.Open();
                     var bytes = new UTF8Encoding(false).GetBytes(xml);
                     infoStream.Write(bytes, 0, bytes.Length);

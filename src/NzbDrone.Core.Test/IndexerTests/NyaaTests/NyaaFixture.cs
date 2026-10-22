@@ -8,6 +8,7 @@ using NUnit.Framework;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Nyaa;
+using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 
@@ -54,6 +55,17 @@ namespace NzbDrone.Core.Test.IndexerTests.NyaaTests
             torrentInfo.MagnetUrl.Should().Be(null);
             torrentInfo.Peers.Should().Be(2 + 1);
             torrentInfo.Seeders.Should().Be(1);
+        }
+
+        [Test]
+        public async Task should_return_no_packs_without_any_http_call_when_generator_has_no_pack_search()
+        {
+            var releases = await Subject.FetchPacks(new PackSearchCriteria());
+
+            releases.Should().BeEmpty();
+
+            Mocker.GetMock<IHttpClient>()
+                .Verify(o => o.ExecuteAsync(It.IsAny<HttpRequest>()), Times.Never());
         }
     }
 }

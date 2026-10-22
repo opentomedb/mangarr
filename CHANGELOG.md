@@ -3,6 +3,48 @@
 Mangarr's user-facing changes, newest first. Each beta image also carries a build number
 (`10.0.0.N`, shown in System → Status); the release notes on GitHub give both.
 
+## 0.1.0-beta.4
+
+### Volumes built from chapters
+
+- **A missing manga volume can be built from official chapter releases.** When no full volume can
+  be found, Mangarr also searches for chapter packs marked `(Digital)`. If one pack holds every
+  chapter the catalogue lists for a volume, Mangarr builds that volume into one CBZ and imports it.
+  Scanlations are never used, and a volume is only built when every one of its chapters is there.
+- The volume page labels the file "Built from chapters 72–81", and its quality shows as
+  CBZ (chapters). The import notification says "{Series} Vol. 9 built from chapters 72–81".
+- A built volume opens with its cover (when Mangarr already has it) and ends with a closing page that
+  says which chapters it was built from.
+- **The full volume still wins.** When the real volume turns up later, it replaces the built copy
+  automatically, and the notification says so.
+- On by default. To turn it off everywhere, untick **Build volumes from chapters** in
+  Settings → Media Management. To turn it off for one series, untick it in that series' Edit
+  window. Light novels are not affected.
+
+### Volumes from monthly packs
+
+- **A missing manga volume can be taken from a monthly multi-series pack.** When a volume has no single
+  release three days after it came out, Mangarr looks for monthly "Volumes Update (Digital)" torrent
+  packs, picks the files that are exactly that volume, and downloads only those files from the pack.
+  Scanlations, volume ranges and chapter files are never used, and MyAnonamouse is never searched for packs.
+- Works with qBittorrent only. The order is: the single volume, then a monthly pack, then built from chapters;
+  a pack volume replaces a volume built from chapters.
+- Mangarr reads a pack's file list from its .torrent file, so the indexer must offer .torrent downloads:
+  for Nyaa in Prowlarr, untick **Prefer Magnet Links** (it is ticked by default). A pack offered only
+  as a magnet link is skipped. Packs already in qBittorrent that Mangarr did not grab are left alone.
+- On by default. To turn it off, untick **Use monthly volume packs** in Settings → Media Management.
+  Light novels are not affected.
+
+### Fixes
+
+- A volume built from chapters kept its CBZ (chapters) grade only until the next refresh: the rescan
+  regraded it as a plain CBZ, so the official volume no longer counted as an upgrade over it. The
+  grade now survives a rescan.
+- Edit Series showed an empty Max Volume box even when a limit was set.
+- A light-novel series no longer grabs digital manga rips. A volume release that says "(Digital)" and
+  carries no ebook signal ("Series v03 (2022) (Digital) (group)") used to be treated as an EPUB,
+  downloaded, then failed as an archive; it is now refused before the grab.
+
 ## 0.1.0-beta.3
 
 ### Covers

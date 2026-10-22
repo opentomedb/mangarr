@@ -1236,6 +1236,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                     ReleaseDatePrecision = artifactPrecision,
                     Isbn13 = hasArtifactVolume ? gv.Isbn13 : null,
                     PageCount = hasArtifactVolume ? gv.PageCount ?? 0 : 0,
+                    Chapters = hasArtifactVolume ? gv.Chapters : null,
                     CoverUrl = artifactCover ?? mangaDexCover,
                     CoverSource = artifactCover != null ? "opentome" : mangaDexCover != null ? mangaDexSource : "series",
                     OverviewSource = "none",

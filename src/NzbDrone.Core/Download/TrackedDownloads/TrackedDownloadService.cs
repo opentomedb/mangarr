@@ -8,9 +8,11 @@ using NzbDrone.Common.Serializer;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Events;
 using NzbDrone.Core.CustomFormats;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download.History;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles.BookImport.Specifications;
+using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
@@ -29,9 +31,11 @@ namespace NzbDrone.Core.Download.TrackedDownloads
 
     public class TrackedDownloadService : ITrackedDownloadService,
                                           IHandle<BookInfoRefreshedEvent>,
-                                          IHandle<AuthorDeletedEvent>
+                                          IHandle<AuthorDeletedEvent>,
+                                          IHandle<BookGrabbedEvent>
     {
         private readonly IParsingService _parsingService;
+        private readonly IBookService _bookService;
         private readonly IHistoryService _historyService;
         private readonly IEventAggregator _eventAggregator;
         private readonly IDownloadHistoryService _downloadHistoryService;
@@ -40,6 +44,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
         private readonly ICached<TrackedDownload> _cache;
 
         public TrackedDownloadService(IParsingService parsingService,
+                                      IBookService bookService,
                                       ICacheManager cacheManager,
                                       IHistoryService historyService,
                                       IEventAggregator eventAggregator,
@@ -48,6 +53,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                                       Logger logger)
         {
             _parsingService = parsingService;
+            _bookService = bookService;
             _historyService = historyService;
             _cache = cacheManager.GetCache<TrackedDownload>(GetType());
             _formatCalculator = formatCalculator;
@@ -164,13 +170,40 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                     ? HistoryService.MediaTypeOf(grabbedEvent ?? firstHistoryItem)
                     : (MediaType?)null;
 
-                // A grabbed download is the grab's book (2026-09-20): the decision engine already
-                // matched the release against the searched series, and the client's title alone is
-                // ambiguous between look-alike series ("Sword Art Online Progressive - Canon of the
-                // Golden Rule v01" parses as SAO Progressive v1) -- mapping by title first re-homed
-                // a grab onto the wrong series every day.
-                if (grabbedEvent != null && grabbedEvent.AuthorId > 0 && grabbedBookIds.Any())
+                // Monthly pack (2026-10-21): one torrent, one Grabbed row per volume across several series, each
+                // naming its file. The pack's own title says nothing about its volumes, so the rows are the mapping.
+                var packFiles = PackFilesOf(historyItems);
+
+                if (packFiles.Any())
                 {
+                    try
+                    {
+                        var info = new ParsedBookInfo { ReleaseTitle = grabbedEvent.SourceTitle, Quality = grabbedEvent.Quality };
+
+                        // A volume this download already imported is not downloading again: it leaves the queue.
+                        var imported = historyItems.Where(h => h.EventType == EntityHistoryEventType.BookFileImported).Select(h => h.BookId).ToHashSet();
+                        var bookIds = grabbedBookIds.Where(id => !imported.Contains(id)).ToList();
+
+                        trackedDownload.RemoteBook = MapPack(info, grabbedEvent.AuthorId, bookIds, downloadItem.Title);
+
+                        var mapped = trackedDownload.RemoteBook.Books.Select(b => b.Id).ToHashSet();
+                        trackedDownload.RemoteBook.PackFiles = packFiles.Where(p => mapped.Contains(p.Key)).ToDictionary(p => p.Key, p => p.Value);
+                        _logger.Debug("Mapped pack '{0}' from its grab history: {1} volume(s) to import", downloadItem.Title, trackedDownload.RemoteBook.PackFiles.Count);
+                    }
+                    catch (Exception ex)
+                    {
+                        // An orphan grab row (see below). The pack's title never stands in: it names no series.
+                        _logger.Debug(ex, "Grab history of pack '{0}' no longer resolves", downloadItem.Title);
+                        trackedDownload.RemoteBook = null;
+                    }
+                }
+                else if (grabbedEvent != null && grabbedEvent.AuthorId > 0 && grabbedBookIds.Any())
+                {
+                    // A grabbed download is the grab's book (2026-09-20): the decision engine already
+                    // matched the release against the searched series, and the client's title alone is
+                    // ambiguous between look-alike series ("Sword Art Online Progressive - Canon of the
+                    // Golden Rule v01" parses as SAO Progressive v1) -- mapping by title first re-homed
+                    // a grab onto the wrong series every day.
                     try
                     {
                         var info = parsedBookInfo
@@ -238,8 +271,9 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                     // Only a download the grab did not map reaches the history fallback: rows
                     // without a Grabbed event (a download Mangarr did not grab), and grabs whose
                     // own mapping came back empty.
-                    if (trackedDownload.RemoteBook?.Author == null ||
-                        trackedDownload.RemoteBook.Books.Empty())
+                    if (packFiles.Empty() &&
+                        (trackedDownload.RemoteBook?.Author == null ||
+                         trackedDownload.RemoteBook.Books.Empty()))
                     {
                         // Try parsing the original source title and if that fails, try parsing it as a special
                         var historyAuthor = firstHistoryItem.Author;
@@ -301,7 +335,7 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 // Only a true range triggers; a bounded grab intersected with the same range is a
                 // no-op, and a mismatched range never empties the mapping. Note: UpdateCachedItem
                 // (book/author-deletion events) rebuilds the mapping without this bounding.
-                if (trackedDownload.RemoteBook?.Books != null && trackedDownload.RemoteBook.Books.Count > 1)
+                if (trackedDownload.RemoteBook?.Books != null && trackedDownload.RemoteBook.Books.Count > 1 && trackedDownload.RemoteBook.PackFiles == null)
                 {
                     var clientRange = new ParsedBookInfo();
                     MangaVolumeParser.ParseVolume(trackedDownload.DownloadItem.Title, clientRange);
@@ -347,6 +381,63 @@ namespace NzbDrone.Core.Download.TrackedDownloads
             return trackedDownload;
         }
 
+        // A grabbed volume deleted since (its series remains) makes the bulk book lookup throw; it is dropped
+        // and the pack's other volumes still track and import.
+        private RemoteBook MapPack(ParsedBookInfo info, int authorId, List<int> bookIds, string title)
+        {
+            try
+            {
+                return _parsingService.Map(info, authorId, bookIds);
+            }
+            catch (Exception)
+            {
+                var existing = bookIds.Where(BookExists).ToList();
+
+                if (existing.Count == bookIds.Count)
+                {
+                    throw;
+                }
+
+                _logger.Debug("Pack '{0}': grabbed volume(s) {1} no longer exist", title, string.Join(", ", bookIds.Except(existing)));
+                return _parsingService.Map(info, authorId, existing);
+            }
+        }
+
+        private bool BookExists(int bookId)
+        {
+            try
+            {
+                return _bookService.GetBook(bookId) != null;
+            }
+            catch (ModelNotFoundException)
+            {
+                return false;
+            }
+        }
+
+        // Rebuilt PackFiles carry Length 0: import needs only each file's index and path.
+        private Dictionary<int, TorrentFileEntry> PackFilesOf(List<EntityHistory> historyItems)
+        {
+            var packFiles = new Dictionary<int, TorrentFileEntry>();
+
+            foreach (var row in historyItems.Where(h => h.EventType == EntityHistoryEventType.Grabbed))
+            {
+                var path = row.Data?.GetValueOrDefault("PackFile");
+
+                if (path.IsNotNullOrWhiteSpace() && !packFiles.ContainsKey(row.BookId))
+                {
+                    if (!int.TryParse(row.Data.GetValueOrDefault("PackFileIndex"), out var index))
+                    {
+                        _logger.Debug("Grab row of book {0} has no readable pack file index; using 0 for '{1}'", row.BookId, path);
+                    }
+
+                    packFiles[row.BookId] = new TorrentFileEntry(index, path, 0);
+                }
+            }
+
+            return packFiles;
+        }
+
         public List<TrackedDownload> GetTrackedDownloads()
         {
             return _cache.Values.ToList();
@@ -382,6 +473,13 @@ namespace NzbDrone.Core.Download.TrackedDownloads
 
         private void UpdateCachedItem(TrackedDownload trackedDownload)
         {
+            // A pack's title names no series: forget it so the next refresh tracks it again from its grab rows.
+            if (trackedDownload.RemoteBook?.PackFiles != null)
+            {
+                _cache.Remove(trackedDownload.DownloadItem.DownloadId);
+                return;
+            }
+
             var parsedEpisodeInfo = Parser.Parser.ParseBookTitle(trackedDownload.DownloadItem.Title);
 
             trackedDownload.RemoteBook = parsedEpisodeInfo == null ? null : _parsingService.Map(parsedEpisodeInfo, 0, new[] { 0 });
@@ -441,6 +539,17 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                 cachedItems.ForEach(UpdateCachedItem);
 
                 _eventAggregator.PublishEvent(new TrackedDownloadRefreshedEvent(GetTrackedDownloads()));
+            }
+        }
+
+        // A later pack grab selects another volume's file in a torrent already tracked (and maybe already
+        // imported). Forget the cached item so the next refresh tracks it again from the grab rows: the new
+        // volume joins its mapping, and the new grab is the download's latest event, so it is Downloading again.
+        public void Handle(BookGrabbedEvent message)
+        {
+            if (message.Book.PackFiles != null && message.DownloadId.IsNotNullOrWhiteSpace())
+            {
+                _cache.Remove(message.DownloadId);
             }
         }
     }

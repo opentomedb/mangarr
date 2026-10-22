@@ -14,6 +14,10 @@ namespace NzbDrone.Core.MetadataSource.Gcd
         public int? PageCount { get; set; }
         public List<int> Composition { get; set; }
 
+        // The whole and half chapters this volume collects (volume_chapters, a JSON array); null when
+        // the artifact lacks the column, the volume has none, or the value is malformed.
+        public List<double> Chapters { get; set; }
+
         // Optional (OpenTome artifacts): a cover looked up by THIS edition's ISBN, never by a
         // title search -- which is how a volume ends up wearing another volume's face. Null
         // means "no ISBN-keyed cover known"; the provider then falls back exactly as before.

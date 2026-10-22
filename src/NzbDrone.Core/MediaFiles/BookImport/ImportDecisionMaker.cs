@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO.Abstractions;
 using System.Linq;
 using NLog;
+using NzbDrone.Common;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Localization;
@@ -13,6 +14,7 @@ using NzbDrone.Core.MediaFiles.BookImport.Aggregation;
 using NzbDrone.Core.MediaFiles.BookImport.Identification;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
+using NzbDrone.Core.Qualities;
 using NzbDrone.Core.RootFolders;
 
 namespace NzbDrone.Core.MediaFiles.BookImport
@@ -95,6 +97,8 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                 return Tuple.Create(localTracks, decisions);
             }
 
+            var builtFromChapters = BuiltFromChapters(files, filter);
+
             ParsedBookInfo downloadClientItemInfo = null;
 
             if (downloadClientItem != null)
@@ -125,6 +129,12 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                 {
                     // TODO fix otherfiles?
                     _augmentingService.Augment(localTrack, true);
+
+                    if (builtFromChapters.TryGetValue(localTrack.Path, out var tracked))
+                    {
+                        localTrack.Quality = tracked;
+                    }
+
                     localTracks.Add(localTrack);
                 }
                 catch (AugmentingFailedException)
@@ -144,6 +154,25 @@ namespace NzbDrone.Core.MediaFiles.BookImport
             return Tuple.Create(localTracks, decisions);
         }
 
+        // Volumes built from chapter packs (2026-10-21): a rescan (a filtered pass over the library) re-reads a
+        // tracked file once its size or time moved -- ComicInfo written into it after import does both -- and
+        // grades it from its name. A built volume's library name no longer says "(Built from chapters", so its
+        // tracked CBZ (chapters) grade stands; any other tracked file is graded as before.
+        private Dictionary<string, QualityModel> BuiltFromChapters(List<IFileInfo> files, FilterFilesType filter)
+        {
+            if (filter == FilterFilesType.None)
+            {
+                return new Dictionary<string, QualityModel>();
+            }
+
+            // Only when every record at the path says so: a path tracked twice with different grades is left to
+            // the name, as before.
+            return (_mediaFileService.GetFileWithPath(files.Select(f => f.FullName).ToList()) ?? new List<BookFile>())
+                .GroupBy(f => f.Path, PathEqualityComparer.Instance)
+                .Where(g => g.All(f => f.Quality?.Quality == Quality.CbzChapters))
+                .ToDictionary(g => g.Key, g => g.First().Quality, PathEqualityComparer.Instance);
+        }
+
         public List<ImportDecision<LocalBook>> GetImportDecisions(List<IFileInfo> musicFiles, IdentificationOverrides idOverrides, ImportDecisionMakerInfo itemInfo, ImportDecisionMakerConfig config)
         {
             idOverrides = idOverrides ?? new IdentificationOverrides();
@@ -154,6 +183,15 @@ namespace NzbDrone.Core.MediaFiles.BookImport
             var decisions = trackData.Item2;
 
             localTracks.ForEach(x => x.ExistingFile = !config.NewDownload);
+
+            // Volumes built from chapter packs (2026-10-22): identification re-augments the files it matches
+            // (IdentificationService.ToLocalTrack), grading a rescanned built volume from its library name once
+            // more -- live, the first refresh after import had turned every built volume into plain CBZ, so the
+            // official volume no longer counted as an upgrade. A CBZ (chapters) grade decided above (the tracked
+            // grade on a rescan, the built file's own name on a new download) stands after identification.
+            var chapterGrades = localTracks
+                .Where(x => x.Quality?.Quality == Quality.CbzChapters)
+                .ToDictionary(x => x.Path, x => x.Quality, PathEqualityComparer.Instance);
 
             var releases = _identificationService.Identify(localTracks, idOverrides, config);
 
@@ -169,6 +207,11 @@ namespace NzbDrone.Core.MediaFiles.BookImport
                 // light novel's PDF becomes Ebook PDF before any spec -- release or file -- reads it.
                 foreach (var localTrack in release.LocalBooks)
                 {
+                    if (chapterGrades.TryGetValue(localTrack.Path, out var chapterGrade))
+                    {
+                        localTrack.Quality = chapterGrade;
+                    }
+
                     MediaTypes.RegradePdfForLibrary(localTrack.Quality, localTrack.Path, localTrack.Author?.Library);
                 }
 

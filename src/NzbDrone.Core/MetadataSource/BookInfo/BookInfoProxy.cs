@@ -673,6 +673,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 Isbn13 = vol.Isbn13,
                 PageCount = vol.PageCount,
                 ReleaseDate = vol.ReleaseDate,
+                Chapters = vol.Chapters,
 
                 // Preferred Edition (2026-09-24, D8): an edition with no English-audio counterpart mints its
                 // Audio edition unmonitored (nothing wanted, nothing searched). Every other edition as before.

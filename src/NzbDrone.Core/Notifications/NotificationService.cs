@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
@@ -59,12 +60,40 @@ namespace NzbDrone.Core.Notifications
                                     qualityString);
         }
 
-        private string GetBookDownloadMessage(Author author, Book book, List<BookFile> tracks)
+        private string GetBookDownloadMessage(Author author, Book book, List<BookFile> tracks, List<BookFile> oldFiles)
         {
+            // Volumes built from chapter packs (2026-10-21): say so when a volume was built from
+            // chapters, and when the official volume replaced a built copy.
+            if (tracks.Any() && tracks.All(t => t.Quality?.Quality == Quality.CbzChapters))
+            {
+                var chapters = tracks.First().Edition?.Value?.Chapters;
+
+                if (chapters != null && chapters.Any(c => c == Math.Floor(c)))
+                {
+                    return string.Format("{0} Vol. {1} built from chapters {2}–{3}",
+                        author.Name,
+                        FormatNumber(book.VolumeNumber),
+                        FormatNumber(chapters.Where(c => c == Math.Floor(c)).Min()),
+                        FormatNumber(chapters.Max()));
+                }
+            }
+            else if (tracks.Any() && tracks.All(t => t.Quality?.Quality != Quality.CbzChapters) &&
+                     oldFiles != null && oldFiles.Any(f => f.Quality?.Quality == Quality.CbzChapters))
+            {
+                return string.Format("{0} Vol. {1}: the official volume replaced the chapter-built copy",
+                    author.Name,
+                    FormatNumber(book.VolumeNumber));
+            }
+
             return string.Format("{0} - {1} ({2} Files Imported)",
                 author.Name,
                 book.Title,
                 tracks.Count);
+        }
+
+        private static string FormatNumber(double number)
+        {
+            return number.ToString("0.####", CultureInfo.InvariantCulture);
         }
 
         private string GetBookIncompleteImportMessage(string source)
@@ -162,7 +191,7 @@ namespace NzbDrone.Core.Notifications
 
             var downloadMessage = new BookDownloadMessage
             {
-                Message = GetBookDownloadMessage(message.Author, message.Book, message.ImportedBooks),
+                Message = GetBookDownloadMessage(message.Author, message.Book, message.ImportedBooks, message.OldFiles),
                 Author = message.Author,
                 Book = message.Book,
                 DownloadClientInfo = message.DownloadClientInfo,

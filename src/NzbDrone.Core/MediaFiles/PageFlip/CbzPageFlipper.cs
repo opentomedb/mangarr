@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using NzbDrone.Common.Extensions;
 
 namespace NzbDrone.Core.MediaFiles.PageFlip
 {
@@ -122,7 +123,7 @@ namespace NzbDrone.Core.MediaFiles.PageFlip
 
         private static void CopyEntry(ZipArchiveEntry source, ZipArchive destination, string name)
         {
-            var entry = destination.CreateEntry(name, CompressionLevel.NoCompression);
+            var entry = destination.CreateFileEntry(name, CompressionLevel.NoCompression);
             using var input = source.Open();
             using var output = entry.Open();
             input.CopyTo(output);

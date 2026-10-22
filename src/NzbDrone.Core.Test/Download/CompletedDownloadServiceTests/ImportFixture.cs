@@ -13,6 +13,8 @@ using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport;
+using NzbDrone.Core.MediaFiles.Chapters;
+using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
@@ -1397,6 +1399,489 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             Subject.Import(_trackedDownload);
 
             VerifyKnownBook(null);
+        }
+
+        // Volumes built from chapter packs (2026-10-21): a chapter pack is assembled into the volumes its
+        // files complete, each built CBZ imported from a work folder; the download folder is never imported.
+        private const string ChapterGrab = "Sample Series c072-090 (Digital)";
+        private static readonly string WorkRoot = @"C:\AppData".AsOsAgnostic();
+
+        private (Book Vol9, Book Vol10) GivenChapterPack(bool enabled = true)
+        {
+            var vol9 = new Book { Id = 9, VolumeNumber = 9 };
+            vol9.WithEdition(MediaType.Archive);
+            var vol10 = new Book { Id = 10, VolumeNumber = 10 };
+            vol10.WithEdition(MediaType.Archive);
+
+            _trackedDownload.RemoteBook.Author = new Author { Id = 3, Metadata = new AuthorMetadata { Name = "Sample Series", ForeignAuthorId = "sample-series" } };
+            _trackedDownload.RemoteBook.Books = new List<Book> { vol9, vol10 };
+            _trackedDownload.DownloadItem.Title = ChapterGrab;
+            _trackedDownload.DownloadItem.DownloadId = "abc123";
+
+            Mocker.GetMock<NzbDrone.Core.Configuration.IConfigService>().SetupGet(s => s.BuildVolumesFromChapters).Returns(enabled);
+            Mocker.GetMock<IChapterWorkFolder>().Setup(s => s.For("abc123")).Returns(WorkFolder);
+
+            GivenPayloadFiles(Enumerable.Range(72, 19).Select(c => $"Sample Series c{c:000} (Digital).cbz").ToArray());
+
+            return (vol9, vol10);
+        }
+
+        private string WorkFolder => Path.Combine(WorkRoot, "chapter-work", "abc123");
+
+        private AssembledVolume GivenAssembled(Book book, double first, double last, params (Book Book, string Reason)[] skipped)
+        {
+            return GivenAssembledVolumes(new[] { (book, first, last) }, skipped).Single();
+        }
+
+        private List<AssembledVolume> GivenAssembledVolumes((Book Book, double First, double Last)[] volumes, params (Book Book, string Reason)[] skipped)
+        {
+            var assembled = volumes.Select(v => new AssembledVolume
+            {
+                Book = v.Book,
+                First = v.First,
+                Last = v.Last,
+                CbzPath = Path.Combine(WorkFolder, $"Sample Series Vol. {v.Book.VolumeNumber:00} (Built from chapters {v.First}–{v.Last}).cbz")
+            }).ToList();
+
+            Mocker.GetMock<IChapterVolumeAssembler>()
+                .Setup(s => s.Assemble(It.IsAny<string>(), It.IsAny<Author>(), It.IsAny<List<Book>>(), It.IsAny<string>()))
+                .Returns(new ChapterAssemblyResult
+                {
+                    Volumes = assembled,
+                    Skipped = skipped.Select(s => s.Reason).ToList(),
+                    SkippedTexts = skipped.Select(s => new NzbDrone.Common.Localization.ServerText(s.Reason)).ToList(),
+                    SkippedBooks = skipped.Select(s => s.Book).ToList()
+                });
+
+            foreach (var volume in assembled)
+            {
+                Mocker.GetMock<IDownloadedBooksImportService>()
+                    .Setup(v => v.ProcessPath(volume.CbzPath, It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()))
+                    .Returns(new List<ImportResult>
+                    {
+                        new ImportResult(new ImportDecision<LocalBook>(new LocalBook { Path = volume.CbzPath, Author = _trackedDownload.RemoteBook.Author, Book = volume.Book }))
+                    });
+            }
+
+            return assembled;
+        }
+
+        [Test]
+        public void a_chapter_grab_imports_each_built_volume_from_the_work_folder()
+        {
+            var (vol9, vol10) = GivenChapterPack();
+            GivenGrabbedHistory(ChapterGrab);
+            var built = GivenAssembledVolumes(new[] { (vol9, 72.0, 81.0), (vol10, 82.0, 90.0) });
+
+            Subject.Import(_trackedDownload);
+
+            var outputPath = _trackedDownload.DownloadItem.OutputPath.FullPath;
+            Mocker.GetMock<IChapterVolumeAssembler>()
+                .Verify(s => s.Assemble(outputPath, _trackedDownload.RemoteBook.Author, It.Is<List<Book>>(b => b.Count == 2), WorkFolder), Times.Once());
+
+            foreach (var volume in built)
+            {
+                Mocker.GetMock<IDownloadedBooksImportService>()
+                    .Verify(v => v.ProcessPath(volume.CbzPath, ImportMode.Move, _trackedDownload.RemoteBook.Author, _trackedDownload.DownloadItem, volume.Book), Times.Once());
+            }
+
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(outputPath, It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+            Mocker.GetMock<IFailedDownloadService>()
+                .Verify(v => v.MarkAsFailed(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IChapterWorkFolder>().Verify(v => v.Remove(WorkFolder), Times.AtLeastOnce());
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
+        }
+
+        [Test]
+        public void a_chapter_grab_with_the_feature_off_is_still_a_failed_chapter_rip()
+        {
+            GivenChapterPack(enabled: false);
+            GivenGrabbedHistory(ChapterGrab);
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IChapterVolumeAssembler>()
+                .Verify(s => s.Assemble(It.IsAny<string>(), It.IsAny<Author>(), It.IsAny<List<Book>>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IFailedDownloadService>()
+                .Verify(v => v.MarkAsFailed(_trackedDownload.DownloadItem.DownloadId, false, It.Is<string>(r => r.StartsWith("Chapter-numbered rip: "))), Times.Once());
+
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [Test]
+        public void a_series_with_chapter_builds_off_is_still_a_failed_chapter_rip()
+        {
+            GivenChapterPack();
+            _trackedDownload.RemoteBook.Author.BuildFromChapters = false;
+            GivenGrabbedHistory(ChapterGrab);
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IChapterVolumeAssembler>()
+                .Verify(s => s.Assemble(It.IsAny<string>(), It.IsAny<Author>(), It.IsAny<List<Book>>(), It.IsAny<string>()), Times.Never());
+            Mocker.GetMock<IFailedDownloadService>()
+                .Verify(v => v.MarkAsFailed(_trackedDownload.DownloadItem.DownloadId, false, It.Is<string>(r => r.StartsWith("Chapter-numbered rip: "))), Times.Once());
+
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [Test]
+        public void the_grabbed_title_decides_not_the_client_name()
+        {
+            var (vol9, _) = GivenChapterPack();
+            GivenGrabbedHistory("Sample Series v09 (Digital)");
+            _trackedDownload.RemoteBook.ParsedBookInfo = new ParsedBookInfo { ChapterRange = new ChapterRange { Start = 72, End = 90, IsDigital = true } };
+            GivenAssembled(vol9, 72, 81);
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IChapterVolumeAssembler>()
+                .Verify(s => s.Assemble(It.IsAny<string>(), It.IsAny<Author>(), It.IsAny<List<Book>>(), It.IsAny<string>()), Times.Never());
+
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [Test]
+        public void an_untracked_chapter_pack_mapped_to_a_series_is_built()
+        {
+            var (vol9, _) = GivenChapterPack();
+            _trackedDownload.RemoteBook.ParsedBookInfo = new ParsedBookInfo { ChapterRange = new ChapterRange { Start = 72, End = 90, IsDigital = true } };
+            var built = GivenAssembled(vol9, 72, 81);
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(built.CbzPath, ImportMode.Move, _trackedDownload.RemoteBook.Author, _trackedDownload.DownloadItem, vol9), Times.Once());
+            Mocker.GetMock<IFailedDownloadService>()
+                .Verify(v => v.MarkAsFailed(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never());
+        }
+
+        [Test]
+        public void an_untracked_chapter_pack_with_the_feature_off_is_parked_as_before()
+        {
+            GivenChapterPack(enabled: false);
+            _trackedDownload.RemoteBook.ParsedBookInfo = new ParsedBookInfo { ChapterRange = new ChapterRange { Start = 72, End = 90, IsDigital = true } };
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IChapterVolumeAssembler>()
+                .Verify(s => s.Assemble(It.IsAny<string>(), It.IsAny<Author>(), It.IsAny<List<Book>>(), It.IsAny<string>()), Times.Never());
+            _trackedDownload.State.Should().Be(TrackedDownloadState.ImportFailed);
+            _trackedDownload.StatusMessages.SelectMany(m => m.Messages).Should().Contain(m => m.StartsWith("Chapter-numbered rip: "));
+
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [Test]
+        public void an_untracked_scanlation_chapter_pack_is_never_built()
+        {
+            GivenChapterPack();
+            _trackedDownload.RemoteBook.ParsedBookInfo = new ParsedBookInfo { ChapterRange = new ChapterRange { Start = 72, End = 90, IsDigital = true, IsScanlation = true } };
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IChapterVolumeAssembler>()
+                .Verify(s => s.Assemble(It.IsAny<string>(), It.IsAny<Author>(), It.IsAny<List<Book>>(), It.IsAny<string>()), Times.Never());
+            _trackedDownload.State.Should().Be(TrackedDownloadState.ImportFailed);
+
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [Test]
+        public void a_skipped_volume_is_reported_in_the_status_messages()
+        {
+            var (vol9, vol10) = GivenChapterPack();
+            GivenGrabbedHistory(ChapterGrab);
+            GivenAssembled(vol9, 72, 81, (vol10, "Vol. 10: chapter 85 missing"));
+
+            Subject.Import(_trackedDownload);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
+            _trackedDownload.StatusMessages.SelectMany(m => m.Messages).Should().Contain("Vol. 10: chapter 85 missing");
+            _trackedDownload.StatusMessages.SelectMany(m => m.MessageTexts ?? new List<NzbDrone.Common.Localization.ServerText>()).Select(t => t.English).Should().Contain("Vol. 10: chapter 85 missing");
+        }
+
+        // The skipped volume's own history says why it was not built.
+        [Test]
+        public void a_skipped_volume_gets_a_history_row_with_its_reason()
+        {
+            var (vol9, vol10) = GivenChapterPack();
+            GivenGrabbedHistory(ChapterGrab);
+            GivenAssembled(vol9, 72, 81, (vol10, "Vol. 10: chapter 85 missing"));
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IEventAggregator>()
+                .Verify(v => v.PublishEvent(It.Is<ChapterVolumeSkippedEvent>(e => e.Book == vol10 && e.Reason.English == "Vol. 10: chapter 85 missing" && e.TrackedDownload == _trackedDownload)), Times.Once());
+            Mocker.GetMock<IEventAggregator>()
+                .Verify(v => v.PublishEvent(It.Is<ChapterVolumeSkippedEvent>(e => e.Book == vol9)), Times.Never());
+        }
+
+        [Test]
+        public void a_chapter_pack_that_builds_nothing_is_failed_with_its_reasons()
+        {
+            var (vol9, vol10) = GivenChapterPack();
+            GivenGrabbedHistory(ChapterGrab);
+            GivenAssembledVolumes(new (Book, double, double)[0], (vol9, "Vol. 9: chapter 75 missing"), (vol10, "Vol. 10: chapter 85 missing"));
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+            Mocker.GetMock<IFailedDownloadService>()
+                .Verify(v => v.MarkAsFailed(_trackedDownload.DownloadItem.DownloadId, false, "Chapter release completes no volume (Vol. 9: chapter 75 missing; Vol. 10: chapter 85 missing)"), Times.Once());
+            Mocker.GetMock<IEventAggregator>()
+                .Verify(v => v.PublishEvent(It.IsAny<ChapterVolumeSkippedEvent>()), Times.Never());
+            _trackedDownload.StatusMessages.SelectMany(m => m.Messages).Should().Contain("Vol. 9: chapter 75 missing");
+            Mocker.GetMock<IChapterWorkFolder>().Verify(v => v.Remove(WorkFolder), Times.AtLeastOnce());
+
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [Test]
+        public void the_work_folder_is_deleted_when_the_import_throws()
+        {
+            var (vol9, _) = GivenChapterPack();
+            GivenGrabbedHistory(ChapterGrab);
+            var built = GivenAssembled(vol9, 72, 81);
+
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Setup(v => v.ProcessPath(built.CbzPath, It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()))
+                .Throws(new IOException("disk full"));
+
+            Assert.Throws<IOException>(() => Subject.Import(_trackedDownload));
+
+            Mocker.GetMock<IChapterWorkFolder>().Verify(v => v.Remove(WorkFolder), Times.AtLeastOnce());
+        }
+
+        [Test]
+        public void a_normal_volume_grab_never_assembles()
+        {
+            GivenChapterPack();
+            GivenGrabbedHistory("Sample Series v09 (Digital)");
+            GivenImported(new[] { "Sample Series v09 (Digital).cbz" }, _trackedDownload.RemoteBook.Books[0]);
+            _trackedDownload.RemoteBook.Books = new List<Book> { _trackedDownload.RemoteBook.Books[0] };
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IChapterVolumeAssembler>()
+                .Verify(s => s.Assemble(It.IsAny<string>(), It.IsAny<Author>(), It.IsAny<List<Book>>(), It.IsAny<string>()), Times.Never());
+            AssertImported();
+        }
+
+        // Monthly packs (2026-10-21): one torrent holding volumes of several series, only the matched files
+        // selected. Each file is copied onto its own volume; the rest of the download is never read.
+        private const string PackTitle = "Viz Manga Volumes Update 2026-10 (Digital)";
+        private const string KaijuFile = "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz";
+        private const string JujutsuFile = "Jujutsu Kaisen/Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz";
+
+        private (Book Kaiju, Book Jujutsu) GivenPack()
+        {
+            var kaijuSeries = new Author { Id = 1, Metadata = new AuthorMetadata { Name = "Kaiju No. 8 - Relax", ForeignAuthorId = "kaiju-relax" } };
+            var jujutsuSeries = new Author { Id = 2, Metadata = new AuthorMetadata { Name = "Jujutsu Kaisen", ForeignAuthorId = "jujutsu-kaisen" } };
+
+            var kaiju = new Book { Id = 11, VolumeNumber = 2, Author = kaijuSeries };
+            kaiju.WithEdition(MediaType.Archive);
+            var jujutsu = new Book { Id = 21, VolumeNumber = 28, Author = jujutsuSeries };
+            jujutsu.WithEdition(MediaType.Archive);
+
+            _trackedDownload.RemoteBook.Author = kaijuSeries;
+            _trackedDownload.RemoteBook.Books = new List<Book> { kaiju, jujutsu };
+            _trackedDownload.RemoteBook.PackFiles = new Dictionary<int, TorrentFileEntry>
+            {
+                { 11, new TorrentFileEntry(4, KaijuFile, 0) },
+                { 21, new TorrentFileEntry(9, JujutsuFile, 0) }
+            };
+            _trackedDownload.DownloadItem.Title = PackTitle;
+            _trackedDownload.DownloadItem.DownloadId = "PACKHASH";
+
+            GivenGrabbedHistory(PackTitle);
+
+            return (kaiju, jujutsu);
+        }
+
+        private string PackPath(string root, string file)
+        {
+            return Path.Combine(new[] { root }.Concat(file.Split('/')).ToArray());
+        }
+
+        private void GivenPackFile(string path, Book book, params string[] rejections)
+        {
+            Mocker.GetMock<IDiskProvider>().Setup(s => s.FileExists(path)).Returns(true);
+
+            var decision = rejections.Any()
+                ? new ImportDecision<LocalBook>(new LocalBook { Path = path, Author = book.Author.Value, Book = book }, rejections.Select(r => new Rejection(r)).ToArray())
+                : new ImportDecision<LocalBook>(new LocalBook { Path = path, Author = book.Author.Value, Book = book });
+
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Setup(v => v.ProcessPath(path, It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()))
+                .Returns(new List<ImportResult> { new ImportResult(decision, rejections) });
+        }
+
+        private void VerifyPackFileImported(string path, Book book)
+        {
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(path, ImportMode.Copy, book.Author.Value, _trackedDownload.DownloadItem, book), Times.Once());
+        }
+
+        private void VerifyNoFolderImport(string folder)
+        {
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(folder, It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(It.IsAny<string>(), It.IsNotIn(ImportMode.Copy), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+        }
+
+        [Test]
+        public void a_pack_with_a_top_folder_copies_each_matched_file_onto_its_own_volume()
+        {
+            var (kaiju, jujutsu) = GivenPack();
+            var root = _trackedDownload.DownloadItem.OutputPath.FullPath;
+            Mocker.GetMock<IDiskProvider>().Setup(s => s.FolderExists(root)).Returns(true);
+            GivenPackFile(PackPath(root, KaijuFile), kaiju);
+            GivenPackFile(PackPath(root, JujutsuFile), jujutsu);
+
+            Subject.Import(_trackedDownload);
+
+            VerifyPackFileImported(PackPath(root, KaijuFile), kaiju);
+            VerifyPackFileImported(PackPath(root, JujutsuFile), jujutsu);
+            VerifyNoFolderImport(root);
+            Mocker.GetMock<IDiskProvider>().Verify(s => s.GetFiles(It.IsAny<string>(), It.IsAny<bool>()), Times.Never());
+            Mocker.GetMock<IEventAggregator>().Verify(v => v.PublishEvent(It.IsAny<DownloadCompletedEvent>()), Times.Once());
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
+        }
+
+        [Test]
+        public void a_pack_with_root_level_files_imports_from_the_folder_its_output_file_is_in()
+        {
+            // No top folder: the client reports one of the pack's files as the download's path.
+            var (kaiju, jujutsu) = GivenPack();
+            var root = @"C:\DropFolder".AsOsAgnostic();
+            _trackedDownload.DownloadItem.OutputPath = new OsPath(PackPath(root, KaijuFile));
+            GivenPackFile(PackPath(root, KaijuFile), kaiju);
+            GivenPackFile(PackPath(root, JujutsuFile), jujutsu);
+
+            Subject.Import(_trackedDownload);
+
+            VerifyPackFileImported(PackPath(root, KaijuFile), kaiju);
+            VerifyPackFileImported(PackPath(root, JujutsuFile), jujutsu);
+            VerifyNoFolderImport(root);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
+        }
+
+        [TestCase("Chapter 001.cbz", "Chapter 002.cbz", "Chapter 003.cbz", "Chapter 004.cbz")]
+        [TestCase("Some Novel Vol. 1.epub", "Some Novel Vol. 2.epub")]
+        public void a_pack_skips_the_chapter_rip_and_wrong_payload_checks(params string[] otherFiles)
+        {
+            var (kaiju, jujutsu) = GivenPack();
+            GivenPayloadFiles(otherFiles);
+            var root = _trackedDownload.DownloadItem.OutputPath.FullPath;
+            GivenPackFile(PackPath(root, KaijuFile), kaiju);
+            GivenPackFile(PackPath(root, JujutsuFile), jujutsu);
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IFailedDownloadService>()
+                .Verify(v => v.MarkAsFailed(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never());
+            VerifyPackFileImported(PackPath(root, KaijuFile), kaiju);
+            VerifyPackFileImported(PackPath(root, JujutsuFile), jujutsu);
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
+        }
+
+        [Test]
+        public void a_missing_pack_file_leaves_only_its_own_volume_unimported()
+        {
+            var (kaiju, jujutsu) = GivenPack();
+            var root = _trackedDownload.DownloadItem.OutputPath.FullPath;
+            Mocker.GetMock<IDiskProvider>().Setup(s => s.FolderExists(root)).Returns(true);
+            GivenPackFile(PackPath(root, KaijuFile), kaiju);
+
+            Subject.Import(_trackedDownload);
+
+            VerifyPackFileImported(PackPath(root, KaijuFile), kaiju);
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(PackPath(root, JujutsuFile), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+            Mocker.GetMock<IEventAggregator>()
+                .Verify(v => v.PublishEvent(It.Is<ChapterVolumeSkippedEvent>(e => e.Book == jujutsu && e.Reason.English.Contains(JujutsuFile))), Times.Once());
+            Mocker.GetMock<IEventAggregator>()
+                .Verify(v => v.PublishEvent(It.Is<ChapterVolumeSkippedEvent>(e => e.Book == kaiju)), Times.Never());
+            Mocker.GetMock<IEventAggregator>().Verify(v => v.PublishEvent(It.IsAny<DownloadCompletedEvent>()), Times.Once());
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [Test]
+        public void an_unimportable_pack_file_leaves_only_its_own_volume_unimported()
+        {
+            var (kaiju, jujutsu) = GivenPack();
+            var root = _trackedDownload.DownloadItem.OutputPath.FullPath;
+            Mocker.GetMock<IDiskProvider>().Setup(s => s.FolderExists(root)).Returns(true);
+            GivenPackFile(PackPath(root, KaijuFile), kaiju, "Not an upgrade for existing book file(s)");
+            GivenPackFile(PackPath(root, JujutsuFile), jujutsu);
+
+            Subject.Import(_trackedDownload);
+
+            VerifyPackFileImported(PackPath(root, JujutsuFile), jujutsu);
+            Mocker.GetMock<IEventAggregator>()
+                .Verify(v => v.PublishEvent(It.Is<ChapterVolumeSkippedEvent>(e => e.Book == kaiju &&
+                                                                                 e.Reason.English.Contains(KaijuFile) &&
+                                                                                 e.Reason.English.Contains("Not an upgrade for existing book file(s)"))), Times.Once());
+            Mocker.GetMock<IEventAggregator>()
+                .Verify(v => v.PublishEvent(It.Is<ChapterVolumeSkippedEvent>(e => e.Book == jujutsu)), Times.Never());
+            Mocker.GetMock<IEventAggregator>().Verify(v => v.PublishEvent(It.IsAny<DownloadCompletedEvent>()), Times.Once());
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [Test]
+        public void a_pack_none_of_whose_files_are_there_waits_instead_of_completing()
+        {
+            // Every file missing is a path problem (a remote path mapping), not a bad volume: retried, never settled.
+            GivenPack();
+
+            Subject.Import(_trackedDownload);
+
+            Mocker.GetMock<IEventAggregator>().Verify(v => v.PublishEvent(It.IsAny<DownloadCompletedEvent>()), Times.Never());
+            Mocker.GetMock<IEventAggregator>().Verify(v => v.PublishEvent(It.IsAny<ChapterVolumeSkippedEvent>()), Times.Never());
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.ImportPending);
+            ExceptionVerification.IgnoreWarns();
+        }
+
+        [Test]
+        public void a_pack_imports_only_the_volumes_this_download_has_not_imported_yet()
+        {
+            // An imported pack later had another volume's file selected (a later grab from the same torrent).
+            var (kaiju, jujutsu) = GivenPack();
+            var root = _trackedDownload.DownloadItem.OutputPath.FullPath;
+            Mocker.GetMock<IDiskProvider>().Setup(s => s.FolderExists(root)).Returns(true);
+            GivenPackFile(PackPath(root, KaijuFile), kaiju);
+            GivenPackFile(PackPath(root, JujutsuFile), jujutsu);
+
+            Mocker.GetMock<IHistoryService>()
+                .Setup(s => s.FindByDownloadId("PACKHASH"))
+                .Returns(new List<EntityHistory>
+                {
+                    new EntityHistory { EventType = EntityHistoryEventType.Grabbed, BookId = 21, DownloadId = "PACKHASH", SourceTitle = PackTitle },
+                    new EntityHistory { EventType = EntityHistoryEventType.BookFileImported, BookId = 11, DownloadId = "PACKHASH" },
+                    new EntityHistory { EventType = EntityHistoryEventType.Grabbed, BookId = 11, DownloadId = "PACKHASH", SourceTitle = PackTitle }
+                });
+
+            Subject.Import(_trackedDownload);
+
+            VerifyPackFileImported(PackPath(root, JujutsuFile), jujutsu);
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(PackPath(root, KaijuFile), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+            Mocker.GetMock<IEventAggregator>().Verify(v => v.PublishEvent(It.IsAny<DownloadCompletedEvent>()), Times.Once());
+
+            _trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
         }
 
         private void AssertNotImported()

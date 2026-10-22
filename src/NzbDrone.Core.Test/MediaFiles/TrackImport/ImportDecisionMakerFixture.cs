@@ -168,6 +168,85 @@ namespace NzbDrone.Core.Test.MediaFiles.BookImport
                   });
         }
 
+        // Volumes built from chapter packs (2026-10-21): once renamed into the library a built volume's name no
+        // longer says "(Built from chapters"; a rescan that re-reads the changed file (ComicInfo written into it
+        // after import moves its size and time) must keep its tracked CBZ (chapters) grade, or the official
+        // volume would stop counting as an upgrade over it.
+        private void GivenTrackedFile(Quality tracked, Quality parsed, params Quality[] alsoTracked)
+        {
+            _idConfig.Filter = FilterFilesType.Known;
+
+            Mocker.GetMock<IMediaFileService>()
+                .Setup(s => s.GetFileWithPath(It.IsAny<List<string>>()))
+                .Returns(new[] { tracked }.Concat(alsoTracked)
+                    .Select(q => new BookFile { Path = _fileInfos[0].FullName, Quality = new QualityModel(q) })
+                    .ToList());
+
+            Mocker.GetMock<IAugmentingService>()
+                  .Setup(s => s.Augment(It.IsAny<LocalBook>(), It.IsAny<bool>()))
+                  .Callback<LocalBook, bool>((localTrack, otherFiles) =>
+                  {
+                      localTrack.Book = _localTrack.Book;
+                      localTrack.Quality = new QualityModel(parsed);
+                  });
+
+            GivenSpecifications(_pass1);
+        }
+
+        [Test]
+        public void a_rescanned_chapter_built_file_keeps_its_tracked_grade()
+        {
+            GivenTrackedFile(Quality.CbzChapters, Quality.CBZ);
+
+            var result = Subject.GetImportDecisions(_fileInfos, _idOverrides, null, _idConfig);
+
+            result.Single().Item.Quality.Quality.Should().Be(Quality.CbzChapters);
+        }
+
+        // Identification re-augments the files it matches (IdentificationService.ToLocalTrack), which grades the
+        // renamed built volume from its library name once more; the tracked grade must outlive that pass too.
+        // Live 2026-10-22: the first refresh after import had regraded every built volume to plain CBZ.
+        [Test]
+        public void a_rescanned_chapter_built_file_keeps_its_tracked_grade_through_identification()
+        {
+            GivenTrackedFile(Quality.CbzChapters, Quality.CBZ);
+
+            Mocker.GetMock<IIdentificationService>()
+                .Setup(s => s.Identify(It.IsAny<List<LocalBook>>(), It.IsAny<IdentificationOverrides>(), It.IsAny<ImportDecisionMakerConfig>()))
+                .Returns((List<LocalBook> tracks, IdentificationOverrides idOverrides, ImportDecisionMakerConfig config) =>
+                {
+                    tracks.ForEach(t => t.Quality = new QualityModel(Quality.CBZ));
+
+                    var ret = new LocalEdition(tracks);
+                    ret.Edition = _edition;
+                    return new List<LocalEdition> { ret };
+                });
+
+            var result = Subject.GetImportDecisions(_fileInfos, _idOverrides, null, _idConfig);
+
+            result.Single().Item.Quality.Quality.Should().Be(Quality.CbzChapters);
+        }
+
+        [Test]
+        public void a_path_tracked_with_mixed_grades_is_graded_as_before()
+        {
+            GivenTrackedFile(Quality.CbzChapters, Quality.CBZ, Quality.CBZ);
+
+            var result = Subject.GetImportDecisions(_fileInfos, _idOverrides, null, _idConfig);
+
+            result.Single().Item.Quality.Quality.Should().Be(Quality.CBZ);
+        }
+
+        [Test]
+        public void a_rescanned_file_of_any_other_grade_is_graded_as_before()
+        {
+            GivenTrackedFile(Quality.PDF, Quality.CBZ);
+
+            var result = Subject.GetImportDecisions(_fileInfos, _idOverrides, null, _idConfig);
+
+            result.Single().Item.Quality.Quality.Should().Be(Quality.CBZ);
+        }
+
         [Test]
         public void should_call_all_book_specifications()
         {

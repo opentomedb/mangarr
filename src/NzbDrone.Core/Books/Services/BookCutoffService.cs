@@ -34,10 +34,19 @@ namespace NzbDrone.Core.Books
                 var cutoff = profile.UpgradeAllowed ? profile.Cutoff : profile.FirstAllowedQuality().Id;
                 var cutoffIndex = profile.GetIndex(cutoff);
                 var belowCutoff = profile.Items.Take(cutoffIndex.Index).ToList();
+                var belowCutoffIds = belowCutoff.SelectMany(i => i.GetQualities().Select(q => q.Id)).ToList();
 
-                if (belowCutoff.Any())
+                // A chapter-built volume stays wanted until a real volume replaces it, even when the
+                // profile does not allow upgrades (then CbzChapters is the cutoff itself) or the
+                // quality has been unticked since the build.
+                if (!belowCutoffIds.Contains(Quality.CbzChapters.Id))
                 {
-                    qualitiesBelowCutoff.Add(new QualitiesBelowCutoff(profile.Id, belowCutoff.SelectMany(i => i.GetQualities().Select(q => q.Id))));
+                    belowCutoffIds.Add(Quality.CbzChapters.Id);
+                }
+
+                if (belowCutoffIds.Any())
+                {
+                    qualitiesBelowCutoff.Add(new QualitiesBelowCutoff(profile.Id, belowCutoffIds));
                 }
             }
 

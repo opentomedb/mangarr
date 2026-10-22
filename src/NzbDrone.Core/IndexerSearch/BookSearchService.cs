@@ -11,6 +11,7 @@ using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.MonthlyPacks;
 using NzbDrone.Core.Queue;
 
 namespace NzbDrone.Core.IndexerSearch
@@ -29,6 +30,7 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly IMediaFileService _mediaFileService;
         private readonly IBookCutoffService _bookCutoffService;
         private readonly IQueueService _queueService;
+        private readonly IMonthlyPackService _monthlyPackService;
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
         private readonly Logger _logger;
 
@@ -39,6 +41,7 @@ namespace NzbDrone.Core.IndexerSearch
             IMediaFileService mediaFileService,
             IBookCutoffService bookCutoffService,
             IQueueService queueService,
+            IMonthlyPackService monthlyPackService,
             IProcessDownloadDecisions processDownloadDecisions,
             Logger logger)
         {
@@ -49,6 +52,7 @@ namespace NzbDrone.Core.IndexerSearch
             _mediaFileService = mediaFileService;
             _bookCutoffService = bookCutoffService;
             _queueService = queueService;
+            _monthlyPackService = monthlyPackService;
             _processDownloadDecisions = processDownloadDecisions;
             _logger = logger;
         }
@@ -76,6 +80,8 @@ namespace NzbDrone.Core.IndexerSearch
 
             _logger.ProgressInfo("Performing missing search for {0} volume editions across {1} series searches", wanted.Count, bySeries.Count);
             var downloadedCount = 0;
+            var grabbedBookIds = new HashSet<int>();
+            var deferChapterSearch = new List<Book>();
 
             foreach (var series in bySeries)
             {
@@ -87,7 +93,9 @@ namespace NzbDrone.Core.IndexerSearch
                 {
                     decisions = seriesBooks.Count > 1
                         ? await _releaseSearchService.AuthorSearch(series.Key.AuthorId, mediaType, true, userInvokedSearch, false, stampLastSearch)
-                        : await _releaseSearchService.BookSearch(seriesBooks[0].Id, mediaType, false, userInvokedSearch, false, stampLastSearch);
+                        : mediaType == MediaType.Archive
+                            ? await _releaseSearchService.BookSearch(seriesBooks[0].Id, mediaType, false, userInvokedSearch, false, stampLastSearch, deferChapterSearch)
+                            : await _releaseSearchService.BookSearch(seriesBooks[0].Id, mediaType, false, userInvokedSearch, false, stampLastSearch);
                 }
                 catch (Exception ex)
                 {
@@ -98,9 +106,47 @@ namespace NzbDrone.Core.IndexerSearch
                 var processed = await _processDownloadDecisions.ProcessDecisions(decisions);
 
                 downloadedCount += processed.Grabbed.Count;
+                grabbedBookIds.UnionWith(GrabbedBookIds(processed.Grabbed));
+                grabbedBookIds.UnionWith(GrabbedBookIds(processed.Pending));
+            }
+
+            // Monthly volume packs (2026-10-21): one pack query for the manga volumes the series searches left
+            // missing (a held single release counts as found), before the chapter queries.
+            var stillMissing = wanted
+                .Where(w => w.MediaType == MediaType.Archive && !grabbedBookIds.Contains(w.Book.Id))
+                .Select(w => w.Book)
+                .ToList();
+
+            var packed = new HashSet<int>();
+
+            if (stillMissing.Any())
+            {
+                var packs = _monthlyPackService.Search(stillMissing);
+                downloadedCount += packs.Count;
+                packed.UnionWith(packs.Select(b => b.Id));
+            }
+
+            foreach (var series in deferChapterSearch.Where(b => !packed.Contains(b.Id)).GroupBy(b => b.AuthorId))
+            {
+                try
+                {
+                    var decisions = await _releaseSearchService.ChapterSearch(series.ToList(), userInvokedSearch, false, stampLastSearch);
+                    var processed = await _processDownloadDecisions.ProcessDecisions(decisions);
+
+                    downloadedCount += processed.Grabbed.Count;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Unable to search for chapters of {0} volume(s) of author {1}", series.Count(), series.Key);
+                }
             }
 
             _logger.ProgressInfo("Completed search for {0} volume editions. {1} reports downloaded.", wanted.Count, downloadedCount);
+        }
+
+        private static IEnumerable<int> GrabbedBookIds(IEnumerable<DownloadDecision> grabbed)
+        {
+            return grabbed.SelectMany(d => d.RemoteBook?.Books ?? new List<Book>()).Select(b => b.Id);
         }
 
         public void Execute(BookSearchCommand message)
@@ -113,6 +159,14 @@ namespace NzbDrone.Core.IndexerSearch
             // Each (series, media type) with two or more of the command's volumes monitored in that
             // class is one series search instead; the rest keep the per-volume search.
             var covered = SearchLightNovelSeries(message, manual);
+
+            // Volumes built from chapter packs (2026-10-21): with several volumes, each volume search defers
+            // its series-name chapter query here, and each series gets one query for all of them (below).
+            var deferChapterSearch = message.BookIds.Distinct().Count() > 1 ? new List<Book>() : null;
+
+            // Monthly volume packs (2026-10-21): the volumes nothing was found for are offered to one pack query
+            // for the whole command, before the chapter queries.
+            var packCandidateIds = new List<int>();
 
             foreach (var bookId in message.BookIds.Distinct())
             {
@@ -136,7 +190,26 @@ namespace NzbDrone.Core.IndexerSearch
                 // class; an untyped one is every monitored class -- the one Archive search for manga.
                 var decisions = message.MediaType.HasValue
                     ? _releaseSearchService.BookSearch(bookId, message.MediaType.Value, false, manual, false, true).GetAwaiter().GetResult()
-                    : _releaseSearchService.BookSearch(bookId, false, manual, false).GetAwaiter().GetResult();
+                    : deferChapterSearch != null
+                        ? _releaseSearchService.BookSearch(bookId, false, manual, false, deferChapterSearch).GetAwaiter().GetResult()
+                        : _releaseSearchService.BookSearch(bookId, false, manual, false).GetAwaiter().GetResult();
+                var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
+
+                _logger.ProgressInfo("Volume search completed. {0} reports downloaded.", processed.Grabbed.Count);
+
+                if (deferChapterSearch != null && !message.MediaType.HasValue && !decisions.Any(d => d.Approved || d.TemporarilyRejected))
+                {
+                    packCandidateIds.Add(bookId);
+                }
+            }
+
+            var packed = packCandidateIds.Any()
+                ? _monthlyPackService.Search(_bookService.GetBooks(packCandidateIds)).Select(b => b.Id).ToHashSet()
+                : new HashSet<int>();
+
+            foreach (var series in (deferChapterSearch ?? new List<Book>()).Where(b => !packed.Contains(b.Id)).GroupBy(b => b.AuthorId))
+            {
+                var decisions = _releaseSearchService.ChapterSearch(series.ToList(), manual, false).GetAwaiter().GetResult();
                 var processed = _processDownloadDecisions.ProcessDecisions(decisions).GetAwaiter().GetResult();
 
                 _logger.ProgressInfo("Volume search completed. {0} reports downloaded.", processed.Grabbed.Count);

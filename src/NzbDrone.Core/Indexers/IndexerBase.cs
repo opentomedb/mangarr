@@ -72,6 +72,13 @@ namespace NzbDrone.Core.Indexers
         public abstract Task<IList<ReleaseInfo>> FetchRecent();
         public abstract Task<IList<ReleaseInfo>> Fetch(BookSearchCriteria searchCriteria);
         public abstract Task<IList<ReleaseInfo>> Fetch(AuthorSearchCriteria searchCriteria);
+
+        // Monthly multi-series packs: not every indexer can run the series-independent query.
+        public virtual Task<IList<ReleaseInfo>> FetchPacks(PackSearchCriteria searchCriteria)
+        {
+            return Task.FromResult<IList<ReleaseInfo>>(Array.Empty<ReleaseInfo>());
+        }
+
         public abstract HttpRequest GetDownloadRequest(string link);
 
         protected virtual IList<ReleaseInfo> CleanupReleases(IEnumerable<ReleaseInfo> releases)

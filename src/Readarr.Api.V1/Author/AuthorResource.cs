@@ -71,6 +71,7 @@ namespace Readarr.Api.V1.Author
         public int? AudioQualityProfileId { get; set; }
         public int MetadataProfileId { get; set; }
         public int MaxVolume { get; set; }
+        public bool BuildFromChapters { get; set; }
 
         //Editing Only
         public bool Monitored { get; set; }
@@ -136,6 +137,7 @@ namespace Readarr.Api.V1.Author
                 AudioQualityProfileId = model.AudioQualityProfileId,
                 MetadataProfileId = model.MetadataProfileId,
                 MaxVolume = model.MaxVolume,
+                BuildFromChapters = model.BuildFromChapters,
                 Links = model.Metadata.Value.Links,
 
                 Monitored = model.Monitored,
@@ -204,6 +206,7 @@ namespace Readarr.Api.V1.Author
                 AudioQualityProfileId = resource.AudioQualityProfileId,
                 MetadataProfileId = resource.MetadataProfileId,
                 MaxVolume = resource.MaxVolume,
+                BuildFromChapters = resource.BuildFromChapters,
 
                 Monitored = resource.Monitored,
                 MonitorNewItems = resource.MonitorNewItems,

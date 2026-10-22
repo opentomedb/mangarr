@@ -20,6 +20,9 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         void AddTorrentFromUrl(string torrentUrl, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings);
         void AddTorrentFromFile(string fileName, byte[] fileContent, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings);
 
+        // addStopped: add the torrent stopped whatever InitialState says (monthly packs pick their files before starting).
+        void AddTorrentFromFile(string fileName, byte[] fileContent, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings, bool addStopped);
+
         void RemoveTorrent(string hash, bool removeData, QBittorrentSettings settings);
         void SetTorrentLabel(string hash, string label, QBittorrentSettings settings);
         void AddLabel(string label, QBittorrentSettings settings);
@@ -27,6 +30,8 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
         void SetTorrentSeedingConfiguration(string hash, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings);
         void MoveTorrentToTopInQueue(string hash, QBittorrentSettings settings);
         void SetForceStart(string hash, bool enabled, QBittorrentSettings settings);
+        void SetFilePriority(string hash, IEnumerable<int> indexes, int priority, QBittorrentSettings settings);
+        void StartTorrent(string hash, QBittorrentSettings settings);
     }
 
     public interface IQBittorrentProxySelector

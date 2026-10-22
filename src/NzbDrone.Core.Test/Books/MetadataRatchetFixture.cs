@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Books;
@@ -696,6 +697,36 @@ namespace NzbDrone.Core.Test.BookTests
             new Book { Subtitle = null }
                 .Equals(new Book { Subtitle = null, SubtitleRejected = true })
                 .Should().BeTrue();
+        }
+
+        // Chapter lists are not ratcheted: the catalogue's current list wins, so a list it retracts
+        // (or empties) stops building that volume.
+        [TestCase(null)]
+        [TestCase(new double[0])]
+        public void edition_takes_a_retracted_chapter_list(double[] remote)
+        {
+            var local = new Edition { Chapters = new List<double> { 72, 73, 74 } };
+
+            local.UseMetadataFrom(new Edition { Chapters = remote?.ToList() });
+
+            if (remote == null)
+            {
+                local.Chapters.Should().BeNull();
+            }
+            else
+            {
+                local.Chapters.Should().BeEmpty();
+            }
+        }
+
+        [Test]
+        public void edition_takes_a_changed_chapter_list()
+        {
+            var local = new Edition { Chapters = new List<double> { 72, 73, 74 } };
+
+            local.UseMetadataFrom(new Edition { Chapters = new List<double> { 72, 73 } });
+
+            local.Chapters.Should().Equal(72, 73);
         }
 
         [TestCase("Fairy Tail, volume 1.", "Fairy Tail Vol. 1", true)]

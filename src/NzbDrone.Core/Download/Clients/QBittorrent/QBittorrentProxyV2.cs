@@ -166,11 +166,16 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
         public void AddTorrentFromFile(string fileName, byte[] fileContent, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings)
         {
+            AddTorrentFromFile(fileName, fileContent, seedConfiguration, settings, false);
+        }
+
+        public void AddTorrentFromFile(string fileName, byte[] fileContent, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings, bool addStopped)
+        {
             var request = BuildRequest(settings).Resource("/api/v2/torrents/add")
                                                 .Post()
                                                 .AddFormUpload("torrents", fileName, fileContent);
 
-            AddTorrentDownloadFormParameters(request, settings);
+            AddTorrentDownloadFormParameters(request, settings, addStopped);
 
             if (seedConfiguration != null)
             {
@@ -239,7 +244,7 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             }
         }
 
-        private void AddTorrentDownloadFormParameters(HttpRequestBuilder request, QBittorrentSettings settings)
+        private void AddTorrentDownloadFormParameters(HttpRequestBuilder request, QBittorrentSettings settings, bool addStopped = false)
         {
             if (settings.MusicCategory.IsNotNullOrWhiteSpace())
             {
@@ -247,16 +252,16 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             }
 
             // Avoid extraneous API version check if initial state is ForceStart
-            if ((QBittorrentState)settings.InitialState is QBittorrentState.Start or QBittorrentState.Stop)
+            if (addStopped || (QBittorrentState)settings.InitialState is QBittorrentState.Start or QBittorrentState.Stop)
             {
                 var stoppedParameterName = GetApiVersion(settings) >= new Version(2, 11, 0) ? "stopped" : "paused";
 
                 // Note: ForceStart is handled by separate api call
-                if ((QBittorrentState)settings.InitialState == QBittorrentState.Start)
+                if (!addStopped && (QBittorrentState)settings.InitialState == QBittorrentState.Start)
                 {
                     request.AddFormParameter(stoppedParameterName, false);
                 }
-                else if ((QBittorrentState)settings.InitialState == QBittorrentState.Stop)
+                else if (addStopped || (QBittorrentState)settings.InitialState == QBittorrentState.Stop)
                 {
                     request.AddFormParameter(stoppedParameterName, true);
                 }
@@ -335,6 +340,35 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                                                 .AddFormParameter("hashes", hash)
                                                 .AddFormParameter("value", enabled ? "true" : "false");
             ProcessRequest(request, settings);
+        }
+
+        public void SetFilePriority(string hash, IEnumerable<int> indexes, int priority, QBittorrentSettings settings)
+        {
+            var request = BuildRequest(settings).Resource("/api/v2/torrents/filePrio")
+                                                .Post()
+                                                .AddFormParameter("hash", hash)
+                                                .AddFormParameter("id", string.Join("|", indexes))
+                                                .AddFormParameter("priority", priority);
+            ProcessRequest(request, settings);
+        }
+
+        public void StartTorrent(string hash, QBittorrentSettings settings)
+        {
+            // qBittorrent 5.x renamed resume to start.
+            try
+            {
+                var start = BuildRequest(settings).Resource("/api/v2/torrents/start")
+                                                  .Post()
+                                                  .AddFormParameter("hashes", hash);
+                ProcessRequest(start, settings);
+            }
+            catch (DownloadClientException ex) when (ex.InnerException is HttpException httpException && httpException.Response.StatusCode == HttpStatusCode.NotFound)
+            {
+                var resume = BuildRequest(settings).Resource("/api/v2/torrents/resume")
+                                                   .Post()
+                                                   .AddFormParameter("hashes", hash);
+                ProcessRequest(resume, settings);
+            }
         }
 
         private HttpRequestBuilder BuildRequest(QBittorrentSettings settings)

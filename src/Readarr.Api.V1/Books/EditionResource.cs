@@ -30,6 +30,11 @@ namespace Readarr.Api.V1.Books
         public DateTime? AudioReleaseDate { get; set; }
         public double? CoveredByVolume { get; set; }
         public string CoveredSource { get; set; }
+
+        // Volumes built from chapter packs (2026-10-21): the chapters the catalogue lists for this
+        // edition (null = unknown); the volume page labels a chapter-built file with its range.
+        public List<double> Chapters { get; set; }
+
         public string Title { get; set; }
         public string Language { get; set; }
         public string Overview { get; set; }
@@ -76,6 +81,7 @@ namespace Readarr.Api.V1.Books
                 AudioReleaseDate = model.AudioReleaseDate,
                 CoveredByVolume = model.CoveredByVolume,
                 CoveredSource = model.CoveredSource,
+                Chapters = model.Chapters,
                 Title = model.Title,
                 Language = model.Language,
                 Overview = model.Overview,
@@ -115,6 +121,7 @@ namespace Readarr.Api.V1.Books
                 AudioReleaseDate = resource.AudioReleaseDate,
                 CoveredByVolume = resource.CoveredByVolume,
                 CoveredSource = resource.CoveredSource,
+                Chapters = resource.Chapters,
                 Title = resource.Title,
                 Language = resource.Language,
                 Overview = resource.Overview,

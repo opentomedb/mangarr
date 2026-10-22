@@ -39,6 +39,11 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                     continue;
                 }
 
+                if (UpgradableSpecification.ReplacesChapterBuilt(file.Quality, subject.ParsedBookInfo.Quality))
+                {
+                    continue;
+                }
+
                 var fileCustomFormats = _formatService.ParseCustomFormat(file, subject.Author);
                 _logger.Debug("Comparing file quality with report. Existing files contain {0}", file.Quality);
 

@@ -762,6 +762,28 @@ namespace NzbDrone.Core.MetadataSource.Gcd
                     // schema_version 1 artifact: no cover columns.
                 }
 
+                // Chapter lists (volume_chapters): older artifacts lack the column, so read it apart.
+                try
+                {
+                    var chapters = conn.Query<ChapterRow>(
+                            "SELECT volume_number AS VolumeNumber, volume_chapters AS VolumeChapters FROM volumes WHERE gcd_series_id = @id AND volume_chapters IS NOT NULL",
+                            new { id = gcdSeriesId })
+                        .GroupBy(r => r.VolumeNumber)
+                        .ToDictionary(g => g.Key, g => g.First());
+
+                    foreach (var v in volumes)
+                    {
+                        if (chapters.TryGetValue(v.VolumeNumber, out var row))
+                        {
+                            v.Chapters = row.Parse();
+                        }
+                    }
+                }
+                catch (SQLiteException)
+                {
+                    // artifact without volume_chapters
+                }
+
                 // Preferred Edition (2026-09-24, D6): the coarse date and its precision (every OpenTome
                 // artifact), then the milestone type (the DNB round) -- guarded separately. Only when
                 // asked: the English path reads volumes with no new SQL (Global Constraints, ruling S5).
@@ -1014,6 +1036,29 @@ namespace NzbDrone.Core.MetadataSource.Gcd
             }
 
             return sb.ToString();
+        }
+
+        private class ChapterRow
+        {
+            public int VolumeNumber { get; set; }
+            public string VolumeChapters { get; set; }
+
+            public List<double> Parse()
+            {
+                if (VolumeChapters.IsNullOrWhiteSpace())
+                {
+                    return null;
+                }
+
+                try
+                {
+                    return JsonConvert.DeserializeObject<List<double>>(VolumeChapters);
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
         }
 
         private class VolumeRow

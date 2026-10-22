@@ -329,5 +329,43 @@ namespace NzbDrone.Core.Test.MediaFiles.BookImport.Specifications
             localBook.Path = "/manga/One Piece/One Piece - Vol 001.cbz";
             Subject.IsSatisfiedBy(localBook, null).Accepted.Should().BeFalse();
         }
+
+        // Chapter-built volumes (2026-10): a real volume replaces a CbzChapters stand-in whatever the
+        // profile says (here: upgrades off, CbzChapters ranked ABOVE CBZ so the quality compare alone
+        // would call the real volume a downgrade).
+        private static LocalBook GivenMangaImport(Quality onDisk, Quality incoming)
+        {
+            var profile = new QualityProfile
+            {
+                UpgradeAllowed = false,
+                Cutoff = Quality.CbzChapters.Id,
+                Items = new List<QualityProfileQualityItem>
+                {
+                    new QualityProfileQualityItem { Quality = Quality.CBZ, Allowed = true },
+                    new QualityProfileQualityItem { Quality = Quality.CbzChapters, Allowed = true }
+                }
+            };
+
+            var author = new Author { QualityProfile = profile };
+            var edition = new Edition
+            {
+                MediaType = MediaType.Archive,
+                BookFiles = new List<BookFile> { new BookFile { Quality = new QualityModel(onDisk) } }
+            };
+
+            return new LocalBook { Path = "/manga/Your Lie in April/Vol 003.cbz", Author = author, Edition = edition, Quality = new QualityModel(incoming) };
+        }
+
+        [Test]
+        public void should_accept_a_real_volume_over_a_chapter_built_file()
+        {
+            Subject.IsSatisfiedBy(GivenMangaImport(Quality.CbzChapters, Quality.CBZ), null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void should_accept_chapter_built_over_chapter_built_as_before()
+        {
+            Subject.IsSatisfiedBy(GivenMangaImport(Quality.CbzChapters, Quality.CbzChapters), null).Accepted.Should().BeTrue();
+        }
     }
 }

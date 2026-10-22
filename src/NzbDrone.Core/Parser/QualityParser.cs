@@ -73,12 +73,41 @@ namespace NzbDrone.Core.Parser
             @"\[(?:stick|lucaz)\]",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        // The "(Digital)" tag of digital manga rips ("Series v03 (2022) (Digital) (danke-Empire)").
+        private static readonly Regex DigitalTagRegex = new Regex(
+            @"\(digital\)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        // Volumes built from chapter packs (2026-10-21): the volume file Mangarr builds from a chapter
+        // release is named "... (Built from chapters A–B).cbz" and grades CBZ (chapters), so the official
+        // volume still counts as an upgrade.
+        private static readonly Regex BuiltFromChaptersRegex = new Regex(
+            @"\(built from chapters",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        // A volume file Mangarr built from a chapter release, by its own name.
+        public static bool IsBuiltFromChapters(string name)
+        {
+            return name != null && BuiltFromChaptersRegex.IsMatch(name) && name.EndsWith(".cbz", StringComparison.OrdinalIgnoreCase);
+        }
+
         // Whether a release name carries an explicit ebook / light-novel signal. Exposed for the
         // tokenless-batch bridge, which applies this guard before defaulting a matched series
         // batch to CBZ; the group-tag signal applies here only, never to volume-token releases.
         public static bool LooksLikeEbook(string name)
         {
             return name.IsNotNullOrWhiteSpace() && (NonEpubEbookRegex.IsMatch(name) || Azw3Regex.IsMatch(name) || LightNovelWordingRegex.IsMatch(name) || EbookGroupTagRegex.IsMatch(name));
+        }
+
+        // Pre-beta leftovers (2026-10-22, the maintainer): a volume-tokened name that says "(Digital)" and carries
+        // no ebook signal is a digital manga rip ("Series v03 (2022) (Digital) (danke-Empire)"), whatever
+        // group released it. Read by the light-novel regrade only: such a release keeps the manga grade
+        // instead of becoming the EPUB a light-novel author would grab and then fail after the download.
+        // a private tracker's "[ENG / EPUB]" and usenet's "Title, Vol. 1 (2020) (group)" never say "(Digital)"; an epub
+        // group's square-bracketed tag beside it ("v05 (Digital) [Stick]") is the ebook signal it was.
+        public static bool LooksLikeDigitalManga(string name)
+        {
+            return name.IsNotNullOrWhiteSpace() && DigitalTagRegex.IsMatch(name) && MangaVolumeParser.HasVolumeToken(name) && !LooksLikeEbook(name);
         }
 
         // Audiobook wording with no codec token ("Audiobook", "Unabridged", "Narrated by").
@@ -250,6 +279,12 @@ namespace NzbDrone.Core.Parser
                     result.Quality = Quality.CBZ;
                 }
 
+                result.QualityDetectionSource = QualityDetectionSource.Name;
+            }
+
+            if (IsBuiltFromChapters(name))
+            {
+                result.Quality = Quality.CbzChapters;
                 result.QualityDetectionSource = QualityDetectionSource.Name;
             }
 

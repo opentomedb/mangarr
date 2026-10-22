@@ -9,11 +9,14 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Common.Localization;
 using NzbDrone.Core.Books;
+using NzbDrone.Core.Books.Chapters;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport;
 using NzbDrone.Core.MediaFiles.BookImport.Specifications;
+using NzbDrone.Core.MediaFiles.Chapters;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser;
@@ -41,6 +44,9 @@ namespace NzbDrone.Core.Download
         private readonly IDiskProvider _diskProvider;
         private readonly ICoveredVolumeService _coveredVolumeService;
         private readonly IEditionService _editionService;
+        private readonly IChapterVolumeAssembler _chapterVolumeAssembler;
+        private readonly IConfigService _configService;
+        private readonly IChapterWorkFolder _chapterWorkFolder;
         private readonly Logger _logger;
 
         public CompletedDownloadService(IEventAggregator eventAggregator,
@@ -53,6 +59,9 @@ namespace NzbDrone.Core.Download
                                         IDiskProvider diskProvider,
                                         ICoveredVolumeService coveredVolumeService,
                                         IEditionService editionService,
+                                        IChapterVolumeAssembler chapterVolumeAssembler,
+                                        IConfigService configService,
+                                        IChapterWorkFolder chapterWorkFolder,
                                         Logger logger)
         {
             _eventAggregator = eventAggregator;
@@ -65,6 +74,9 @@ namespace NzbDrone.Core.Download
             _diskProvider = diskProvider;
             _coveredVolumeService = coveredVolumeService;
             _editionService = editionService;
+            _chapterVolumeAssembler = chapterVolumeAssembler;
+            _configService = configService;
+            _chapterWorkFolder = chapterWorkFolder;
             _logger = logger;
         }
 
@@ -111,6 +123,15 @@ namespace NzbDrone.Core.Download
             trackedDownload.State = TrackedDownloadState.Importing;
 
             var outputPath = trackedDownload.ImportItem.OutputPath.FullPath;
+
+            // Monthly pack (2026-10-21): only its matched files were downloaded, and each is a volume of its own
+            // series. The folder checks below do not apply: nothing else in the download is read.
+            if (trackedDownload.RemoteBook?.PackFiles != null)
+            {
+                ImportPackFiles(trackedDownload, outputPath);
+                return;
+            }
+
             var payloadFiles = GetPayloadFiles(outputPath);
 
             // Chapter rip: per-chapter archives can never map onto volume books; importing
@@ -123,7 +144,12 @@ namespace NzbDrone.Core.Download
             var mediaFiles = payloadFiles.Where(f => allExtensions.Contains(Path.GetExtension(f))).ToList();
             var chapterFiles = mediaFiles.Where(f => MangaVolumeParser.IsChapterOnlyFile(f)).ToList();
 
-            if (chapterFiles.Count >= 3 &&
+            // Volumes built from chapter packs (2026-10-21): an official chapter release of a series that builds
+            // volumes is assembled instead (below); with the feature off it is the chapter rip it always was.
+            var buildFromChapters = BuildsFromChapters(trackedDownload);
+
+            if (!buildFromChapters &&
+                chapterFiles.Count >= 3 &&
                 chapterFiles.Count >= mediaFiles.Count * 0.8 &&
                 mediaFiles.None(f => MangaVolumeParser.ParseSingleVolume(Path.GetFileNameWithoutExtension(f)) > 0))
             {
@@ -144,6 +170,12 @@ namespace NzbDrone.Core.Download
                 trackedDownload.Warn(language);
                 FailUnusablePayload(trackedDownload, language.English);
 
+                return;
+            }
+
+            if (buildFromChapters)
+            {
+                ImportBuiltVolumes(trackedDownload, outputPath);
                 return;
             }
 
@@ -205,6 +237,11 @@ namespace NzbDrone.Core.Download
 
             var importResults = _downloadedTracksImportService.ProcessPath(outputPath, ImportMode.Auto, trackedDownload.RemoteBook?.Author, trackedDownload.DownloadItem, knownBook);
 
+            ProcessImportResults(trackedDownload, importResults, outputPath);
+        }
+
+        private void ProcessImportResults(TrackedDownload trackedDownload, List<ImportResult> importResults, string outputPath)
+        {
             if (importResults.Empty())
             {
                 // Nothing imported and nothing to blame on the payload's class (a payload of a
@@ -276,6 +313,169 @@ namespace NzbDrone.Core.Download
                 trackedDownload.Warn(statusMessages);
                 _eventAggregator.PublishEvent(new BookImportIncompleteEvent(trackedDownload));
                 return;
+            }
+        }
+
+        // Each matched file is copied (the torrent keeps seeding) onto the volume it was matched to, with that
+        // volume's own series. Decided per volume: one this download already imported is left alone (tracking
+        // leaves such volumes out of the mapping; this check covers one imported since the download was tracked),
+        // so a file selected later in an imported pack (another grab from the same torrent) still imports. A
+        // pack with every volume imported maps none and settles here, never as a folder import. A missing or
+        // rejected file leaves only its own volume unimported, with a history row naming the file; the pack is
+        // settled once every volume has been tried. With none of its files there the path is wrong (a remote
+        // path mapping), not the volumes: it waits, as an import with no eligible files does. Files sit under
+        // the torrent's top folder (the output path), or -- no top folder -- beside the file reported as output.
+        private void ImportPackFiles(TrackedDownload trackedDownload, string outputPath)
+        {
+            var remoteBook = trackedDownload.RemoteBook;
+            var root = _diskProvider.FolderExists(outputPath) ? outputPath : Path.GetDirectoryName(outputPath);
+            var imported = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId)
+                .Where(h => h.EventType == EntityHistoryEventType.BookFileImported)
+                .Select(h => h.BookId)
+                .ToHashSet();
+            var skipped = new List<(Book Book, ServerText Reason)>();
+            var found = 0;
+
+            foreach (var book in remoteBook.Books.Where(b => remoteBook.PackFiles.ContainsKey(b.Id) && !imported.Contains(b.Id)))
+            {
+                var file = remoteBook.PackFiles[book.Id].Path;
+                var path = Path.Combine(new[] { root }.Concat(file.Split('/')).ToArray());
+
+                if (!_diskProvider.FileExists(path))
+                {
+                    skipped.Add((book, new ServerText("Pack file {0} is missing from the download", file)));
+                    continue;
+                }
+
+                found++;
+
+                var results = _downloadedTracksImportService.ProcessPath(path, ImportMode.Copy, book.Author?.Value, trackedDownload.DownloadItem, book);
+
+                if (results.None(r => r.Result == ImportResultType.Imported))
+                {
+                    skipped.Add((book, new ServerText("Pack file {0} was not imported: {1}", file, string.Join("; ", results.SelectMany(r => r.Errors)))));
+                }
+            }
+
+            if (found == 0 && skipped.Any())
+            {
+                trackedDownload.Warn("No files found are eligible for import in {0}", outputPath);
+                trackedDownload.State = TrackedDownloadState.ImportPending;
+                return;
+            }
+
+            foreach (var (book, reason) in skipped)
+            {
+                _logger.Warn("{0}: {1}", trackedDownload.DownloadItem.Title, reason.English);
+                _eventAggregator.PublishEvent(new ChapterVolumeSkippedEvent(trackedDownload, book, reason));
+            }
+
+            if (skipped.Any())
+            {
+                var statusMessages = skipped.Select(s => new TrackedDownloadStatusMessage(trackedDownload.DownloadItem.Title, s.Reason)).ToArray();
+                trackedDownload.Warn(statusMessages);
+            }
+
+            trackedDownload.State = TrackedDownloadState.Imported;
+            _eventAggregator.PublishEvent(new DownloadCompletedEvent(trackedDownload, remoteBook.Author?.Id ?? 0));
+        }
+
+        // An official chapter release (the grabbed title, else -- a download added by hand -- the client's
+        // title as mapped) of a manga series that builds volumes from chapters. Fan scans never build.
+        private bool BuildsFromChapters(TrackedDownload trackedDownload)
+        {
+            var author = trackedDownload.RemoteBook?.Author;
+
+            if (!ChapterVolumePlanner.IsEnabled(author, _configService))
+            {
+                return false;
+            }
+
+            var grabbed = _historyService.FindByDownloadId(trackedDownload.DownloadItem.DownloadId)
+                .FirstOrDefault(h => h.EventType == EntityHistoryEventType.Grabbed);
+
+            var range = grabbed != null
+                ? (grabbed.SourceTitle.IsNullOrWhiteSpace() ? null : ParsingService.ChapterRangeOf(grabbed.SourceTitle, author))
+                : trackedDownload.RemoteBook.ParsedBookInfo?.ChapterRange;
+
+            return range != null && range.IsDigital && !range.IsScanlation;
+        }
+
+        // One CBZ per volume the pack's files complete, built in a work folder of its own (ChapterWorkFolder) and imported from
+        // there (moved); the download folder is never touched, so a torrent keeps seeding. Volumes it could
+        // not build are logged and reported on the download; a pack that builds none can never import.
+        private void ImportBuiltVolumes(TrackedDownload trackedDownload, string outputPath)
+        {
+            var author = trackedDownload.RemoteBook.Author;
+            var title = trackedDownload.DownloadItem.Title;
+            var workFolder = _chapterWorkFolder.For(trackedDownload.DownloadItem.DownloadId);
+
+            try
+            {
+                RemoveWorkFolder(workFolder);
+                _diskProvider.CreateFolder(workFolder);
+
+                var assembled = _chapterVolumeAssembler.Assemble(outputPath, author, (trackedDownload.RemoteBook.Books ?? new List<Book>()).ToList(), workFolder);
+
+                foreach (var reason in assembled.Skipped)
+                {
+                    _logger.Info("{0}: {1}", title, reason);
+                }
+
+                var skipped = assembled.Skipped.Any()
+                    ? new[] { new TrackedDownloadStatusMessage(title, assembled.Skipped, assembled.SkippedTexts) }
+                    : Array.Empty<TrackedDownloadStatusMessage>();
+                TrackedDownloadStatusMessage[] statusMessages;
+
+                if (assembled.Volumes.Empty())
+                {
+                    var reason = new ServerText("Chapter release completes no volume");
+                    statusMessages = skipped.Prepend(new TrackedDownloadStatusMessage(title, reason)).ToArray();
+                    trackedDownload.Warn(statusMessages);
+
+                    // The failure (and so each volume's history) says why each volume was not built.
+                    FailUnusablePayload(trackedDownload, assembled.Skipped.Any() ? $"{reason.English} ({string.Join("; ", assembled.Skipped)})" : reason.English);
+
+                    return;
+                }
+
+                var importResults = assembled.Volumes
+                    .SelectMany(v => _downloadedTracksImportService.ProcessPath(v.CbzPath, ImportMode.Move, author, trackedDownload.DownloadItem, v.Book))
+                    .ToList();
+
+                ProcessImportResults(trackedDownload, importResults, outputPath);
+
+                // The skipped volumes join whatever the import itself reported, and each one's history says why
+                // it was not built -- once, when this pass settled the download (a pending one is tried again).
+                if (skipped.Any())
+                {
+                    statusMessages = trackedDownload.StatusMessages.Concat(skipped).ToArray();
+                    trackedDownload.Warn(statusMessages);
+
+                    if (trackedDownload.State != TrackedDownloadState.ImportPending)
+                    {
+                        for (var i = 0; i < assembled.SkippedBooks.Count; i++)
+                        {
+                            _eventAggregator.PublishEvent(new ChapterVolumeSkippedEvent(trackedDownload, assembled.SkippedBooks[i], assembled.SkippedTexts[i]));
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                RemoveWorkFolder(workFolder);
+            }
+        }
+
+        private void RemoveWorkFolder(string workFolder)
+        {
+            try
+            {
+                _chapterWorkFolder.Remove(workFolder);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Could not remove chapter work folder {0}", workFolder);
             }
         }
 

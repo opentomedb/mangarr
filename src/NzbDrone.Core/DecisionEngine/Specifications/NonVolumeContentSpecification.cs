@@ -2,6 +2,8 @@ using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books;
+using NzbDrone.Core.Books.Chapters;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
@@ -49,10 +51,12 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             @"[\[(]v\d{1,2}[\])]",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        private readonly IConfigService _configService;
         private readonly Logger _logger;
 
-        public NonVolumeContentSpecification(Logger logger)
+        public NonVolumeContentSpecification(IConfigService configService, Logger logger)
         {
+            _configService = configService;
             _logger = logger;
         }
 
@@ -74,6 +78,14 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             {
                 _logger.Debug("Audiobook markers in '{0}', rejecting.", title);
                 return Decision.Reject("Audiobook release");
+            }
+
+            // Volumes built from chapter packs (2026-10-21): a release ParsingService read as a chapter
+            // range for a series with the feature on is ChapterReleaseSpecification's to judge. Only
+            // that parsed range bypasses -- a title this regex merely flags as chapters does not.
+            if (subject.ParsedBookInfo?.ChapterRange != null && ChapterVolumePlanner.IsEnabled(subject.Author, _configService))
+            {
+                return Decision.Accept();
             }
 
             if (ChapterMarkerRegex.IsMatch(title) && !MangaVolumeParser.HasVolumeToken(RevisionTagRegex.Replace(title, string.Empty)))

@@ -35,6 +35,27 @@ namespace NzbDrone.Core.Test.Profiles
         }
 
         [Test]
+        public void default_manga_profile_allows_cbz_chapters_as_its_lowest_item()
+        {
+            QualityProfile manga = null;
+            Mocker.GetMock<ICustomFormatService>()
+                .Setup(s => s.All())
+                .Returns(new List<CustomFormat>());
+            Mocker.GetMock<IProfileRepository>()
+                .Setup(s => s.Insert(It.Is<QualityProfile>(p => p.Name == "Manga")))
+                .Callback<QualityProfile>(p => manga = p)
+                .Returns<QualityProfile>(p => p);
+
+            Subject.Handle(new ApplicationStartedEvent());
+
+            manga.Should().NotBeNull();
+            var items = manga.Items;
+            var chapters = items.Single(i => i.Quality?.Id == Quality.CbzChapters.Id);
+            chapters.Allowed.Should().BeTrue();
+            items.IndexOf(chapters).Should().Be(items.FindIndex(i => i.Allowed));
+        }
+
+        [Test]
         public void init_should_skip_when_every_default_profile_already_exists()
         {
             // A user who deleted or renamed a default on purpose must not get it back.

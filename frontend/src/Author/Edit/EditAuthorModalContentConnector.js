@@ -45,6 +45,8 @@ function createMapStateToProps() {
         'audioAvailable',
         'adoptedTagWrite',
         'metadataProfileId',
+        'maxVolume',
+        'buildFromChapters',
         'path',
         'tags'
       ]);

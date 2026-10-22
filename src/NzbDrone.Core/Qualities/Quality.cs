@@ -95,6 +95,10 @@ namespace NzbDrone.Core.Qualities
         // the live DB).
         public static Quality EbookPdf => new Quality(8, "Ebook PDF");
 
+        // Chapter packs (2026-10): a volume assembled from chapter releases. Id 9 was unused; it
+        // ranks below a real CBZ so a published volume always replaces it.
+        public static Quality CbzChapters => new Quality(9, "CBZ (chapters)");
+
         // Audiobook qualities, original Readarr ids. Light-novel audio editions use them (2026-09).
         public static Quality MP3 => new Quality(10, "MP3");
         public static Quality FLAC => new Quality(11, "FLAC");
@@ -108,6 +112,7 @@ namespace NzbDrone.Core.Qualities
                 Unknown,
                 PDF,
                 CBZ,
+                CbzChapters,
                 CBR,
                 ZIP,
                 RAR,
@@ -136,6 +141,7 @@ namespace NzbDrone.Core.Qualities
             DefaultQualityDefinitions = new HashSet<QualityDefinition>
             {
                 new QualityDefinition(Quality.Unknown)      { Weight = 1, MinSize = 0, MaxSize = null, GroupWeight = 1 },
+                new QualityDefinition(Quality.CbzChapters)  { Weight = 4, MinSize = 0, MaxSize = null, GroupWeight = 4 },
                 new QualityDefinition(Quality.PDF)          { Weight = 5, MinSize = 0, MaxSize = null, GroupWeight = 5 },
                 new QualityDefinition(Quality.RAR)          { Weight = 8, MinSize = 0, MaxSize = null, GroupWeight = 8 },
                 new QualityDefinition(Quality.ZIP)          { Weight = 10, MinSize = 0, MaxSize = null, GroupWeight = 10 },

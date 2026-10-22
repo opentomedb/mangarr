@@ -1,19 +1,27 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Disk;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Events;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Download;
+using NzbDrone.Core.Download.History;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.BookImport;
+using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
+using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.TrackedDownloads
 {
@@ -561,6 +569,350 @@ namespace NzbDrone.Core.Test.Download.TrackedDownloads
             trackedDownload.RemoteBook.Should().NotBeNull();
             trackedDownload.RemoteBook.Author.Id.Should().Be(92);
             trackedDownload.RemoteBook.Books.Select(b => b.Id).Should().BeEquivalentTo(new[] { 500 });
+        }
+
+        // Monthly packs: one torrent, one Grabbed row per volume across several series, each naming its file.
+        private static EntityHistory PackGrab(int authorId, int bookId, string file, int index)
+        {
+            return new EntityHistory
+            {
+                DownloadId = "PACKHASH",
+                SourceTitle = "Viz Manga Volumes Update 2026-10 (Digital)",
+                AuthorId = authorId,
+                BookId = bookId,
+                EventType = EntityHistoryEventType.Grabbed,
+                Data = new Dictionary<string, string>
+                {
+                    { EntityHistory.MEDIA_TYPE, "archive" },
+                    { "PackFile", file },
+                    { "PackFileIndex", index.ToString() }
+                }
+            };
+        }
+
+        private List<EntityHistory> GivenPackGrabs(params EntityHistory[] rows)
+        {
+            var history = rows.ToList();
+
+            Mocker.GetMock<IHistoryService>()
+                .Setup(s => s.FindByDownloadId("PACKHASH"))
+                .Returns(() => history.ToList());
+
+            Mocker.GetMock<IParsingService>()
+                .Setup(s => s.Map(It.IsAny<ParsedBookInfo>(), It.IsAny<int>(), It.IsAny<IEnumerable<int>>()))
+                .Returns<ParsedBookInfo, int, IEnumerable<int>>((info, authorId, bookIds) => new RemoteBook
+                {
+                    ParsedBookInfo = info,
+                    Author = new Author { Id = authorId },
+                    Books = bookIds.Select(id => new Book { Id = id }).ToList()
+                });
+
+            return history;
+        }
+
+        private static DownloadClientItem PackItem()
+        {
+            return new DownloadClientItem
+            {
+                Title = "Viz Manga Volumes Update 2026-10 (Digital)",
+                DownloadId = "PACKHASH",
+                DownloadClientInfo = new DownloadClientItemClientInfo { Protocol = DownloadProtocol.Torrent, Id = 1, Name = "qBittorrent" }
+            };
+        }
+
+        [Test]
+        public void should_rebuild_the_pack_files_of_a_pack_download_from_its_grab_rows()
+        {
+            GivenPackGrabs(PackGrab(1, 11, "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz", 4),
+                           PackGrab(2, 21, "Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz", 9),
+                           PackGrab(1, 12, "Kaiju No. 8 v15 (2026) (Digital) (Rillant).cbz", 5));
+
+            var client = new DownloadClientDefinition { Id = 1, Protocol = DownloadProtocol.Torrent };
+            var trackedDownload = Subject.TrackDownload(client, PackItem());
+
+            trackedDownload.RemoteBook.Books.Select(b => b.Id).Should().BeEquivalentTo(new[] { 11, 12, 21 });
+            trackedDownload.RemoteBook.PackFiles.Should().BeEquivalentTo(new Dictionary<int, TorrentFileEntry>
+            {
+                { 11, new TorrentFileEntry(4, "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz", 0) },
+                { 12, new TorrentFileEntry(5, "Kaiju No. 8 v15 (2026) (Digital) (Rillant).cbz", 0) },
+                { 21, new TorrentFileEntry(9, "Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz", 0) }
+            });
+        }
+
+        [Test]
+        public void should_not_set_pack_files_for_a_normal_grab()
+        {
+            Mocker.GetMock<IHistoryService>()
+                .Setup(s => s.FindByDownloadId("35238"))
+                .Returns(new List<EntityHistory>
+                {
+                    new EntityHistory { DownloadId = "35238", SourceTitle = "Audio Author - Audio Book [2018 - FLAC]", AuthorId = 5, BookId = 4, EventType = EntityHistoryEventType.Grabbed }
+                });
+
+            GivenMapsTo(new RemoteBook { Author = new Author { Id = 5 }, Books = new List<Book> { new Book { Id = 4 } }, ParsedBookInfo = new ParsedBookInfo() });
+
+            var client = new DownloadClientDefinition { Id = 1, Protocol = DownloadProtocol.Torrent };
+            var trackedDownload = Subject.TrackDownload(client, LightNovelItem("Audio Author - Audio Book [2018 - FLAC]"));
+
+            trackedDownload.RemoteBook.PackFiles.Should().BeNull();
+        }
+
+        [Test]
+        public void should_track_an_imported_pack_again_when_another_of_its_volumes_is_grabbed()
+        {
+            var history = GivenPackGrabs(PackGrab(1, 11, "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz", 4));
+
+            Mocker.GetMock<IDownloadHistoryService>()
+                .Setup(s => s.GetLatestDownloadHistoryItem("PACKHASH"))
+                .Returns(new DownloadHistory { EventType = DownloadHistoryEventType.DownloadImported });
+
+            var client = new DownloadClientDefinition { Id = 1, Protocol = DownloadProtocol.Torrent };
+            Subject.TrackDownload(client, PackItem()).State.Should().Be(TrackedDownloadState.Imported);
+
+            // Another volume's file in the same, already-loaded torrent is selected (a later pack grab).
+            history.Insert(0, PackGrab(2, 21, "Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz", 9));
+
+            Mocker.GetMock<IDownloadHistoryService>()
+                .Setup(s => s.GetLatestDownloadHistoryItem("PACKHASH"))
+                .Returns(new DownloadHistory { EventType = DownloadHistoryEventType.DownloadGrabbed });
+
+            var grab = new RemoteBook
+            {
+                Books = new List<Book> { new Book { Id = 21 } },
+                PackFiles = new Dictionary<int, TorrentFileEntry> { { 21, new TorrentFileEntry(9, "Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz", 1000) } }
+            };
+
+            Subject.Handle(new BookGrabbedEvent(grab) { DownloadId = "PACKHASH" });
+
+            var trackedDownload = Subject.TrackDownload(client, PackItem());
+
+            trackedDownload.State.Should().Be(TrackedDownloadState.Downloading);
+            trackedDownload.RemoteBook.PackFiles.Keys.Should().BeEquivalentTo(new[] { 11, 21 });
+        }
+
+        private void GivenPackImport(DownloadClientItem item)
+        {
+            var root = item.OutputPath.FullPath;
+            Mocker.GetMock<IHistoryService>().Setup(s => s.MostRecentForDownloadId("PACKHASH")).Returns(new EntityHistory { DownloadId = "PACKHASH", EventType = EntityHistoryEventType.Grabbed });
+            Mocker.GetMock<IProvideImportItemService>()
+                .Setup(s => s.ProvideImportItem(It.IsAny<DownloadClientItem>(), It.IsAny<DownloadClientItem>()))
+                .Returns<DownloadClientItem, DownloadClientItem>((i, p) => i);
+            Mocker.GetMock<IDiskProvider>().Setup(s => s.FolderExists(root)).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(s => s.FileExists(It.IsAny<string>())).Returns(true);
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Setup(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()))
+                .Returns<string, ImportMode, Author, DownloadClientItem, Book>((path, mode, author, i, book) => new List<ImportResult>
+                {
+                    new ImportResult(new ImportDecision<LocalBook>(new LocalBook { Path = path, Author = author, Book = book }))
+                });
+        }
+
+        private static DownloadClientItem CompletedPackItem()
+        {
+            var item = PackItem();
+            item.Status = DownloadItemStatus.Completed;
+            item.OutputPath = new OsPath(@"C:\Downloads\Viz Pack".AsOsAgnostic());
+            return item;
+        }
+
+        [Test]
+        public void a_pack_with_a_deleted_volume_still_tracks_and_imports_the_others()
+        {
+            const string kaijuFile = "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz";
+            const string jujutsuFile = "Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz";
+            GivenPackGrabs(PackGrab(2, 21, jujutsuFile, 9), PackGrab(1, 11, kaijuFile, 4));
+
+            // Book 21 was deleted (its series remains): loading it with the others throws, as BasicRepository.Get does.
+            Mocker.GetMock<IParsingService>()
+                .Setup(s => s.Map(It.IsAny<ParsedBookInfo>(), It.IsAny<int>(), It.Is<IEnumerable<int>>(ids => ids.Contains(21))))
+                .Throws(new ApplicationException("Expected query to return 2 rows but returned 1"));
+            Mocker.GetMock<IBookService>().Setup(s => s.GetBook(11)).Returns(new Book { Id = 11 });
+            Mocker.GetMock<IBookService>().Setup(s => s.GetBook(21)).Throws(new ModelNotFoundException(typeof(Book), 21));
+
+            var client = new DownloadClientDefinition { Id = 1, Protocol = DownloadProtocol.Torrent };
+            var item = CompletedPackItem();
+            var trackedDownload = Subject.TrackDownload(client, item);
+
+            trackedDownload.RemoteBook.Should().NotBeNull();
+            trackedDownload.RemoteBook.Books.Select(b => b.Id).Should().Equal(11);
+            trackedDownload.RemoteBook.PackFiles.Keys.Should().Equal(11);
+
+            GivenPackImport(item);
+            var completed = Mocker.Resolve<CompletedDownloadService>();
+            completed.Check(trackedDownload);
+            completed.Import(trackedDownload);
+
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(Path.Combine(item.OutputPath.FullPath, kaijuFile), ImportMode.Copy, It.IsAny<Author>(), item, It.Is<Book>(b => b.Id == 11)), Times.Once());
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(Path.Combine(item.OutputPath.FullPath, jujutsuFile), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+            trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
+        }
+
+        [Test]
+        public void a_pack_leaves_its_already_imported_volumes_out_of_the_mapping()
+        {
+            var history = GivenPackGrabs(PackGrab(2, 21, "Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz", 9),
+                                         PackGrab(1, 11, "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz", 4));
+            history.Add(new EntityHistory { DownloadId = "PACKHASH", BookId = 11, AuthorId = 1, EventType = EntityHistoryEventType.BookFileImported });
+
+            var client = new DownloadClientDefinition { Id = 1, Protocol = DownloadProtocol.Torrent };
+            var trackedDownload = Subject.TrackDownload(client, PackItem());
+
+            trackedDownload.RemoteBook.Books.Select(b => b.Id).Should().Equal(21);
+            trackedDownload.RemoteBook.PackFiles.Keys.Should().Equal(21);
+        }
+
+        [Test]
+        public void a_pack_with_every_volume_imported_settles_without_a_folder_import()
+        {
+            const string kaijuFile = "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz";
+            var history = GivenPackGrabs(PackGrab(1, 11, kaijuFile, 4));
+            history.Add(new EntityHistory { DownloadId = "PACKHASH", BookId = 11, AuthorId = 1, EventType = EntityHistoryEventType.BookFileImported });
+
+            var client = new DownloadClientDefinition { Id = 1, Protocol = DownloadProtocol.Torrent };
+            var item = CompletedPackItem();
+            var trackedDownload = Subject.TrackDownload(client, item);
+
+            trackedDownload.RemoteBook.Books.Should().BeEmpty();
+            trackedDownload.RemoteBook.PackFiles.Should().BeEmpty();
+
+            GivenPackImport(item);
+            trackedDownload.State = TrackedDownloadState.ImportPending;
+            Mocker.Resolve<CompletedDownloadService>().Import(trackedDownload);
+
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+            trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
+        }
+
+        // A completed two-series pack waiting to import; the event under test then changes its mapping.
+        private TrackedDownload GivenImportPendingPack(List<EntityHistory> history, DownloadClientItem item)
+        {
+            Mocker.GetMock<IDownloadHistoryService>()
+                .Setup(s => s.GetLatestDownloadHistoryItem("PACKHASH"))
+                .Returns(new DownloadHistory { EventType = DownloadHistoryEventType.DownloadGrabbed });
+            GivenPackImport(item);
+
+            var client = new DownloadClientDefinition { Id = 1, Protocol = DownloadProtocol.Torrent };
+            var trackedDownload = Subject.TrackDownload(client, item);
+            Mocker.Resolve<CompletedDownloadService>().Check(trackedDownload);
+            trackedDownload.State.Should().Be(TrackedDownloadState.ImportPending);
+
+            return trackedDownload;
+        }
+
+        private void ImportRetrackedPack(DownloadClientItem item, string remainingFile, int remainingBookId)
+        {
+            var client = new DownloadClientDefinition { Id = 1, Protocol = DownloadProtocol.Torrent };
+            var trackedDownload = Subject.TrackDownload(client, item);
+            var completed = Mocker.Resolve<CompletedDownloadService>();
+            completed.Check(trackedDownload);
+            completed.Import(trackedDownload);
+
+            var root = item.OutputPath.FullPath;
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(Path.Combine(root, remainingFile), ImportMode.Copy, It.IsAny<Author>(), item, It.Is<Book>(b => b.Id == remainingBookId)), Times.Once());
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Once());
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(root, It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+        }
+
+        [Test]
+        public void a_pack_with_a_volume_removed_by_a_refresh_is_retracked_from_its_grab_rows()
+        {
+            const string kaijuFile = "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz";
+            const string jujutsuFile = "Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz";
+            var history = GivenPackGrabs(PackGrab(2, 21, jujutsuFile, 9), PackGrab(1, 11, kaijuFile, 4));
+            var item = CompletedPackItem();
+            GivenImportPendingPack(history, item);
+
+            // The refresh removes Jujutsu's volume; its grab row goes with the book (history joins Books).
+            history.RemoveAll(h => h.BookId == 21);
+            Subject.Handle(new BookInfoRefreshedEvent(new Author { Id = 2 }, new List<Book>(), new List<Book>(), new List<Book> { new Book { Id = 21 } }));
+
+            ImportRetrackedPack(item, kaijuFile, 11);
+        }
+
+        [Test]
+        public void a_pack_whose_series_is_deleted_is_retracked_from_its_grab_rows()
+        {
+            const string kaijuFile = "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz";
+            const string jujutsuFile = "Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz";
+            var history = GivenPackGrabs(PackGrab(2, 21, jujutsuFile, 9), PackGrab(1, 11, kaijuFile, 4));
+            var item = CompletedPackItem();
+            var trackedDownload = GivenImportPendingPack(history, item);
+            trackedDownload.RemoteBook.Author.Id.Should().Be(2);
+
+            // Deleting the pack's mapped series deletes its history rows too.
+            history.RemoveAll(h => h.AuthorId == 2);
+            Subject.Handle(new AuthorDeletedEvent(new Author { Id = 2 }, false, false));
+
+            ImportRetrackedPack(item, kaijuFile, 11);
+        }
+
+        [Test]
+        public void a_volume_grabbed_later_from_an_imported_pack_is_tracked_again_and_imported()
+        {
+            // End to end over tracking and import: the pack imported Kaiju; a later pack grab selected Jujutsu.
+            const string kaijuFile = "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz";
+            const string jujutsuFile = "Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz";
+            var history = GivenPackGrabs(PackGrab(1, 11, kaijuFile, 4));
+            history.Insert(0, new EntityHistory { DownloadId = "PACKHASH", BookId = 11, AuthorId = 1, EventType = EntityHistoryEventType.BookFileImported });
+
+            Mocker.GetMock<IDownloadHistoryService>()
+                .Setup(s => s.GetLatestDownloadHistoryItem("PACKHASH"))
+                .Returns(new DownloadHistory { EventType = DownloadHistoryEventType.DownloadImported });
+
+            var client = new DownloadClientDefinition { Id = 1, Protocol = DownloadProtocol.Torrent };
+            var item = PackItem();
+            item.Status = DownloadItemStatus.Completed;
+            item.OutputPath = new OsPath(@"C:\Downloads\Viz Pack".AsOsAgnostic());
+
+            Subject.TrackDownload(client, item).State.Should().Be(TrackedDownloadState.Imported);
+
+            history.Insert(0, PackGrab(2, 21, jujutsuFile, 9));
+            Mocker.GetMock<IDownloadHistoryService>()
+                .Setup(s => s.GetLatestDownloadHistoryItem("PACKHASH"))
+                .Returns(new DownloadHistory { EventType = DownloadHistoryEventType.DownloadGrabbed });
+
+            // As DownloadService publishes it after qBittorrent's already-loaded branch returns the hash.
+            var grab = new RemoteBook
+            {
+                Books = new List<Book> { new Book { Id = 21 } },
+                PackFiles = new Dictionary<int, TorrentFileEntry> { { 21, new TorrentFileEntry(9, jujutsuFile, 1000) } }
+            };
+            Subject.Handle(new BookGrabbedEvent(grab) { DownloadId = "PACKHASH" });
+
+            var trackedDownload = Subject.TrackDownload(client, item);
+            trackedDownload.State.Should().Be(TrackedDownloadState.Downloading);
+
+            var root = item.OutputPath.FullPath;
+            var jujutsuPath = Path.Combine(root, jujutsuFile);
+            Mocker.GetMock<IHistoryService>().Setup(s => s.MostRecentForDownloadId("PACKHASH")).Returns(history[0]);
+            Mocker.GetMock<IProvideImportItemService>()
+                .Setup(s => s.ProvideImportItem(It.IsAny<DownloadClientItem>(), It.IsAny<DownloadClientItem>()))
+                .Returns<DownloadClientItem, DownloadClientItem>((i, p) => i);
+            Mocker.GetMock<IDiskProvider>().Setup(s => s.FolderExists(root)).Returns(true);
+            Mocker.GetMock<IDiskProvider>().Setup(s => s.FileExists(It.IsAny<string>())).Returns(true);
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Setup(v => v.ProcessPath(It.IsAny<string>(), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()))
+                .Returns<string, ImportMode, Author, DownloadClientItem, Book>((path, mode, author, i, book) => new List<ImportResult>
+                {
+                    new ImportResult(new ImportDecision<LocalBook>(new LocalBook { Path = path, Author = author, Book = book }))
+                });
+
+            var completed = Mocker.Resolve<CompletedDownloadService>();
+            completed.Check(trackedDownload);
+            trackedDownload.State.Should().Be(TrackedDownloadState.ImportPending);
+            completed.Import(trackedDownload);
+
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(jujutsuPath, ImportMode.Copy, It.IsAny<Author>(), item, It.Is<Book>(b => b.Id == 21)), Times.Once());
+            Mocker.GetMock<IDownloadedBooksImportService>()
+                .Verify(v => v.ProcessPath(Path.Combine(root, kaijuFile), It.IsAny<ImportMode>(), It.IsAny<Author>(), It.IsAny<DownloadClientItem>(), It.IsAny<Book>()), Times.Never());
+            trackedDownload.State.Should().Be(TrackedDownloadState.Imported);
         }
     }
 }

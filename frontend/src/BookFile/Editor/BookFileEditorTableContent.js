@@ -97,6 +97,7 @@ class BookFileEditorTableContent extends Component {
       isPopulated,
       error,
       items,
+      editions,
       qualities,
       dispatchDeleteBookFile,
       isLightNovel,
@@ -158,11 +159,14 @@ class BookFileEditorTableContent extends Component {
                 <TableBody>
                   {
                     items.map((item) => {
+                      const edition = _.find(editions, { id: item.editionId });
+
                       return (
                         <BookFileEditorRow
                           key={item.id}
                           isSelected={selectedState[item.id]}
                           {...item}
+                          chapters={edition ? edition.chapters : null}
                           isLightNovel={isLightNovel}
                           onSelectedChange={this.onSelectedChange}
                           deleteBookFile={dispatchDeleteBookFile}
@@ -221,6 +225,7 @@ BookFileEditorTableContent.propTypes = {
   isPopulated: PropTypes.bool.isRequired,
   error: PropTypes.object,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
+  editions: PropTypes.arrayOf(PropTypes.object),
   qualities: PropTypes.arrayOf(PropTypes.object).isRequired,
   isLightNovel: PropTypes.bool,
   onDeletePress: PropTypes.func.isRequired,

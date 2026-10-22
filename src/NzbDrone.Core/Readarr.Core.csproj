@@ -28,6 +28,7 @@
     <PackageReference Include="System.IO.Abstractions" />
     <PackageReference Include="TagLibSharp-Lidarr" />
     <PackageReference Include="SixLabors.ImageSharp" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" />
     <PackageReference Include="Equ" />
     <PackageReference Include="MonoTorrent" />
     <PackageReference Include="PdfSharpCore" />
@@ -44,6 +45,7 @@
     <EmbeddedResource Include="..\..\Logo\64.png">
       <Link>Resources\Logo\64.png</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Fonts\Roboto-Regular.ttf" />
     <EmbeddedResource Include="Books\Calibre\Languages\2to3.json" />
     <EmbeddedResource Include="Books\Calibre\Languages\by3.json" />
     <EmbeddedResource Include="Books\Calibre\Languages\name_map.json" />

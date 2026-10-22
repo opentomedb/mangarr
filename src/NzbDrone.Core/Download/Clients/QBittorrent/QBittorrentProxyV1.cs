@@ -162,6 +162,21 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
             }
         }
 
+        public void AddTorrentFromFile(string fileName, byte[] fileContent, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings, bool addStopped)
+        {
+            throw new NotSupportedException("Selecting torrent files needs qBittorrent Web API v2.");
+        }
+
+        public void SetFilePriority(string hash, IEnumerable<int> indexes, int priority, QBittorrentSettings settings)
+        {
+            throw new NotSupportedException("Selecting torrent files needs qBittorrent Web API v2.");
+        }
+
+        public void StartTorrent(string hash, QBittorrentSettings settings)
+        {
+            throw new NotSupportedException("Selecting torrent files needs qBittorrent Web API v2.");
+        }
+
         public void AddTorrentFromFile(string fileName, byte[] fileContent, TorrentSeedConfiguration seedConfiguration, QBittorrentSettings settings)
         {
             var request = BuildRequest(settings).Resource("/command/upload")

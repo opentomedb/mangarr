@@ -72,6 +72,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
         public string ReleaseDatePrecision { get; set; }  // Preferred Edition (2026-09-24, D6): null = day, "month" / "year" = an edition's coarse date (EditionDates)
         public string Isbn13 { get; set; }
         public int PageCount { get; set; }
+        public List<double> Chapters { get; set; }  // the catalogue's chapter list for this volume (volume_chapters); null = unknown
         public string CoverUrl { get; set; }        // the first cover in the edition's language (D5): artifact ISBN cover, MangaDex en (mangadex-<lang> for a non-English edition), Google; null -> the series poster. A pin (overrides.json coverUrl) wins over all of them
         public string CoverSource { get; set; }     // pin | opentome | mangadex-en | mangadex-<lang> (Preferred Edition 2026-09-24) | google | series (D10)
         public bool GoogleMissed { get; set; }      // Google did not answer for this volume this pass (429 / 5xx / transport / the quota breaker): with no CoverUrl, BookInfoProxy substitutes no poster so the ratchet keeps the local cover

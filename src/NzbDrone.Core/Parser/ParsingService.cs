@@ -5,6 +5,8 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books;
+using NzbDrone.Core.Books.Chapters;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser.Model;
@@ -31,18 +33,21 @@ namespace NzbDrone.Core.Parser
         private readonly IBookService _bookService;
         private readonly IEditionService _editionService;
         private readonly IMediaFileService _mediaFileService;
+        private readonly IConfigService _configService;
         private readonly Logger _logger;
 
         public ParsingService(IAuthorService authorService,
                               IBookService bookService,
                               IEditionService editionService,
                               IMediaFileService mediaFileService,
+                              IConfigService configService,
                               Logger logger)
         {
             _bookService = bookService;
             _editionService = editionService;
             _authorService = authorService;
             _mediaFileService = mediaFileService;
+            _configService = configService;
             _logger = logger;
         }
 
@@ -73,7 +78,7 @@ namespace NzbDrone.Core.Parser
                 ParsedBookInfo = parsedBookInfo,
             };
 
-            var author = GetAuthor(parsedBookInfo, searchCriteria);
+            var author = GetAuthor(parsedBookInfo, searchCriteria) ?? GetChapterReleaseAuthor(parsedBookInfo, searchCriteria);
 
             remoteBook.MediaType = ResolveMediaType(parsedBookInfo, author, searchCriteria);
 
@@ -84,6 +89,12 @@ namespace NzbDrone.Core.Parser
 
             remoteBook.Author = author;
             remoteBook.Books = GetBooks(parsedBookInfo, author, searchCriteria);
+
+            // A chapter release found by GetBooks is graded CBZ (chapters) there; its type follows.
+            if (parsedBookInfo.ChapterRange != null)
+            {
+                remoteBook.MediaType = ResolveMediaType(parsedBookInfo, author, searchCriteria);
+            }
 
             return remoteBook;
         }
@@ -126,9 +137,12 @@ namespace NzbDrone.Core.Parser
         // wrong class, so re-grade by library: audiobook wording, an audio search or an audio
         // category -> Unknown Audio; otherwise EPUB. An explicit archive token (cbz/cbr/zip/rar; a
         // lone pdf is below) or manga wording ("...Vol.06.Manga...Comic.eBook", D1) is kept and the
-        // media-type spec rejects it as today; Unknown (mobi/azw, or no volume token) stays
-        // ResolveMediaType's business; a manga author never enters, so its CBZ default is untouched.
-        // Returns true when the quality changed, so the caller re-resolves the type.
+        // media-type spec rejects it as today; so is a "(Digital)" volume with no ebook signal
+        // (QualityParser.LooksLikeDigitalManga, 2026-10-22: a light-novel entry had grabbed two
+        // danke-Empire manga rips as EPUB and failed each after the download). Unknown (mobi/azw, or
+        // no volume token) stays ResolveMediaType's business; a manga author never enters, so its
+        // CBZ default is untouched. Returns true when the quality changed, so the caller re-resolves
+        // the type.
         public static bool RegradeForLibrary(ParsedBookInfo parsedBookInfo, string title, Author author, SearchCriteriaBase searchCriteria, List<int> categories)
         {
             var quality = parsedBookInfo?.Quality?.Quality;
@@ -154,7 +168,8 @@ namespace NzbDrone.Core.Parser
                 quality == Quality.Unknown ||
                 MediaTypes.OfQuality(quality) != MediaType.Archive ||
                 QualityParser.HasExplicitArchiveToken(title) ||
-                QualityParser.LooksLikeManga(title))
+                QualityParser.LooksLikeManga(title) ||
+                QualityParser.LooksLikeDigitalManga(title))
             {
                 return false;
             }
@@ -178,6 +193,34 @@ namespace NzbDrone.Core.Parser
         {
             var bookTitle = parsedBookInfo.BookTitle;
             var result = new List<Book>();
+
+            // Volumes built from chapter packs (2026-10-21): a manga chapter release maps to exactly the
+            // volumes it completes on its own. The search bridge already read its range; an RSS or
+            // "Series - c001-073" title is read here, now that the series is known. With the feature
+            // off, a range the bridge read maps to nothing (the release is never a title lookup).
+            if (author.Library == LibraryType.Manga &&
+                !parsedBookInfo.VolumeNumber.HasValue &&
+                !parsedBookInfo.VolumeStart.HasValue)
+            {
+                var enabled = ChapterVolumePlanner.IsEnabled(author, _configService);
+
+                if (parsedBookInfo.ChapterRange == null && enabled)
+                {
+                    ReadChapterRange(parsedBookInfo, author);
+                }
+
+                if (parsedBookInfo.ChapterRange != null)
+                {
+                    if (enabled)
+                    {
+                        return GetChapterBooks(parsedBookInfo.ChapterRange, author);
+                    }
+
+                    // Off: not a chapter release as far as the decision is concerned.
+                    parsedBookInfo.ChapterRange = null;
+                    return result;
+                }
+            }
 
             if (parsedBookInfo.BookTitle == null)
             {
@@ -324,6 +367,95 @@ namespace NzbDrone.Core.Parser
             }
 
             return result;
+        }
+
+        private List<Book> GetChapterBooks(ChapterRange range, Author author)
+        {
+            var mediaType = MediaTypes.OfQuality(Quality.CbzChapters);
+            var editions = _editionService.GetEditionsByAuthor(author.Id).ToLookup(e => e.BookId);
+            var books = _bookService.GetBooksByAuthor(author.Id);
+
+            foreach (var book in books)
+            {
+                book.Editions = editions[book.Id].ToList();
+            }
+
+            var planned = ChapterVolumePlanner.Plan(ChapterVolumePlanner.Available(range.Start, range.End), books, mediaType);
+
+            // Only volumes still missing: a volume whose archive edition has any file (a chapter-built
+            // CBZ (chapters) copy included) is not one this release is for, and leaving it in would let
+            // the owned volumes' files reject the whole release. Unmonitored volumes (or an unmonitored
+            // archive edition) are not wanted either; the release maps to the monitored ones it completes.
+            var owned = _mediaFileService.GetFilesByAuthor(author.Id).Select(f => f.EditionId).ToHashSet();
+            var missing = planned
+                .Where(p => p.Book.Monitored && p.Book.EditionOf(mediaType).Monitored)
+                .Where(p => !owned.Contains(p.Book.EditionOf(mediaType).Id))
+                .ToList();
+
+            _logger.Debug("Chapter release ({0}) completes {1} volume(s) of {2}, {3} of them missing", range, planned.Count, author, missing.Count);
+
+            return missing.Select(p => p.Book).ToList();
+        }
+
+        // A title read as this series' chapter release: its name, aliases and anchor name stripped, in the
+        // series' release language. Null when it is not one.
+        public static ChapterRange ChapterRangeOf(string title, Author author)
+        {
+            var meta = author.Metadata?.Value;
+            var otherNames = (meta?.Aliases ?? new List<string>()).Append(meta?.AnchorName);
+
+            return ChapterReleaseParser.ParseTitle(title, author.Name, otherNames, EditionLanguages.ReleaseLanguage(meta));
+        }
+
+        // Reads a chapter range from the release title against this series' names; on a match the
+        // release is graded CBZ (chapters). Same names as the search bridge: name, aliases, anchor.
+        private static bool ReadChapterRange(ParsedBookInfo parsedBookInfo, Author author)
+        {
+            if (parsedBookInfo.ReleaseTitle.IsNullOrWhiteSpace())
+            {
+                return false;
+            }
+
+            var range = ChapterRangeOf(parsedBookInfo.ReleaseTitle, author);
+
+            if (range == null)
+            {
+                return false;
+            }
+
+            parsedBookInfo.ChapterRange = range;
+            parsedBookInfo.Quality = new QualityModel(Quality.CbzChapters);
+
+            return true;
+        }
+
+        // RSS: a plain chapter release ("Series c001-073 (Digital)") has no "Author - Title" split, so its
+        // parsed author name is not the series. A manga series with the feature on whose names read the
+        // title as its chapter release is that series.
+        private Author GetChapterReleaseAuthor(ParsedBookInfo parsedBookInfo, SearchCriteriaBase searchCriteria)
+        {
+            if (searchCriteria != null ||
+                parsedBookInfo.ReleaseTitle.IsNullOrWhiteSpace() ||
+                parsedBookInfo.VolumeNumber.HasValue ||
+                parsedBookInfo.VolumeStart.HasValue ||
+                !_configService.BuildVolumesFromChapters ||
+                !ChapterReleaseParser.HasChapterToken(parsedBookInfo.ReleaseTitle))
+            {
+                return null;
+            }
+
+            var candidates = _authorService.GetReportCandidates(parsedBookInfo.ReleaseTitle) ?? new List<Author>();
+
+            foreach (var candidate in candidates.Where(a => ChapterVolumePlanner.IsEnabled(a, _configService)))
+            {
+                if (ReadChapterRange(parsedBookInfo, candidate))
+                {
+                    _logger.Debug("Chapter release '{0}' -> series '{1}', {2}", parsedBookInfo.ReleaseTitle, candidate.Name, parsedBookInfo.ChapterRange);
+                    return candidate;
+                }
+            }
+
+            return null;
         }
 
         // False = reject the release (a numbered collected edition). Only a non-English series with a parsed

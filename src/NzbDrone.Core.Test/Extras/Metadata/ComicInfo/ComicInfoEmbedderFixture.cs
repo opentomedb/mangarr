@@ -99,6 +99,17 @@ namespace NzbDrone.Core.Test.Extras.Metadata.ComicInfo
         }
 
         [Test]
+        public void should_write_entries_that_unzip_as_readable_files()
+        {
+            var path = MakeCbz("Chainsaw Man - Vol 016.cbz");
+
+            Subject.Embed(path, ComicInfoBuilder.Merge(null, Fields())).Status.Should().Be(ComicInfoEmbedStatus.Written);
+
+            using var zip = ZipFile.OpenRead(path);
+            zip.Entries.Where(e => !e.FullName.EndsWith("/")).Should().OnlyContain(e => ((uint)e.ExternalAttributes >> 16) == 0x81A4);
+        }
+
+        [Test]
         public void should_write_readable_comicinfo()
         {
             var path = MakeCbz("v1.cbz");

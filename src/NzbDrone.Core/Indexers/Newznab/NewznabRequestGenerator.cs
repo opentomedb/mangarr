@@ -8,9 +8,11 @@ using NzbDrone.Core.IndexerSearch.Definitions;
 
 namespace NzbDrone.Core.Indexers.Newznab
 {
-    public class NewznabRequestGenerator : IIndexerRequestGenerator
+    public class NewznabRequestGenerator : IIndexerRequestGenerator, IPackSearchRequestGenerator
     {
         protected readonly INewznabCapabilitiesProvider _capabilitiesProvider;
+        private const int PackMaxPages = 3;
+
         public int MaxPages { get; set; }
         public int PageSize { get; set; }
         public NewznabSettings Settings { get; set; }
@@ -197,6 +199,24 @@ namespace NzbDrone.Core.Indexers.Newznab
                     CategoriesFor(searchCriteria),
                     "search",
                     $"&q={NewsnabifyTitle(searchCriteria.AuthorQuery)}"));
+            }
+
+            return pageableRequests;
+        }
+
+        // Monthly packs are archives: the non-audio categories, one tier, a few pages (packs are few).
+        public virtual IndexerPageableRequestChain GetPackSearchRequests(PackSearchCriteria searchCriteria)
+        {
+            var pageableRequests = new IndexerPageableRequestChain();
+
+            if (SupportsSearch)
+            {
+                pageableRequests.AddTier();
+
+                pageableRequests.Add(GetPagedRequests(Math.Min(MaxPages, PackMaxPages),
+                    Settings.Categories.Where(c => !MediaTypes.IsAudioCategory(c)).ToList(),
+                    "search",
+                    $"&q={NewsnabifyTitle(searchCriteria.Query)}"));
             }
 
             return pageableRequests;

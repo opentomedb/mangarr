@@ -13,6 +13,13 @@
   font-family: $defaultFontFamily;
 }
 
+.builtFromChapters {
+  composes: label from '~Components/Label.css';
+
+  margin-left: 8px;
+  font-family: $defaultFontFamily;
+}
+
 .size {
   composes: cell from '~Components/Table/Cells/TableRowCell.css';
 

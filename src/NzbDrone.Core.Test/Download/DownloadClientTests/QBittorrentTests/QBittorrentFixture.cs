@@ -13,6 +13,7 @@ using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Download.Clients.QBittorrent;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
+using NzbDrone.Core.Parser.Model;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
@@ -976,6 +977,323 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.QBittorrentTests
             var json = "{ \"eta\": 18446744073709335000 }";
             var torrent = Newtonsoft.Json.JsonConvert.DeserializeObject<QBittorrentTorrent>(json);
             torrent.Eta.ToString().Should().Be("18446744073709335000");
+        }
+
+        private const string PackHash = "CBC2F069FE8BB2F544EAE707D75BCD3DE9DCF951";
+        private static readonly byte[] PackTorrentBytes = { 1, 2, 3 };
+
+        private List<string> _packCalls;
+        private bool _packListed;
+        private int _wantedClientIndex;
+
+        // The torrent has 64 files (one a BEP47 pad file when padAt >= 0); qBittorrent lists them
+        // without the pad file. The wanted volume is torrent file 24.
+        private RemoteBook GivenPack(bool alreadyLoaded = false, int padAt = -1)
+        {
+            var files = Enumerable.Range(0, 64)
+                                  .Select(i => new TorrentFileEntry(i, i == padAt ? ".pad/0" : $"Series {i}/Series {i} v01 (Digital).cbz", 1000))
+                                  .ToList();
+            var clientFiles = files.Where(f => f.Index != padAt)
+                                   .Select(f => new QBittorrentTorrentFile { Name = "Monthly Pack/" + f.Path })
+                                   .ToList();
+            _wantedClientIndex = files.Where(f => f.Index != padAt).ToList().IndexOf(files[24]);
+
+            Mocker.GetMock<ITorrentFileInfoReader>()
+                  .Setup(s => s.GetFilesFromTorrentFile(It.IsAny<byte[]>()))
+                  .Returns(("Monthly Pack", files));
+
+            Mocker.GetMock<IQBittorrentProxySelector>()
+                  .Setup(s => s.GetApiVersion(It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()))
+                  .Returns(new Version(2, 9, 3));
+
+            var loaded = alreadyLoaded;
+            _packCalls = new List<string>();
+            _packListed = true;
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.IsTorrentLoaded(PackHash.ToLower(), It.IsAny<QBittorrentSettings>()))
+                  .Returns(() => loaded);
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.GetTorrentFiles(PackHash.ToLower(), It.IsAny<QBittorrentSettings>()))
+                  .Returns(clientFiles);
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.AddTorrentFromFile(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()))
+                  .Callback(() => loaded = true);
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.SetFilePriority(It.IsAny<string>(), It.IsAny<IEnumerable<int>>(), It.IsAny<int>(), It.IsAny<QBittorrentSettings>()))
+                  .Callback<string, IEnumerable<int>, int, QBittorrentSettings>((h, i, p, st) => _packCalls.Add("prio" + p));
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.StartTorrent(It.IsAny<string>(), It.IsAny<QBittorrentSettings>()))
+                  .Callback(() => _packCalls.Add("start"));
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.SetForceStart(It.IsAny<string>(), true, It.IsAny<QBittorrentSettings>()))
+                  .Callback(() => _packCalls.Add("force"));
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.SetTorrentLabel(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<QBittorrentSettings>()))
+                  .Callback<string, string, QBittorrentSettings>((h, l, st) => _packCalls.Add("label:" + l));
+
+            // GetItems lists only Mangarr's category; the pack is listed there unless a test moves it out.
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.GetTorrents(It.IsAny<QBittorrentSettings>()))
+                  .Returns(() => _packListed ? new List<QBittorrentTorrent> { new QBittorrentTorrent { Hash = PackHash.ToLower(), Category = "music" } } : new List<QBittorrentTorrent>());
+
+            var remoteBook = CreateRemoteBook();
+            remoteBook.PackTorrent = PackTorrentBytes;
+            remoteBook.PackFiles = new Dictionary<int, TorrentFileEntry> { { 646, files[24] } };
+            remoteBook.PackPreviouslyGrabbed = alreadyLoaded;
+
+            return remoteBook;
+        }
+
+        private bool IsAllExceptWanted(IEnumerable<int> indexes, int total = 64)
+        {
+            return indexes.OrderBy(i => i).SequenceEqual(Enumerable.Range(0, total).Where(i => i != _wantedClientIndex));
+        }
+
+        [TestCase(QBittorrentState.Start)]
+        [TestCase(QBittorrentState.Stop)]
+        [TestCase(QBittorrentState.ForceStart)]
+        public async Task pack_should_be_added_stopped_with_unmatched_files_skipped(QBittorrentState initialState)
+        {
+            Subject.Definition.Settings.As<QBittorrentSettings>().InitialState = (int)initialState;
+            var remoteBook = GivenPack();
+
+            var id = await Subject.Download(remoteBook, CreateIndexer());
+
+            id.Should().Be(PackHash);
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.AddTorrentFromFile(It.IsAny<string>(), PackTorrentBytes, It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>(), true), Times.Once());
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.AddTorrentFromFile(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.SetFilePriority(PackHash.ToLower(), It.Is<IEnumerable<int>>(i => IsAllExceptWanted(i, 64)), 0, It.IsAny<QBittorrentSettings>()), Times.Once());
+
+            // the deselect always comes before anything starts the torrent
+            _packCalls.Should().Equal(initialState switch
+            {
+                QBittorrentState.Start => new[] { "prio0", "start" },
+                QBittorrentState.ForceStart => new[] { "prio0", "force" },
+                _ => new[] { "prio0" }
+            });
+        }
+
+        [Test]
+        public async Task pack_should_map_files_by_qbittorrent_indexes_when_torrent_has_pad_files()
+        {
+            var remoteBook = GivenPack(padAt: 10);
+
+            await Subject.Download(remoteBook, CreateIndexer());
+
+            _wantedClientIndex.Should().Be(23);
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.SetFilePriority(PackHash.ToLower(), It.Is<IEnumerable<int>>(i => IsAllExceptWanted(i, 63)), 0, It.IsAny<QBittorrentSettings>()), Times.Once());
+        }
+
+        [Test]
+        public async Task pack_should_not_send_empty_priority_call_when_every_file_is_wanted()
+        {
+            var remoteBook = GivenPack();
+            remoteBook.PackFiles = Enumerable.Range(0, 64).ToDictionary(i => i, i => new TorrentFileEntry(i, $"Series {i}/Series {i} v01 (Digital).cbz", 1000));
+
+            await Subject.Download(remoteBook, CreateIndexer());
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.SetFilePriority(It.IsAny<string>(), It.IsAny<IEnumerable<int>>(), It.IsAny<int>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+            _packCalls.Should().Equal("start");
+        }
+
+        [Test]
+        public void pack_that_never_appears_should_fail_without_a_delete()
+        {
+            var remoteBook = GivenPack();
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.IsTorrentLoaded(PackHash.ToLower(), It.IsAny<QBittorrentSettings>()))
+                  .Returns(false);
+
+            Assert.ThrowsAsync<DownloadClientException>(async () => await Subject.Download(remoteBook, CreateIndexer()));
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.RemoveTorrent(PackHash.ToLower(), false, It.IsAny<QBittorrentSettings>()), Times.Never());
+            _packCalls.Should().BeEmpty();
+        }
+
+        [Test]
+        public void pack_listed_late_should_still_be_removed_after_the_wait_times_out()
+        {
+            var remoteBook = GivenPack();
+            var calls = 0;
+
+            // not listed for the first 5 s of polling, then it appears
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.IsTorrentLoaded(PackHash.ToLower(), It.IsAny<QBittorrentSettings>()))
+                  .Returns(() => ++calls > 52);
+
+            Assert.ThrowsAsync<DownloadClientException>(async () => await Subject.Download(remoteBook, CreateIndexer()));
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.RemoveTorrent(PackHash.ToLower(), false, It.IsAny<QBittorrentSettings>()), Times.Once());
+            _packCalls.Should().BeEmpty();
+        }
+
+        [Test]
+        public void pack_should_be_removed_again_when_file_selection_fails()
+        {
+            var remoteBook = GivenPack();
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Setup(s => s.SetFilePriority(It.IsAny<string>(), It.IsAny<IEnumerable<int>>(), 0, It.IsAny<QBittorrentSettings>()))
+                  .Throws(new DownloadClientException("boom"));
+
+            Assert.ThrowsAsync<DownloadClientException>(async () => await Subject.Download(remoteBook, CreateIndexer()));
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.RemoveTorrent(PackHash.ToLower(), false, It.IsAny<QBittorrentSettings>()), Times.Once());
+            _packCalls.Should().BeEmpty();
+        }
+
+        [Test]
+        public void pack_should_be_removed_again_when_a_wanted_file_is_not_listed_by_the_client()
+        {
+            var remoteBook = GivenPack();
+            remoteBook.PackFiles[646] = new TorrentFileEntry(24, "Missing/Missing v01 (Digital).cbz", 1000);
+
+            Assert.ThrowsAsync<DownloadClientException>(async () => await Subject.Download(remoteBook, CreateIndexer()));
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.RemoveTorrent(PackHash.ToLower(), false, It.IsAny<QBittorrentSettings>()), Times.Once());
+            _packCalls.Should().BeEmpty();
+        }
+
+        [Test]
+        public void pack_should_not_be_sent_to_a_client_that_cannot_select_files()
+        {
+            var remoteBook = GivenPack();
+            Mocker.GetMock<IQBittorrentProxySelector>()
+                  .Setup(s => s.GetApiVersion(It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()))
+                  .Returns(new Version(1, 5));
+
+            Assert.ThrowsAsync<DownloadClientException>(async () => await Subject.Download(remoteBook, CreateIndexer()));
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.AddTorrentFromFile(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()), Times.Never());
+        }
+
+        [Test]
+        public async Task pack_should_use_cached_torrent_bytes_instead_of_fetching()
+        {
+            var remoteBook = GivenPack();
+
+            await Subject.Download(remoteBook, CreateIndexer());
+
+            Mocker.GetMock<IHttpClient>()
+                  .Verify(v => v.GetAsync(It.IsAny<HttpRequest>()), Times.Never());
+        }
+
+        [TestCase(QBittorrentState.Start, "start")]
+        [TestCase(QBittorrentState.ForceStart, "force")]
+        [TestCase(QBittorrentState.Stop, null)]
+        public async Task pack_already_in_client_should_select_matched_file_and_resume(QBittorrentState initialState, string expectedStart)
+        {
+            Subject.Definition.Settings.As<QBittorrentSettings>().InitialState = (int)initialState;
+            var remoteBook = GivenPack(alreadyLoaded: true, padAt: 10);
+
+            var id = await Subject.Download(remoteBook, CreateIndexer());
+
+            id.Should().Be(PackHash);
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.AddTorrentFromFile(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()), Times.Never());
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.SetFilePriority(PackHash.ToLower(), It.Is<IEnumerable<int>>(i => i.SequenceEqual(new[] { _wantedClientIndex })), 1, It.IsAny<QBittorrentSettings>()), Times.Once());
+            _packCalls.Should().Equal(expectedStart == null ? new[] { "prio1" } : new[] { "prio1", expectedStart });
+        }
+
+        [Test]
+        public void loaded_pack_mangarr_never_grabbed_should_be_rejected_untouched()
+        {
+            Subject.Definition.Settings.As<QBittorrentSettings>().InitialState = (int)QBittorrentState.Start;
+            var remoteBook = GivenPack(alreadyLoaded: true);
+            remoteBook.PackPreviouslyGrabbed = false;
+            _packListed = false;
+
+            Assert.ThrowsAsync<DownloadClientRejectedReleaseException>(async () => await Subject.Download(remoteBook, CreateIndexer()));
+
+            _packCalls.Should().BeEmpty();
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.AddTorrentFromFile(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<TorrentSeedConfiguration>(), It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()), Times.Never());
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.RemoveTorrent(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+        }
+
+        [Test]
+        public async Task imported_pack_in_the_post_import_category_should_return_to_the_category_before_it_starts()
+        {
+            Subject.Definition.Settings.As<QBittorrentSettings>().InitialState = (int)QBittorrentState.Start;
+            Subject.Definition.Settings.As<QBittorrentSettings>().MusicImportedCategory = "music-imported";
+            var remoteBook = GivenPack(alreadyLoaded: true);
+            _packListed = false;
+
+            await Subject.Download(remoteBook, CreateIndexer());
+
+            _packCalls.Should().Equal("prio1", "label:music", "start");
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.SetTorrentLabel(PackHash.ToLower(), "music", It.IsAny<QBittorrentSettings>()), Times.Once());
+        }
+
+        [Test]
+        public async Task loaded_pack_already_in_the_category_should_keep_its_label()
+        {
+            Subject.Definition.Settings.As<QBittorrentSettings>().InitialState = (int)QBittorrentState.Start;
+            var remoteBook = GivenPack(alreadyLoaded: true);
+
+            await Subject.Download(remoteBook, CreateIndexer());
+
+            _packCalls.Should().Equal("prio1", "start");
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.SetTorrentLabel(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+        }
+
+        [Test]
+        public async Task loaded_pack_should_not_be_relabelled_without_a_category()
+        {
+            Subject.Definition.Settings.As<QBittorrentSettings>().InitialState = (int)QBittorrentState.Start;
+            Subject.Definition.Settings.As<QBittorrentSettings>().MusicCategory = null;
+            var remoteBook = GivenPack(alreadyLoaded: true);
+            _packListed = false;
+
+            await Subject.Download(remoteBook, CreateIndexer());
+
+            _packCalls.Should().Equal("prio1", "start");
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.SetTorrentLabel(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+        }
+
+        [Test]
+        public async Task normal_grab_should_not_touch_file_priorities()
+        {
+            GivenSuccessfulDownload();
+
+            await Subject.Download(CreateRemoteBook(), CreateIndexer());
+
+            Mocker.GetMock<IQBittorrentProxy>()
+                  .Verify(v => v.SetFilePriority(It.IsAny<string>(), It.IsAny<IEnumerable<int>>(), It.IsAny<int>(), It.IsAny<QBittorrentSettings>()), Times.Never());
+        }
+
+        [Test]
+        public void can_select_files_only_on_api_v2()
+        {
+            Mocker.GetMock<IQBittorrentProxySelector>()
+                  .Setup(s => s.GetApiVersion(It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()))
+                  .Returns(new Version(1, 5));
+            Subject.CanSelectFiles.Should().BeFalse();
+
+            Mocker.GetMock<IQBittorrentProxySelector>()
+                  .Setup(s => s.GetApiVersion(It.IsAny<QBittorrentSettings>(), It.IsAny<bool>()))
+                  .Returns(new Version(2, 9, 3));
+            Subject.CanSelectFiles.Should().BeTrue();
         }
 
         [Test]

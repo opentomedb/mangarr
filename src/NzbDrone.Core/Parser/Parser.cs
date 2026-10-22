@@ -540,6 +540,33 @@ namespace NzbDrone.Core.Parser
                     return null;
                 }
 
+                // Volumes built from chapter packs (2026-10-21): a manga chapter release ("Series c001-073
+                // (Digital)") has no volume token, and is no whole-series batch either. ParseTitle decides the
+                // series and the range on one match -- one of this series' names, then the chapter token, then
+                // only tags -- so it is attributed with its chapter range and no volume range, graded CBZ
+                // (chapters). A name's own "Chapter 4" never reads as a chapter, so that tokenless arc batch
+                // still takes the batch bridge below.
+                if (author.Library == LibraryType.Manga)
+                {
+                    var otherNames = (author.Metadata?.Value?.Aliases ?? new List<string>()).Append(author.Metadata?.Value?.AnchorName);
+                    var chapterRange = ChapterReleaseParser.ParseTitle(releaseTitle, author.Name, otherNames, editionLanguage);
+
+                    if (chapterRange != null)
+                    {
+                        Logger.Debug("Manga chapter bridge: '{0}' -> author '{1}', {2}", title, author.Name, chapterRange);
+
+                        return new ParsedBookInfo
+                        {
+                            AuthorName = author.Name,
+                            AuthorTitleInfo = GetAuthorTitleInfo(author.Name),
+                            BookTitle = author.Name,
+                            Quality = new QualityModel(Quality.CbzChapters),
+                            ReleaseGroup = ParseReleaseGroup(releaseTitle),
+                            ChapterRange = chapterRange
+                        };
+                    }
+                }
+
                 // Tokenless whole-series batch bridge: private-tracker-style batches ("That Time I Got
                 // Reincarnated as a Slime [Yen Press] [Stick]", "ReZERO ... The Frozen Bond
                 // (2022-2023) (Digital)") carry no volume token at all, so the bridge above can't

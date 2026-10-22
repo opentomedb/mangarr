@@ -115,6 +115,7 @@ class EditAuthorModalContent extends Component {
       adoptedTagWrite,
       metadataProfileId,
       maxVolume,
+      buildFromChapters,
       path,
       tags
     } = item;
@@ -242,6 +243,24 @@ class EditAuthorModalContent extends Component {
                 onChange={onInputChange}
               />
             </FormGroup>
+
+            {
+              isLightNovel ?
+                null :
+                <FormGroup>
+                  <FormLabel>
+                    {translate('BuildVolumesFromChapters')}
+                  </FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.CHECK}
+                    name="buildFromChapters"
+                    helpText={translate('BuildVolumesFromChaptersHelpText')}
+                    {...buildFromChapters}
+                    onChange={onInputChange}
+                  />
+                </FormGroup>
+            }
 
             <FormGroup>
               <FormLabel>

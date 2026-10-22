@@ -36,7 +36,8 @@ namespace NzbDrone.Core.Datastore
 #pragma warning disable 618
             SqlMapper.LookupDbType(propertyInfo.PropertyType, "", false, out var handler);
 #pragma warning restore 618
-            if (propertyInfo.PropertyType.IsSimpleType() || handler != null)
+            // byte[] is a native Dapper blob (PackFileLists.Torrent), no handler needed.
+            if (propertyInfo.PropertyType.IsSimpleType() || propertyInfo.PropertyType == typeof(byte[]) || handler != null)
             {
                 return true;
             }

@@ -38,6 +38,11 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
             // edition, so this is the same file list as before.
             foreach (var file in subject.Books.SelectMany(b => b.EditionOf(subject.MediaType)?.BookFiles.Value ?? new List<BookFile>()))
             {
+                if (UpgradableSpecification.ReplacesChapterBuilt(file.Quality, subject.ParsedBookInfo.Quality))
+                {
+                    continue;
+                }
+
                 // Get a distinct list of all current track qualities for a given book
                 var currentQualities = new List<QualityModel> { file.Quality };
 

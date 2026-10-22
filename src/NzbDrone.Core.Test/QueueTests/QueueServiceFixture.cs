@@ -9,6 +9,7 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
+using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Test.Framework;
@@ -74,6 +75,31 @@ namespace NzbDrone.Core.Test.QueueTests
             var distinct = queue.Select(v => v.Id).Distinct().ToArray();
 
             distinct.Should().HaveCount(3);
+        }
+
+        [Test]
+        public void pack_queue_items_should_show_each_volumes_own_series()
+        {
+            var kaiju = new Author { Id = 1, Name = "Kaiju No. 8" };
+            var jujutsu = new Author { Id = 2, Name = "Jujutsu Kaisen" };
+            var kaijuVolume = new Book { Id = 11, Author = kaiju };
+            var jujutsuVolume = new Book { Id = 21, Author = jujutsu };
+
+            var remoteBook = _trackedDownloads[0].RemoteBook;
+            remoteBook.Author = kaiju;
+            remoteBook.Books = new List<Book> { kaijuVolume, jujutsuVolume };
+            remoteBook.PackFiles = new Dictionary<int, TorrentFileEntry>
+            {
+                { 11, new TorrentFileEntry(4, "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz", 0) },
+                { 21, new TorrentFileEntry(9, "Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz", 0) }
+            };
+
+            Subject.Handle(new TrackedDownloadRefreshedEvent(_trackedDownloads));
+
+            var queue = Subject.GetQueue();
+
+            queue.Single(q => q.Book.Id == 11).Author.Should().BeSameAs(kaiju);
+            queue.Single(q => q.Book.Id == 21).Author.Should().BeSameAs(jujutsu);
         }
     }
 }

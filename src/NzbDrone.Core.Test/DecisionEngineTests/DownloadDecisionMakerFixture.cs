@@ -90,6 +90,32 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             _pass3.Verify(c => c.IsSatisfiedBy(_remoteBook, null), Times.Once());
         }
 
+        // Volumes built from chapter packs (2026-10-21): a parsed chapter release that maps to no volume
+        // says why; anything else keeps the old reason.
+        [Test]
+        public void chapter_release_mapping_to_no_volume_is_rejected_as_completing_none()
+        {
+            GivenSpecifications(_pass1);
+            _remoteBook.Books = new List<Book>();
+            _remoteBook.ParsedBookInfo.ChapterRange = new ChapterRange { Start = 1, End = 73, IsDigital = true };
+
+            var decision = Subject.GetRssDecision(_reports).Single();
+
+            decision.Rejections.Single().Reason.Should().Be("Chapter release completes no volume");
+        }
+
+        [Test]
+        public void release_mapping_to_no_volume_without_a_chapter_range_keeps_its_reason()
+        {
+            GivenSpecifications(_pass1);
+            _remoteBook.Books = new List<Book>();
+            _remoteBook.ParsedBookInfo.ChapterRange = null;
+
+            var decision = Subject.GetRssDecision(_reports).Single();
+
+            decision.Rejections.Single().Reason.Should().Be("Unable to parse volumes from release name");
+        }
+
         [Test]
         public void should_call_delayed_specifications_if_non_delayed_passed()
         {

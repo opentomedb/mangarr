@@ -346,5 +346,26 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
 
             Subject.GetSearchRequests(criteria).GetAllTiers().SelectMany(r => r).Should().BeEmpty();
         }
+
+        [Test]
+        public void pack_search_should_emit_one_series_independent_tier_of_three_pages()
+        {
+            Subject.Settings.Categories = new[] { 1, 2, 3030 };
+
+            var results = Subject.GetPackSearchRequests(new PackSearchCriteria());
+
+            results.Tiers.Should().Be(1);
+
+            var pages = results.GetTier(0).SelectMany(r => r).ToList();
+
+            pages.Should().HaveCount(3);
+            pages.Select(p => p.Url.Query).Should().OnlyContain(q =>
+                q.Contains("t=search") &&
+                q.Contains("&q=Volumes%20Update") &&
+                q.Contains("&cat=1,2&") &&
+                q.Contains("&extended=1"));
+            pages.Select(p => p.Url.Query).Should().Contain(q => q.Contains("&offset=0&limit=100"));
+            pages.Select(p => p.Url.Query).Should().Contain(q => q.Contains("&offset=200&limit=100"));
+        }
     }
 }

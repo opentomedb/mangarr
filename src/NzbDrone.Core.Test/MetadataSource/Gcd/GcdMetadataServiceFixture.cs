@@ -200,6 +200,35 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         }
 
         [Test]
+        public void volume_chapters_are_read()
+        {
+            Subject.GetVolumes(154385).Find(v => v.VolumeNumber == 1).Chapters.Should().Equal(72, 73, 74);
+        }
+
+        [Test]
+        public void malformed_json_reads_null()
+        {
+            Subject.GetVolumes(154385).Find(v => v.VolumeNumber == 2).Chapters.Should().BeNull();
+        }
+
+        [Test]
+        public void an_artifact_without_the_column_reads_null_chapters()
+        {
+            var v1 = Path.Combine(TempFolder, "v1chapters");
+            var metaDir = Path.Combine(v1, "metadata");
+            Directory.CreateDirectory(metaDir);
+            CreateArtifact(Path.Combine(metaDir, GcdMetadataService.ArtifactName), optionalColumns: false);
+            Mocker.GetMock<IAppFolderInfo>()
+                .SetupGet(c => c.AppDataFolder)
+                .Returns(v1);
+
+            var volumes = Subject.GetVolumes(76512);
+
+            volumes.Should().NotBeEmpty();
+            volumes.Should().OnlyContain(v => v.Chapters == null);
+        }
+
+        [Test]
         public void works_with_a_schema_v1_artifact_without_optional_columns()
         {
             var v1 = Path.Combine(TempFolder, "v1appdata");
@@ -349,7 +378,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
                 conn.Open();
                 var extraCols = optionalColumns ? ", medium TEXT, dated_count INTEGER, is_main INTEGER, author TEXT" : string.Empty;
                 extraCols += displayColumns ? ", display_anilist_id INTEGER, display_anilist_via TEXT" : string.Empty;
-                var volumeExtraCols = optionalColumns ? ", cover_url TEXT, cover_source TEXT" : string.Empty;
+                var volumeExtraCols = optionalColumns ? ", cover_url TEXT, cover_source TEXT, volume_chapters TEXT" : string.Empty;
                 conn.Execute(@"
                     CREATE TABLE series (
                         gcd_series_id INTEGER PRIMARY KEY, name TEXT, year_began INTEGER,
@@ -367,6 +396,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
                     conn.Execute(
                         @"INSERT INTO volumes (gcd_series_id, volume_number, cover_url, cover_source)
                           VALUES (154385, 2, 'https://covers.openlibrary.org/b/id/1-L.jpg', 'openlibrary')");
+                    conn.Execute("UPDATE volumes SET volume_chapters = 'not json' WHERE gcd_series_id = 154385 AND volume_number = 2");
                 }
 
                 var rows = new[]
@@ -422,6 +452,11 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
                         new { Series = 76512, Num = 24, Title = "Naruto 3-in-1 Vol. 24", Date = (string)null, Isbn = (string)null, Pages = (int?)null, Comp = "[70,71,72]" },
                         new { Series = 154385, Num = 1, Title = "Chainsaw Man, Vol. 1", Date = "2020-10-06", Isbn = "9781974709939", Pages = (int?)192, Comp = (string)null }
                     });
+
+                if (optionalColumns)
+                {
+                    conn.Execute("UPDATE volumes SET volume_chapters = '[72, 73, 74]' WHERE gcd_series_id = 154385 AND volume_number = 1");
+                }
 
                 conn.Execute(
                     "INSERT INTO series_alias (gcd_series_id, alias) VALUES (@Id, @Alias)",

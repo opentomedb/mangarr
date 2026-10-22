@@ -1,11 +1,16 @@
+using System;
 using System.Globalization;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.Chapters;
 using NzbDrone.Core.Parser;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Extras.Metadata.ComicInfo
 {
@@ -51,7 +56,7 @@ namespace NzbDrone.Core.Extras.Metadata.ComicInfo
             }
 
             var edition = file.EditionId > 0 ? _editionService.GetEdition(file.EditionId) : null;
-            var fields = BuildFields(author, book, edition);
+            var fields = BuildFields(author, book, edition, file);
 
             var existing = _embedder.ReadExisting(file.Path);
             if (!ComicInfoBuilder.WouldChange(existing, fields))
@@ -77,7 +82,27 @@ namespace NzbDrone.Core.Extras.Metadata.ComicInfo
             return result.Status;
         }
 
-        private static ComicInfoFields BuildFields(Author author, Book book, Edition edition)
+        // A volume built from chapters has no printed page count: its pages are the images in the archive.
+        private static int? BuiltPageCount(BookFile file)
+        {
+            if (file.Quality?.Quality?.Id != Quality.CbzChapters.Id)
+            {
+                return null;
+            }
+
+            try
+            {
+                using var zip = ZipFile.OpenRead(file.Path);
+
+                return zip.Entries.Count(e => ChapterVolumeAssembler.PageExtensions.Contains(Path.GetExtension(e.FullName)));
+            }
+            catch (Exception ex) when (ex is IOException || ex is InvalidDataException || ex is UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+
+        private static ComicInfoFields BuildFields(Author author, Book book, Edition edition, BookFile file)
         {
             var meta = author.Metadata?.Value;
             var release = edition?.ReleaseDate ?? book.ReleaseDate;
@@ -91,7 +116,7 @@ namespace NzbDrone.Core.Extras.Metadata.ComicInfo
                 Year = release?.Year,
                 Month = release?.Month,
                 Day = release?.Day,
-                PageCount = edition?.PageCount ?? 0,
+                PageCount = BuiltPageCount(file) ?? edition?.PageCount ?? 0,
                 Publisher = edition?.Publisher,
                 LanguageIso = "en",
 

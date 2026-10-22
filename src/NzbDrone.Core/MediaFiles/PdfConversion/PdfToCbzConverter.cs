@@ -204,7 +204,7 @@ namespace NzbDrone.Core.MediaFiles.PdfConversion
                 // Rename to a clean zero-padded scheme so every reader shows correct page order,
                 // preserving the native extension (and therefore the untouched image bytes).
                 var name = index.ToString("D4") + Path.GetExtension(image).ToLowerInvariant();
-                var entry = zip.CreateEntry(name, CompressionLevel.NoCompression);
+                var entry = zip.CreateFileEntry(name, CompressionLevel.NoCompression);
 
                 using var input = File.OpenRead(image);
                 using var output = entry.Open();

@@ -1061,6 +1061,16 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         [Test]
+        public void the_artifact_chapter_list_reaches_the_volume()
+        {
+            GivenFairyTail(new GcdVolume { VolumeNumber = 24, Isbn13 = "9781612622668", Chapters = new List<double> { 72, 73, 74 } });
+
+            var series = Subject.GetSeries("Fairy Tail", 30, resolveVolumeDetails: true, LibraryType.Manga, anilistId: 30598);
+
+            series.Volumes.Single(v => v.VolumeNumber == 24).Chapters.Should().Equal(72, 73, 74);
+        }
+
+        [Test]
         public void a_mismatched_isbn_record_gives_the_volume_nothing()
         {
             var vol = ResolveFairyTail24WithGoogleRecord(title: "Pantsu Agerune", cover: "https://books.google.com/books/publisher/content?id=WWWQEAAAQBAJ&zoom=4", description: new string('x', 200));

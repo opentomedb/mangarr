@@ -1,12 +1,17 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using NLog;
 using NzbDrone.Common.Instrumentation.Extensions;
+using NzbDrone.Core.Books;
+using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Datastore;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.Pending;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.MonthlyPacks;
 
 namespace NzbDrone.Core.Indexers
 {
@@ -18,6 +23,9 @@ namespace NzbDrone.Core.Indexers
         private readonly IMakeDownloadDecision _downloadDecisionMaker;
         private readonly IProcessDownloadDecisions _processDownloadDecisions;
         private readonly IPendingReleaseService _pendingReleaseService;
+        private readonly IBookService _bookService;
+        private readonly IConfigService _configService;
+        private readonly IMonthlyPackService _monthlyPackService;
         private readonly IEventAggregator _eventAggregator;
         private readonly Logger _logger;
 
@@ -27,6 +35,9 @@ namespace NzbDrone.Core.Indexers
                               IMakeDownloadDecision downloadDecisionMaker,
                               IProcessDownloadDecisions processDownloadDecisions,
                               IPendingReleaseService pendingReleaseService,
+                              IBookService bookService,
+                              IConfigService configService,
+                              IMonthlyPackService monthlyPackService,
                               IEventAggregator eventAggregator,
                               Logger logger)
         {
@@ -36,6 +47,9 @@ namespace NzbDrone.Core.Indexers
             _downloadDecisionMaker = downloadDecisionMaker;
             _processDownloadDecisions = processDownloadDecisions;
             _pendingReleaseService = pendingReleaseService;
+            _bookService = bookService;
+            _configService = configService;
+            _monthlyPackService = monthlyPackService;
             _eventAggregator = eventAggregator;
             _logger = logger;
         }
@@ -50,6 +64,29 @@ namespace NzbDrone.Core.Indexers
             var reports = rssReleases.Concat(pendingReleases).ToList();
             var decisions = _downloadDecisionMaker.GetRssDecision(reports);
             var processed = await _processDownloadDecisions.ProcessDecisions(decisions);
+
+            // Monthly volume packs (2026-10-21): the same fetched releases, once, against the missing volumes a
+            // single release did not just take.
+            if (_configService.UseMonthlyVolumePacks && rssReleases.Any(r => MonthlyPackService.LooksLikePack(r.Title)))
+            {
+                var grabbed = processed.Grabbed.Concat(processed.Pending).SelectMany(d => d.RemoteBook?.Books ?? new List<Book>()).Select(b => b.Id).ToHashSet();
+                var pagingSpec = new PagingSpec<Book>
+                {
+                    Page = 1,
+                    PageSize = 100000,
+                    SortDirection = SortDirection.Ascending,
+                    SortKey = "Id"
+                };
+
+                pagingSpec.FilterExpressions.Add(v => v.Monitored == true && v.Author.Value.Monitored == true);
+
+                var missing = _bookService.BooksWithoutFiles(pagingSpec, LibraryType.Manga).Records.Where(b => !grabbed.Contains(b.Id)).ToList();
+
+                if (missing.Any())
+                {
+                    _monthlyPackService.ProcessReleases(rssReleases, missing);
+                }
+            }
 
             // Server messages (2026-09-26): two whole templates instead of an appended tail, so each one has a key.
             if (processed.Pending.Any())

@@ -33,6 +33,8 @@ namespace Readarr.Api.V1.Config
 
         // Beta readiness fix round (2026-09-28, F3): the daily library-wide PDF->CBZ sweep.
         public bool PdfToCbzSweep { get; set; }
+        public bool BuildVolumesFromChapters { get; set; }
+        public bool UseMonthlyVolumePacks { get; set; }
         public string RecycleBin { get; set; }
         public int RecycleBinCleanupDays { get; set; }
         public string PdfOriginalsFolder { get; set; }
@@ -80,6 +82,8 @@ namespace Readarr.Api.V1.Config
 
                 AutoUnmonitorPreviouslyDownloadedBooks = model.AutoUnmonitorPreviouslyDownloadedBooks,
                 PdfToCbzSweep = model.PdfToCbzSweep,
+                BuildVolumesFromChapters = model.BuildVolumesFromChapters,
+                UseMonthlyVolumePacks = model.UseMonthlyVolumePacks,
                 RecycleBin = model.RecycleBin,
                 RecycleBinCleanupDays = model.RecycleBinCleanupDays,
                 PdfOriginalsFolder = model.PdfOriginalsFolder,

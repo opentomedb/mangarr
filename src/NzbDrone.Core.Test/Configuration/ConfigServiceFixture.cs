@@ -35,6 +35,12 @@ namespace NzbDrone.Core.Test.Configuration
         }
 
         [Test]
+        public void use_monthly_volume_packs_should_default_to_true()
+        {
+            Subject.UseMonthlyVolumePacks.Should().BeTrue();
+        }
+
+        [Test]
         public void get_value_with_persist_should_store_default_value()
         {
             var salt = Subject.HmacSalt;

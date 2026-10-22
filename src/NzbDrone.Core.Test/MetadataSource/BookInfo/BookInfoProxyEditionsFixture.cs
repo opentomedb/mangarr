@@ -80,6 +80,16 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
         }
 
         [Test]
+        public void a_minted_manga_edition_carries_the_volumes_chapter_list()
+        {
+            GivenVolume(new MangaVolumeMetadata { VolumeNumber = 1, Chapters = new List<double> { 72, 73, 74 } });
+
+            var edition = Subject.GetAuthorInfo(MangaId).Books.Value.Single().Editions.Value.Single();
+
+            edition.Chapters.Should().Equal(72, 73, 74);
+        }
+
+        [Test]
         public void static_id_helper_carries_the_library()
         {
             BookInfoProxy.ForeignAuthorIdFor("Mushoku Tensei").Should().Be("local-mushoku-tensei");

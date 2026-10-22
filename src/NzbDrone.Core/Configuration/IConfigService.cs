@@ -85,6 +85,8 @@ namespace NzbDrone.Core.Configuration
         bool EmbedMetadata { get; set; }
         WriteComicInfoType WriteComicInfo { get; set; }
         bool PdfToCbzSweep { get; set; }
+        bool BuildVolumesFromChapters { get; set; }
+        bool UseMonthlyVolumePacks { get; set; }
         bool CheckForNewReleases { get; set; }
         bool LightNovelProfilesSeeded { get; set; }
         string GoogleBooksApiKey { get; set; }

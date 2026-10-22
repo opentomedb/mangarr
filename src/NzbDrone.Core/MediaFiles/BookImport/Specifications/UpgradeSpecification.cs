@@ -3,6 +3,7 @@ using NLog;
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.DecisionEngine;
+using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
@@ -42,6 +43,11 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Specifications
 
             foreach (var bookFile in files)
             {
+                if (UpgradableSpecification.ReplacesChapterBuilt(bookFile.Quality, item.Quality))
+                {
+                    continue;
+                }
+
                 var qualityCompare = qualityComparer.Compare(item.Quality.Quality, bookFile.Quality.Quality);
 
                 if (qualityCompare < 0)

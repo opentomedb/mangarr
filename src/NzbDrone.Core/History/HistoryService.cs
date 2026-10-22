@@ -13,6 +13,7 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.Chapters;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Parser.Model;
@@ -45,7 +46,8 @@ namespace NzbDrone.Core.History
                                   IHandle<BookFileRenamedEvent>,
                                   IHandle<BookFileRetaggedEvent>,
                                   IHandle<AuthorDeletedEvent>,
-                                  IHandle<DownloadIgnoredEvent>
+                                  IHandle<DownloadIgnoredEvent>,
+                                  IHandle<ChapterVolumeSkippedEvent>
     {
         private readonly IHistoryRepository _historyRepository;
         private readonly IServerMessageLocalizer _serverMessages;
@@ -232,6 +234,13 @@ namespace NzbDrone.Core.History
                     history.Data.Add("TorrentInfoHash", torrentRelease.InfoHash);
                 }
 
+                // Monthly pack grab: the one file in the torrent that is this book's volume.
+                if (message.Book.PackFiles != null && message.Book.PackFiles.TryGetValue(book.Id, out var packFile))
+                {
+                    history.Data.Add("PackFile", packFile.Path);
+                    history.Data.Add("PackFileIndex", packFile.Index.ToString());
+                }
+
                 _historyRepository.Insert(history);
             }
         }
@@ -249,30 +258,43 @@ namespace NzbDrone.Core.History
 
             foreach (var book in message.TrackedDownload.RemoteBook.Books)
             {
-                var history = new EntityHistory
-                {
-                    EventType = EntityHistoryEventType.BookImportIncomplete,
-                    Date = DateTime.UtcNow,
-                    Quality = message.TrackedDownload.RemoteBook.ParsedBookInfo?.Quality ?? new QualityModel(),
-                    SourceTitle = message.TrackedDownload.DownloadItem.Title,
-                    AuthorId = book.AuthorId,
-                    BookId = book.Id,
-                    DownloadId = message.TrackedDownload.DownloadItem.DownloadId
-                };
-
-                history.Data.Add("StatusMessages", statusMessages);
-
-                if (statusMessageKeys != null)
-                {
-                    history.Data.Add("StatusMessageKeys", statusMessageKeys);
-                }
-
-                history.Data.Add("ReleaseGroup", message.TrackedDownload?.RemoteBook?.ParsedBookInfo?.ReleaseGroup);
-                history.Data.Add("IndexerFlags", message.TrackedDownload?.RemoteBook?.Release?.IndexerFlags.ToString());
-                history.Data.Add(EntityHistory.MEDIA_TYPE, MediaTypeKey(message.TrackedDownload.RemoteBook.MediaType));
-
-                _historyRepository.Insert(history);
+                _historyRepository.Insert(ImportIncomplete(message.TrackedDownload, book, statusMessages, statusMessageKeys));
             }
+        }
+
+        // Volumes built from chapter packs (2026-10-21): the one volume a pack did not build, with its reason.
+        public void Handle(ChapterVolumeSkippedEvent message)
+        {
+            var statusMessages = new[] { new TrackedDownloadStatusMessage(message.TrackedDownload.DownloadItem.Title, message.Reason) };
+
+            _historyRepository.Insert(ImportIncomplete(message.TrackedDownload, message.Book, statusMessages.ToJson(), StatusMessageKeys(statusMessages)));
+        }
+
+        private EntityHistory ImportIncomplete(TrackedDownload trackedDownload, Book book, string statusMessages, string statusMessageKeys)
+        {
+            var history = new EntityHistory
+            {
+                EventType = EntityHistoryEventType.BookImportIncomplete,
+                Date = DateTime.UtcNow,
+                Quality = trackedDownload.RemoteBook.ParsedBookInfo?.Quality ?? new QualityModel(),
+                SourceTitle = trackedDownload.DownloadItem.Title,
+                AuthorId = book.AuthorId,
+                BookId = book.Id,
+                DownloadId = trackedDownload.DownloadItem.DownloadId
+            };
+
+            history.Data.Add("StatusMessages", statusMessages);
+
+            if (statusMessageKeys != null)
+            {
+                history.Data.Add("StatusMessageKeys", statusMessageKeys);
+            }
+
+            history.Data.Add("ReleaseGroup", trackedDownload.RemoteBook?.ParsedBookInfo?.ReleaseGroup);
+            history.Data.Add("IndexerFlags", trackedDownload.RemoteBook?.Release?.IndexerFlags.ToString());
+            history.Data.Add(EntityHistory.MEDIA_TYPE, MediaTypeKey(trackedDownload.RemoteBook.MediaType));
+
+            return history;
         }
 
         public void Handle(TrackImportedEvent message)

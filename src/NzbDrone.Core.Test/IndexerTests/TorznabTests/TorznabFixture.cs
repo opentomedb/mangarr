@@ -10,6 +10,7 @@ using NzbDrone.Common.Http;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Indexers.Newznab;
 using NzbDrone.Core.Indexers.Torznab;
+using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Core.Validation;
@@ -164,6 +165,23 @@ namespace NzbDrone.Core.Test.IndexerTests.TorznabTests
             var result = new NzbDroneValidationResult(Subject.Test());
             result.IsValid.Should().BeTrue();
             result.HasWarnings.Should().BeTrue();
+        }
+
+        [Test]
+        public async Task should_fetch_packs_with_the_series_independent_query()
+        {
+            var feed = ReadAllText(@"Files/Indexers/Torznab/torznab_hdaccess_net.xml");
+
+            Mocker.GetMock<IHttpClient>()
+                .Setup(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Method == HttpMethod.Get)))
+                .Returns<HttpRequest>(r => Task.FromResult(new HttpResponse(r, new HttpHeader(), feed)));
+
+            var releases = await Subject.FetchPacks(new PackSearchCriteria());
+
+            releases.Should().NotBeEmpty();
+
+            Mocker.GetMock<IHttpClient>()
+                .Verify(o => o.ExecuteAsync(It.Is<HttpRequest>(v => v.Url.Query.Contains("q=Volumes%20Update"))), Times.AtLeastOnce());
         }
     }
 }

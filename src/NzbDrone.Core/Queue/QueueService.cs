@@ -71,7 +71,8 @@ namespace NzbDrone.Core.Queue
 
             var queue = new Queue
             {
-                Author = trackedDownload.RemoteBook?.Author,
+                // A monthly pack holds volumes of several series: each row shows its own volume's series.
+                Author = trackedDownload.RemoteBook?.PackFiles != null && book != null ? book.Author?.Value : trackedDownload.RemoteBook?.Author,
                 Book = book,
                 Quality = trackedDownload.RemoteBook?.ParsedBookInfo.Quality ?? new QualityModel(Quality.Unknown),
                 Title = Parser.Parser.RemoveFileExtension(trackedDownload.DownloadItem.Title),

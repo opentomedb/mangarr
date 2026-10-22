@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.Books;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Test.Framework;
@@ -63,6 +64,47 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
         public void volume_release_is_accepted_on_every_leg(MediaType mediaType)
         {
             Subject.IsSatisfiedBy(GivenRelease("Sword Art Online Vol. 1 (Digital)", mediaType), null).Accepted.Should().BeTrue();
+        }
+
+        // Volumes built from chapter packs (2026-10-21): a release with a parsed chapter range is the
+        // chapter path's business when the feature is on; otherwise the old rejection still fires.
+        private static RemoteBook GivenChapterRelease()
+        {
+            var remoteBook = GivenRelease("Marriagetoxin c001-073 (Digital) (empyrealarrow)", MediaType.Archive);
+            remoteBook.Author = new Author { Metadata = new AuthorMetadata { Name = "Marriagetoxin", ForeignAuthorId = "local-marriagetoxin" } };
+            remoteBook.ParsedBookInfo = new ParsedBookInfo { ChapterRange = new ChapterRange { Start = 1, End = 73, IsDigital = true } };
+
+            return remoteBook;
+        }
+
+        [Test]
+        public void parsed_chapter_release_is_left_to_the_chapter_path_when_the_feature_is_on()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(c => c.BuildVolumesFromChapters).Returns(true);
+
+            Subject.IsSatisfiedBy(GivenChapterRelease(), null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void parsed_chapter_release_is_rejected_when_the_feature_is_off()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(c => c.BuildVolumesFromChapters).Returns(false);
+
+            var decision = Subject.IsSatisfiedBy(GivenChapterRelease(), null);
+
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Be("Chapter release with no volume archives");
+        }
+
+        [Test]
+        public void chapter_titled_release_without_a_parsed_range_is_rejected_when_the_feature_is_on()
+        {
+            Mocker.GetMock<IConfigService>().SetupGet(c => c.BuildVolumesFromChapters).Returns(true);
+
+            var remoteBook = GivenChapterRelease();
+            remoteBook.ParsedBookInfo.ChapterRange = null;
+
+            Subject.IsSatisfiedBy(remoteBook, null).Reason.Should().Be("Chapter release with no volume archives");
         }
     }
 }

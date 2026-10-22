@@ -16,6 +16,7 @@ namespace NzbDrone.Core.Indexers
         Task<IList<ReleaseInfo>> FetchRecent();
         Task<IList<ReleaseInfo>> Fetch(BookSearchCriteria searchCriteria);
         Task<IList<ReleaseInfo>> Fetch(AuthorSearchCriteria searchCriteria);
+        Task<IList<ReleaseInfo>> FetchPacks(PackSearchCriteria searchCriteria);
         HttpRequest GetDownloadRequest(string link);
     }
 }

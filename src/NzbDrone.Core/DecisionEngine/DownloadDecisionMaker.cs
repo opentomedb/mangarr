@@ -148,7 +148,11 @@ namespace NzbDrone.Core.DecisionEngine
                         }
                         else if (remoteBook.Books.Empty())
                         {
-                            decision = new DownloadDecision(remoteBook, new Rejection("Unable to parse volumes from release name"));
+                            // Volumes built from chapter packs (2026-10-21): a chapter release that maps to no
+                            // volume parsed fine; it completes none still missing (ParsingService.GetBooks).
+                            decision = remoteBook.ParsedBookInfo?.ChapterRange != null
+                                ? new DownloadDecision(remoteBook, new Rejection("Chapter release completes no volume"))
+                                : new DownloadDecision(remoteBook, new Rejection("Unable to parse volumes from release name"));
                             if (searchCriteria != null)
                             {
                                 remoteBook.Books = searchCriteria.Books;

@@ -66,6 +66,10 @@ namespace NzbDrone.Core.Books
         public List<Links> Links { get; set; }
         public Ratings Ratings { get; set; }
 
+        // Chapter packs (2026-10): the chapter numbers this volume covers (JSON column). Null or
+        // empty = unknown.
+        public List<double> Chapters { get; set; }
+
         // These are Mangarr generated/config
         public bool Monitored { get; set; }
         public bool ManualAdd { get; set; }
@@ -154,6 +158,10 @@ namespace NzbDrone.Core.Books
                     CoveredSource = CoveredSources.Audible;
                 }
             }
+
+            // Chapter packs: no ratchet. The catalogue's current list wins, null or empty included, so a
+            // list it retracts stops building that volume.
+            Chapters = other.Chapters;
 
             Title = other.Title;
             Language = other.Language;

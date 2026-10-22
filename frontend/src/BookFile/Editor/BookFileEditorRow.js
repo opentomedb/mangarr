@@ -14,6 +14,27 @@ import BookFileActionsCell from './BookFileActionsCell';
 import BookFileFormats from './BookFileFormats';
 import styles from './BookFileEditorRow.css';
 
+// Volumes built from chapter packs (2026-10-21): a CBZ (chapters) file names the chapters its
+// edition lists -- the first whole chapter to the last one listed (a trailing n.5 included).
+const CBZ_CHAPTERS_QUALITY_ID = 9;
+
+function getChapterRange(quality, chapters) {
+  if (!quality || !quality.quality || quality.quality.id !== CBZ_CHAPTERS_QUALITY_ID || !chapters) {
+    return null;
+  }
+
+  const whole = chapters.filter((c) => Number.isInteger(c));
+
+  if (!whole.length) {
+    return null;
+  }
+
+  return {
+    first: Math.min(...whole),
+    last: Math.max(...chapters)
+  };
+}
+
 function BookFileEditorRow(props) {
   const {
     id,
@@ -23,6 +44,7 @@ function BookFileEditorRow(props) {
     quality,
     qualityCutoffNotMet,
     adopted,
+    chapters,
     isSelected,
     isLightNovel,
     onSelectedChange,
@@ -33,6 +55,7 @@ function BookFileEditorRow(props) {
   // manga (CBZ) files don't go through calibre's format conversion. A light novel's .pdf is an
   // ebook (LN PDF, 2026-09-22), and calibre lists its PDF like any format.
   const showFormats = isLightNovel && mediaTypeOfFile(path, 'lightNovel') === EBOOK;
+  const chapterRange = getChapterRange(quality, chapters);
 
   return (
     <TableRow>
@@ -54,6 +77,17 @@ function BookFileEditorRow(props) {
               title={translate('AdoptedTooltip')}
             >
               {translate('Adopted')}
+            </Label> :
+            null
+        }
+
+        {
+          chapterRange ?
+            <Label
+              className={styles.builtFromChapters}
+              kind={kinds.INFO}
+            >
+              {translate('BuiltFromChapters', chapterRange)}
             </Label> :
             null
         }
@@ -101,6 +135,7 @@ BookFileEditorRow.propTypes = {
   quality: PropTypes.object.isRequired,
   qualityCutoffNotMet: PropTypes.bool.isRequired,
   adopted: PropTypes.bool,
+  chapters: PropTypes.arrayOf(PropTypes.number),
   dateAdded: PropTypes.string.isRequired,
   isSelected: PropTypes.bool,
   isLightNovel: PropTypes.bool,

@@ -53,6 +53,21 @@ namespace NzbDrone.Core.Test.MusicTests.EditionRepositoryTests
         }
 
         [Test]
+        public void chapters_round_trip_through_the_db_mapping()
+        {
+            var edition = Insert("local-x~chapters-ed", MediaType.Archive, true);
+            edition.Chapters = new List<double> { 1, 2, 10.5 };
+            Subject.Update(edition);
+
+            Db.All<Edition>().Single(e => e.Id == edition.Id).Chapters.Should().Equal(1, 2, 10.5);
+
+            edition.Chapters = null;
+            Subject.Update(edition);
+
+            Db.All<Edition>().Single(e => e.Id == edition.Id).Chapters.Should().BeNullOrEmpty();
+        }
+
+        [Test]
         public void set_monitored_unmonitors_only_the_same_media_type_siblings()
         {
             Subject.SetMonitored(_secondAudio);

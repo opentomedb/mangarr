@@ -48,6 +48,10 @@ namespace NzbDrone.Core.Books
         // Manga: manual cap on how many volumes this series has (0 = auto from indexer search). Phase 3.
         public int MaxVolume { get; set; }
 
+        // Chapter packs (2026-10): build this series' volumes from chapter releases when no volume
+        // release exists. Default on.
+        public bool BuildFromChapters { get; set; } = true;
+
         public HashSet<int> Tags { get; set; }
         [MemberwiseEqualityIgnore]
         public AddAuthorOptions AddOptions { get; set; }
@@ -132,6 +136,7 @@ namespace NzbDrone.Core.Books
             MetadataProfileId = other.MetadataProfileId;
             MetadataProfile = other.MetadataProfile;
             MaxVolume = other.MaxVolume;
+            BuildFromChapters = other.BuildFromChapters;
             Tags = other.Tags;
             AddOptions = other.AddOptions;
         }
@@ -149,6 +154,7 @@ namespace NzbDrone.Core.Books
             MetadataProfileId = other.MetadataProfileId;
             MetadataProfile = other.MetadataProfile;
             MaxVolume = other.MaxVolume;
+            BuildFromChapters = other.BuildFromChapters;
 
             Books = other.Books;
             Tags = other.Tags;

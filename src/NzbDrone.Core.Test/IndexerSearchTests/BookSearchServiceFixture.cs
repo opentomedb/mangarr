@@ -11,11 +11,13 @@ using NzbDrone.Core.Download;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.MonthlyPacks;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Queue;
 using NzbDrone.Core.Test.Framework;
+using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.IndexerSearchTests
 {
@@ -65,6 +67,14 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                 .Setup(s => s.BookSearch(It.IsAny<int>(), It.IsAny<MediaType>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()))
                 .Returns(Task.FromResult(new List<DownloadDecision>()));
 
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.BookSearch(It.IsAny<int>(), It.IsAny<MediaType>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<List<Book>>()))
+                .Returns(Task.FromResult(new List<DownloadDecision>()));
+
+            Mocker.GetMock<IMonthlyPackService>()
+                .Setup(s => s.Search(It.IsAny<IEnumerable<Book>>()))
+                .Returns(new List<Book>());
+
             Mocker.GetMock<IProcessDownloadDecisions>()
                 .Setup(s => s.ProcessDecisions(It.IsAny<List<DownloadDecision>>()))
                 .Returns(Task.FromResult(new ProcessedDecisions(new List<DownloadDecision>(), new List<DownloadDecision>(), new List<DownloadDecision>())));
@@ -88,7 +98,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
             Subject.Execute(new MissingBookSearchCommand { Trigger = CommandTrigger.Manual });
 
             Mocker.GetMock<ISearchForReleases>()
-                .Verify(v => v.BookSearch(4, MediaType.Archive, false, true, false, true), Times.Once());
+                .Verify(v => v.BookSearch(4, MediaType.Archive, false, true, false, true, It.IsAny<List<Book>>()), Times.Once());
 
             Mocker.GetMock<ISearchForReleases>()
                 .Verify(v => v.AuthorSearch(2, It.IsAny<MediaType>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
@@ -173,7 +183,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                 .Verify(v => v.AuthorSearch(1, MediaType.Archive, true, false, false, true), Times.Once());
 
             Mocker.GetMock<ISearchForReleases>()
-                .Verify(v => v.BookSearch(4, MediaType.Archive, false, false, false, true), Times.Once());
+                .Verify(v => v.BookSearch(4, MediaType.Archive, false, false, false, true, It.IsAny<List<Book>>()), Times.Once());
 
             Mocker.GetMock<IEditionService>()
                 .Verify(v => v.GetEditionsByAuthor(It.IsAny<int>()), Times.Never());
@@ -404,7 +414,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                 .Verify(v => v.AuthorSearch(1, MediaType.Archive, true, false, false, true), Times.Once());
 
             Mocker.GetMock<ISearchForReleases>()
-                .Verify(v => v.BookSearch(4, MediaType.Archive, false, false, false, true), Times.Once());
+                .Verify(v => v.BookSearch(4, MediaType.Archive, false, false, false, true, It.IsAny<List<Book>>()), Times.Once());
         }
 
         // Final review I1: BookSearchCommand.MediaType routes to the typed overload; null (every
@@ -664,7 +674,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                 .Verify(v => v.AuthorSearch(1, MediaType.Archive, true, true, false, true), Times.Once());
 
             Mocker.GetMock<ISearchForReleases>()
-                .Verify(v => v.BookSearch(4, MediaType.Archive, false, true, false, true), Times.Once());
+                .Verify(v => v.BookSearch(4, MediaType.Archive, false, true, false, true, It.IsAny<List<Book>>()), Times.Once());
 
             Mocker.GetMock<ISearchForReleases>()
                 .Verify(v => v.AuthorSearch(3, It.IsAny<MediaType>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
@@ -884,6 +894,206 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
                 .Verify(v => v.BookSearch(31, MediaType.Ebook, false, true, false, true), Times.Once());
             Mocker.GetMock<ISearchForReleases>()
                 .Verify(v => v.AuthorSearch(It.IsAny<int>(), It.IsAny<MediaType>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+        }
+
+        // Volumes built from chapter packs (2026-10-21): a command over several manga volumes sends the
+        // series-name chapter query at most once per series, covering every volume that wanted it.
+        [Test]
+        public void several_manga_volumes_of_one_series_send_one_chapter_query()
+        {
+            var seriesA = new Author { Id = 1, Metadata = new AuthorMetadata { ForeignAuthorId = "series-a" } };
+            var seriesB = new Author { Id = 2, Metadata = new AuthorMetadata { ForeignAuthorId = "series-b" } };
+            var volumes = new List<Book>
+            {
+                new Book { Id = 1, AuthorId = 1, Author = seriesA },
+                new Book { Id = 2, AuthorId = 1, Author = seriesA },
+                new Book { Id = 3, AuthorId = 1, Author = seriesA },
+                new Book { Id = 4, AuthorId = 2, Author = seriesB }
+            };
+            GivenBooksById(volumes);
+
+            // Every volume search approves nothing and asks for the chapter query.
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.BookSearch(It.IsAny<int>(), false, true, false, It.IsAny<List<Book>>()))
+                .Callback<int, bool, bool, bool, List<Book>>((id, m, u, i, deferred) => deferred.Add(volumes.Single(b => b.Id == id)))
+                .Returns(Task.FromResult(new List<DownloadDecision>()));
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.ChapterSearch(It.IsAny<List<Book>>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                .Returns(Task.FromResult(new List<DownloadDecision>()));
+
+            Subject.Execute(new BookSearchCommand(new List<int> { 1, 2, 3, 4 }) { Trigger = CommandTrigger.Manual });
+
+            Mocker.GetMock<ISearchForReleases>()
+                .Verify(v => v.ChapterSearch(It.Is<List<Book>>(l => l.Select(b => b.Id).SequenceEqual(new[] { 1, 2, 3 })), true, false), Times.Once());
+            Mocker.GetMock<ISearchForReleases>()
+                .Verify(v => v.ChapterSearch(It.Is<List<Book>>(l => l.Select(b => b.Id).SequenceEqual(new[] { 4 })), true, false), Times.Once());
+            Mocker.GetMock<ISearchForReleases>()
+                .Verify(v => v.ChapterSearch(It.IsAny<List<Book>>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Exactly(2));
+            Mocker.GetMock<ISearchForReleases>()
+                .Verify(v => v.BookSearch(It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+        }
+
+        [Test]
+        public void no_chapter_query_when_no_volume_asked_for_one()
+        {
+            var series = new Author { Id = 1, Metadata = new AuthorMetadata { ForeignAuthorId = "series-a" } };
+            GivenBooksById(new List<Book> { new Book { Id = 1, AuthorId = 1, Author = series }, new Book { Id = 2, AuthorId = 1, Author = series } });
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.BookSearch(It.IsAny<int>(), false, true, false, It.IsAny<List<Book>>()))
+                .Returns(Task.FromResult(new List<DownloadDecision>()));
+
+            Subject.Execute(new BookSearchCommand(new List<int> { 1, 2 }) { Trigger = CommandTrigger.Manual });
+
+            Mocker.GetMock<ISearchForReleases>()
+                .Verify(v => v.ChapterSearch(It.IsAny<List<Book>>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+        }
+
+        // Monthly volume packs (2026-10-21): one pack query per command, before the chapter queries; a
+        // volume taken from a pack is not searched for chapters.
+        [Test]
+        public void a_multi_volume_command_makes_one_pack_query_then_chapter_queries_for_the_rest()
+        {
+            var series = new Author { Id = 1, Metadata = new AuthorMetadata { ForeignAuthorId = "series-a" } };
+            var volumes = new List<Book>
+            {
+                new Book { Id = 1, AuthorId = 1, Author = series },
+                new Book { Id = 2, AuthorId = 1, Author = series },
+                new Book { Id = 3, AuthorId = 1, Author = series }
+            };
+            GivenBooksById(volumes);
+
+            // Volumes 1 and 2 find nothing and ask for chapters; volume 3 is approved.
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.BookSearch(It.IsAny<int>(), false, true, false, It.IsAny<List<Book>>()))
+                .Callback<int, bool, bool, bool, List<Book>>((id, m, u, i, deferred) =>
+                {
+                    if (id != 3)
+                    {
+                        deferred.Add(volumes.Single(b => b.Id == id));
+                    }
+                })
+                .Returns<int, bool, bool, bool, List<Book>>((id, m, u, i, deferred) => Task.FromResult(id == 3
+                    ? new List<DownloadDecision> { new DownloadDecision(new RemoteBook { Release = new ReleaseInfo { Guid = "volume" } }) }
+                    : new List<DownloadDecision>()));
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.ChapterSearch(It.IsAny<List<Book>>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                .Returns(Task.FromResult(new List<DownloadDecision>()));
+            Mocker.GetMock<IMonthlyPackService>()
+                .Setup(s => s.Search(It.IsAny<IEnumerable<Book>>()))
+                .Returns(new List<Book> { volumes[0] });
+
+            Subject.Execute(new BookSearchCommand(new List<int> { 1, 2, 3 }) { Trigger = CommandTrigger.Manual });
+
+            Mocker.GetMock<IMonthlyPackService>()
+                .Verify(v => v.Search(It.Is<IEnumerable<Book>>(l => l.Select(b => b.Id).OrderBy(i => i).SequenceEqual(new[] { 1, 2 }))), Times.Once());
+            Mocker.GetMock<IMonthlyPackService>()
+                .Verify(v => v.Search(It.IsAny<IEnumerable<Book>>()), Times.Once());
+            Mocker.GetMock<ISearchForReleases>()
+                .Verify(v => v.ChapterSearch(It.Is<List<Book>>(l => l.Select(b => b.Id).SequenceEqual(new[] { 2 })), true, false), Times.Once());
+            Mocker.GetMock<ISearchForReleases>()
+                .Verify(v => v.ChapterSearch(It.IsAny<List<Book>>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Once());
+        }
+
+        [Test]
+        public void the_missing_search_makes_one_pack_query_for_the_volumes_still_missing()
+        {
+            // The series search grabs volumes 1 and 3 of series 1; volume 2 and series 2 (volume 4) stay missing.
+            var grabbed = new DownloadDecision(new RemoteBook { Books = new List<Book> { _books[0], _books[2] }, Release = new ReleaseInfo { Guid = "series" } });
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.AuthorSearch(1, MediaType.Archive, true, true, false, true))
+                .Returns(Task.FromResult(new List<DownloadDecision> { grabbed }));
+            Mocker.GetMock<IProcessDownloadDecisions>()
+                .Setup(s => s.ProcessDecisions(It.Is<List<DownloadDecision>>(l => l.Contains(grabbed))))
+                .Returns(Task.FromResult(new ProcessedDecisions(new List<DownloadDecision> { grabbed }, new List<DownloadDecision>(), new List<DownloadDecision>())));
+
+            Subject.Execute(new MissingBookSearchCommand { Trigger = CommandTrigger.Manual });
+
+            Mocker.GetMock<IMonthlyPackService>()
+                .Verify(v => v.Search(It.Is<IEnumerable<Book>>(l => l.Select(b => b.Id).OrderBy(i => i).SequenceEqual(new[] { 2, 4 }))), Times.Once());
+            Mocker.GetMock<IMonthlyPackService>()
+                .Verify(v => v.Search(It.IsAny<IEnumerable<Book>>()), Times.Once());
+        }
+
+        [Test]
+        public void the_missing_search_makes_its_pack_query_before_any_chapter_query_and_skips_packed_volumes()
+        {
+            // Series 2 has the one wanted volume 4 (per-volume search); it defers a chapter query.
+            var order = new List<string>();
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.BookSearch(4, MediaType.Archive, false, true, false, true, It.IsAny<List<Book>>()))
+                .Callback<int, MediaType, bool, bool, bool, bool, List<Book>>((id, t, m, u, i, st, deferred) => deferred.Add(_books[3]))
+                .Returns(Task.FromResult(new List<DownloadDecision>()));
+            Mocker.GetMock<IMonthlyPackService>()
+                .Setup(s => s.Search(It.IsAny<IEnumerable<Book>>()))
+                .Callback(() => order.Add("pack"))
+                .Returns(new List<Book>());
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.ChapterSearch(It.IsAny<List<Book>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                .Callback(() => order.Add("chapters"))
+                .Returns(Task.FromResult(new List<DownloadDecision>()));
+
+            Subject.Execute(new MissingBookSearchCommand { Trigger = CommandTrigger.Manual });
+
+            Assert.AreEqual(new[] { "pack", "chapters" }, order);
+
+            // The pack takes volume 4: no chapter query for it.
+            Mocker.GetMock<IMonthlyPackService>()
+                .Setup(s => s.Search(It.IsAny<IEnumerable<Book>>()))
+                .Returns(new List<Book> { _books[3] });
+            Mocker.GetMock<ISearchForReleases>().Invocations.Clear();
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.BookSearch(4, MediaType.Archive, false, true, false, true, It.IsAny<List<Book>>()))
+                .Callback<int, MediaType, bool, bool, bool, bool, List<Book>>((id, t, m, u, i, st, deferred) => deferred.Add(_books[3]))
+                .Returns(Task.FromResult(new List<DownloadDecision>()));
+
+            Subject.Execute(new MissingBookSearchCommand { Trigger = CommandTrigger.Manual });
+
+            Mocker.GetMock<ISearchForReleases>()
+                .Verify(v => v.ChapterSearch(It.IsAny<List<Book>>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
+        }
+
+        [Test]
+        public void the_missing_search_runs_each_series_chapter_query_even_when_one_fails()
+        {
+            // Two single-volume series, each deferring its chapter query.
+            _books = new List<Book> { _books[0], _books[3] };
+            foreach (var book in _books)
+            {
+                Mocker.GetMock<ISearchForReleases>()
+                    .Setup(s => s.BookSearch(book.Id, MediaType.Archive, false, true, false, true, It.IsAny<List<Book>>()))
+                    .Callback<int, MediaType, bool, bool, bool, bool, List<Book>>((id, t, m, u, i, st, deferred) => deferred.Add(book))
+                    .Returns(Task.FromResult(new List<DownloadDecision>()));
+            }
+
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.ChapterSearch(It.Is<List<Book>>(l => l[0].AuthorId == 1), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                .ThrowsAsync(new InvalidOperationException("indexer down"));
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.ChapterSearch(It.Is<List<Book>>(l => l[0].AuthorId == 2), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()))
+                .Returns(Task.FromResult(new List<DownloadDecision>()));
+
+            Subject.Execute(new MissingBookSearchCommand { Trigger = CommandTrigger.Manual });
+
+            Mocker.GetMock<ISearchForReleases>()
+                .Verify(v => v.ChapterSearch(It.Is<List<Book>>(l => l[0].AuthorId == 2), true, false, true), Times.Once());
+            ExceptionVerification.ExpectedErrors(1);
+        }
+
+        [Test]
+        public void the_missing_search_leaves_a_volume_with_a_held_single_release_out_of_the_pack_query()
+        {
+            var held = new DownloadDecision(new RemoteBook { Books = new List<Book> { _books[1] }, Release = new ReleaseInfo { Guid = "held" } });
+            Mocker.GetMock<ISearchForReleases>()
+                .Setup(s => s.AuthorSearch(1, MediaType.Archive, true, true, false, true))
+                .Returns(Task.FromResult(new List<DownloadDecision> { held }));
+            Mocker.GetMock<IProcessDownloadDecisions>()
+                .Setup(s => s.ProcessDecisions(It.Is<List<DownloadDecision>>(l => l.Contains(held))))
+                .Returns(Task.FromResult(new ProcessedDecisions(new List<DownloadDecision>(), new List<DownloadDecision> { held }, new List<DownloadDecision>())));
+
+            Subject.Execute(new MissingBookSearchCommand { Trigger = CommandTrigger.Manual });
+
+            Mocker.GetMock<IMonthlyPackService>()
+                .Verify(v => v.Search(It.Is<IEnumerable<Book>>(l => l.Select(b => b.Id).OrderBy(i => i).SequenceEqual(new[] { 1, 3, 4 }))), Times.Once());
         }
     }
 }

@@ -196,6 +196,39 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
             ParsingService.ResolveMediaType(parsed, Manga(), null).Should().Be(MediaType.Archive);
         }
 
+        // Pre-beta leftovers (2026-10-22, the maintainer): "(Digital)" on a volume-tokened title with no ebook
+        // signal is a digital manga rip. A light-novel author keeps the manga grade, which the
+        // media-type spec refuses, instead of grabbing it as EPUB and failing after the download
+        // (a light-novel entry took two such single-volume and volume-range releases that way).
+        [TestCase("Sample Series v03 (2022) (Digital) (danke-Empire)")]
+        [TestCase("Sample Series v01-04 (2021-2023) (Digital) (danke-Empire)")]
+        [TestCase("Jujutsu Kaisen v25 (Digital) (LuCaZ)")]
+        public void digital_manga_volume_keeps_cbz_for_a_light_novel_author(string title)
+        {
+            var parsed = ParsedFromTitle(title);
+            parsed.Quality.Quality.Should().Be(Quality.CBZ);
+
+            ParsingService.RegradeForLibrary(parsed, title, LightNovel(), null, null).Should().BeFalse();
+            parsed.Quality.Quality.Should().Be(Quality.CBZ);
+            ParsingService.RegradeForLibrary(parsed, title, LightNovel(), new BookSearchCriteria { MediaType = MediaType.Ebook }, new List<int> { 7020 }).Should().BeFalse();
+            parsed.Quality.Quality.Should().Be(Quality.CBZ);
+            ParsingService.ResolveMediaType(parsed, LightNovel(), null).Should().Be(MediaType.Archive);
+        }
+
+        // An epub group's square-bracketed tag beside "(Digital)", or no "(Digital)" at all (a private tracker /
+        // usenet names), regrades to EPUB as before. (LN wording such as "(Yen On)" is EPUB at parse
+        // time already and never reaches the regrade.)
+        [TestCase("Overlord v05 (Digital) [Stick]")]
+        [TestCase("Some Author - Sample Series, Vol. 1 (2020) (otaku)")]
+        public void digital_tag_with_an_ebook_signal_or_no_digital_tag_still_regrades_epub(string title)
+        {
+            var parsed = ParsedFromTitle(title);
+            parsed.Quality.Quality.Should().Be(Quality.CBZ);
+
+            ParsingService.RegradeForLibrary(parsed, title, LightNovel(), null, null).Should().BeTrue();
+            parsed.Quality.Quality.Should().Be(Quality.EPUB);
+        }
+
         [Test]
         public void volume_title_without_a_format_token_follows_an_audio_search_or_category_for_a_light_novel_author()
         {

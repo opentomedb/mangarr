@@ -58,6 +58,8 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 
     public class QBittorrentTorrentFile
     {
+        // Only present on newer qBittorrent versions; otherwise the list position is the index.
+        public int? Index { get; set; }
         public string Name { get; set; }
     }
 }

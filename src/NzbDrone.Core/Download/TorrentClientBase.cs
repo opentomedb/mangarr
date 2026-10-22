@@ -8,6 +8,7 @@ using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Http;
 using NzbDrone.Core.Blocklisting;
 using NzbDrone.Core.Configuration;
+using NzbDrone.Core.Download.Clients;
 using NzbDrone.Core.Exceptions;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.MediaFiles.TorrentInfo;
@@ -48,6 +49,16 @@ namespace NzbDrone.Core.Download
 
         public override async Task<string> Download(RemoteBook remoteBook, IIndexer indexer)
         {
+            if (remoteBook.PackFiles != null && this is not ISelectTorrentFiles { CanSelectFiles: true })
+            {
+                throw new DownloadClientException("{0} cannot download selected files of a torrent, refusing to add the whole pack", Definition.Implementation);
+            }
+
+            if (remoteBook.PackTorrent != null)
+            {
+                return AddTorrentBytes(remoteBook, indexer, remoteBook.PackTorrent);
+            }
+
             var torrentInfo = remoteBook.Release as TorrentInfo;
 
             string magnetUrl = null;
@@ -194,6 +205,11 @@ namespace NzbDrone.Core.Download
                 throw new ReleaseDownloadException(remoteBook.Release, "Downloading torrent failed", ex);
             }
 
+            return AddTorrentBytes(remoteBook, indexer, torrentFile);
+        }
+
+        private string AddTorrentBytes(RemoteBook remoteBook, IIndexer indexer, byte[] torrentFile)
+        {
             var filename = string.Format("{0}.torrent", FileNameBuilder.CleanFileName(remoteBook.Release.Title));
             var hash = _torrentFileInfoReader.GetHashFromTorrentFile(torrentFile);
 

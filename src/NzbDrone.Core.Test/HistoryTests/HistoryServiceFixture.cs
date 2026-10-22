@@ -6,13 +6,16 @@ using FizzWare.NBuilder;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
+using NzbDrone.Common.Localization;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.Download.TrackedDownloads;
 using NzbDrone.Core.History;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.Chapters;
 using NzbDrone.Core.MediaFiles.Events;
+using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
@@ -98,6 +101,63 @@ namespace NzbDrone.Core.Test.HistoryTests
         }
 
         [Test]
+        public void pack_grab_should_record_each_books_own_pack_file()
+        {
+            var remoteBook = new RemoteBook
+            {
+                Author = new Author { Id = 1 },
+                Books = new List<Book> { new Book { Id = 5, AuthorId = 1 }, new Book { Id = 9, AuthorId = 2 } },
+                MediaType = MediaType.Archive,
+                ParsedBookInfo = new ParsedBookInfo { Quality = new QualityModel(Quality.CBZ) },
+                Release = new TorrentInfo { Title = "Viz Media Volumes Update 2026-10 (Digital) (Rillant)", PublishDate = DateTime.UtcNow, InfoHash = "abcd" },
+                PackFiles = new Dictionary<int, TorrentFileEntry>
+                {
+                    { 5, new TorrentFileEntry(3, "Kaiju No. 8 v16 (2026) (Digital) (Rillant).cbz", 1000) },
+                    { 9, new TorrentFileEntry(7, "Akira Failing in Love v04 (2026) (Digital) (Rillant).cbz", 1000) }
+                }
+            };
+
+            var inserted = new List<EntityHistory>();
+            Mocker.GetMock<IHistoryRepository>()
+                .Setup(v => v.FindByDownloadId(It.IsAny<string>()))
+                .Returns(new List<EntityHistory>());
+            Mocker.GetMock<IHistoryRepository>()
+                .Setup(v => v.Insert(It.IsAny<EntityHistory>()))
+                .Callback<EntityHistory>(inserted.Add);
+
+            Subject.Handle(new BookGrabbedEvent(remoteBook) { DownloadId = "abcd" });
+
+            inserted.Should().HaveCount(2);
+            inserted.Single(h => h.BookId == 5).AuthorId.Should().Be(1);
+            inserted.Single(h => h.BookId == 5).Data["PackFile"].Should().Be("Kaiju No. 8 v16 (2026) (Digital) (Rillant).cbz");
+            inserted.Single(h => h.BookId == 5).Data["PackFileIndex"].Should().Be("3");
+            inserted.Single(h => h.BookId == 9).AuthorId.Should().Be(2);
+            inserted.Single(h => h.BookId == 9).Data["PackFile"].Should().Be("Akira Failing in Love v04 (2026) (Digital) (Rillant).cbz");
+            inserted.Single(h => h.BookId == 9).Data["PackFileIndex"].Should().Be("7");
+        }
+
+        [Test]
+        public void normal_grab_should_not_record_a_pack_file()
+        {
+            var remoteBook = new RemoteBook
+            {
+                Author = new Author { Id = 1 },
+                Books = new List<Book> { new Book { Id = 5, AuthorId = 1 } },
+                ParsedBookInfo = new ParsedBookInfo { Quality = new QualityModel(Quality.CBZ) },
+                Release = new ReleaseInfo { Title = "Kaiju No. 8 v16 (2026) (Digital) (Rillant)", PublishDate = DateTime.UtcNow }
+            };
+
+            Mocker.GetMock<IHistoryRepository>()
+                .Setup(v => v.FindByDownloadId(It.IsAny<string>()))
+                .Returns(new List<EntityHistory>());
+
+            Subject.Handle(new BookGrabbedEvent(remoteBook) { DownloadId = "abcd" });
+
+            Mocker.GetMock<IHistoryRepository>()
+                .Verify(v => v.Insert(It.Is<EntityHistory>(h => !h.Data.ContainsKey("PackFile") && !h.Data.ContainsKey("PackFileIndex"))), Times.Once());
+        }
+
+        [Test]
         public void import_should_record_the_media_type_of_the_edition()
         {
             var author = Builder<Author>.CreateNew().Build();
@@ -179,6 +239,27 @@ namespace NzbDrone.Core.Test.HistoryTests
 
             Mocker.GetMock<IHistoryRepository>()
                 .Verify(v => v.Insert(It.Is<EntityHistory>(h => h.Data[EntityHistory.MEDIA_TYPE] == "audio")), Times.Once());
+        }
+
+        // Volumes built from chapter packs (2026-10-21): a volume a pack did not build gets its own
+        // import-incomplete row, carrying only its reason.
+        [Test]
+        public void a_skipped_chapter_volume_records_its_reason_on_that_volume()
+        {
+            var trackedDownload = TrackedDownloadOf(MediaType.Archive);
+            var skipped = new Book { Id = 6, AuthorId = 1 };
+
+            Subject.Handle(new ChapterVolumeSkippedEvent(trackedDownload, skipped, new ServerText("Vol. {0}: chapter {1} missing", "6", "85")));
+
+            Mocker.GetMock<IHistoryRepository>()
+                .Verify(v => v.Insert(It.Is<EntityHistory>(h =>
+                    h.EventType == EntityHistoryEventType.BookImportIncomplete &&
+                    h.BookId == 6 &&
+                    h.AuthorId == 1 &&
+                    h.DownloadId == "abcd" &&
+                    h.SourceTitle == "Overlord Vol. 5" &&
+                    h.Data["StatusMessages"].Contains("Vol. 6: chapter 85 missing") &&
+                    h.Data[EntityHistory.MEDIA_TYPE] == "archive")), Times.Once());
         }
 
         [Test]

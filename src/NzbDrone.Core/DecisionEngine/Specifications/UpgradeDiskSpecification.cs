@@ -38,6 +38,11 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                     return Decision.Accept();
                 }
 
+                if (UpgradableSpecification.ReplacesChapterBuilt(file.Quality, subject.ParsedBookInfo.Quality))
+                {
+                    continue;
+                }
+
                 var customFormats = _formatService.ParseCustomFormat(file);
 
                 if (!_upgradableSpecification.IsUpgradable(subject.Author.QualityProfileFor(subject.MediaType),

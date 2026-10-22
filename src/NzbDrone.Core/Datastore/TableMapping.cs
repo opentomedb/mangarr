@@ -24,7 +24,9 @@ using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Instrumentation;
 using NzbDrone.Core.Jobs;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MediaFiles.TorrentInfo;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.MonthlyPacks;
 using NzbDrone.Core.Notifications;
 using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser.Model;
@@ -195,6 +197,7 @@ namespace NzbDrone.Core.Datastore
             Mapper.Entity<NamingConfig>("NamingConfig").RegisterModel();
 
             Mapper.Entity<Blocklist>("Blocklist").RegisterModel();
+            Mapper.Entity<PackFileList>("PackFileLists").RegisterModel();
             Mapper.Entity<MetadataFile>("MetadataFiles").RegisterModel();
             Mapper.Entity<OtherExtraFile>("ExtraFiles").RegisterModel();
 
@@ -245,6 +248,8 @@ namespace NzbDrone.Core.Datastore
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<KeyValuePair<string, int>>>());
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<KeyValuePair<string, int>>());
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<string>>());
+            SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<double>>());
+            SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<List<TorrentFileEntry>>());
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<ParsedBookInfo>());
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<ParsedTrackInfo>());
             SqlMapper.AddTypeHandler(new EmbeddedDocumentConverter<ReleaseInfo>());

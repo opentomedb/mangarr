@@ -6,9 +6,13 @@ using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Instrumentation.Extensions;
 using NzbDrone.Core.Books;
+using NzbDrone.Core.Books.Chapters;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.DecisionEngine;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch.Definitions;
+using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.MonthlyPacks;
 using NzbDrone.Core.Parser.Model;
 
 namespace NzbDrone.Core.IndexerSearch
@@ -18,6 +22,15 @@ namespace NzbDrone.Core.IndexerSearch
         // Every monitored media type of the book / series, merged. A manga volume has one
         // monitored Archive edition, so this is the one search it always was.
         Task<List<DownloadDecision>> BookSearch(int bookId, bool missingOnly, bool userInvokedSearch, bool interactiveSearch);
+
+        // Volumes built from chapter packs (2026-10-21): a command over several volumes searches each with
+        // its series-name chapter query deferred -- a volume that wants one is added to deferChapterSearch
+        // instead -- then sends one ChapterSearch per series for all of them.
+        Task<List<DownloadDecision>> BookSearch(int bookId, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, List<Book> deferChapterSearch);
+        Task<List<DownloadDecision>> ChapterSearch(List<Book> books, bool userInvokedSearch, bool interactiveSearch);
+
+        // As above, for the bulk search: stampLastSearch is the run's (false for the scheduled cutoff run).
+        Task<List<DownloadDecision>> ChapterSearch(List<Book> books, bool userInvokedSearch, bool interactiveSearch, bool stampLastSearch);
         Task<List<DownloadDecision>> AuthorSearch(int authorId, bool missingOnly, bool userInvokedSearch, bool interactiveSearch);
 
         // Light novels (2026-09): one edition class only (the scheduled search asks per class).
@@ -25,6 +38,10 @@ namespace NzbDrone.Core.IndexerSearch
         // only the scheduled cutoff-unmet run passes false, so it cannot burn the missing search's
         // per-book back-off for an edition it never wanted.
         Task<List<DownloadDecision>> BookSearch(int bookId, MediaType mediaType, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, bool stampLastSearch);
+
+        // As above, with the series-name chapter query deferred into deferChapterSearch (the bulk search makes the
+        // one monthly pack query first, then the chapter queries).
+        Task<List<DownloadDecision>> BookSearch(int bookId, MediaType mediaType, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, bool stampLastSearch, List<Book> deferChapterSearch);
         Task<List<DownloadDecision>> AuthorSearch(int authorId, MediaType mediaType, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, bool stampLastSearch);
     }
 
@@ -34,18 +51,27 @@ namespace NzbDrone.Core.IndexerSearch
         private readonly IBookService _bookService;
         private readonly IAuthorService _authorService;
         private readonly IMakeDownloadDecision _makeDownloadDecision;
+        private readonly IConfigService _configService;
+        private readonly IMediaFileService _mediaFileService;
+        private readonly IMonthlyPackService _monthlyPackService;
         private readonly Logger _logger;
 
         public ReleaseSearchService(IIndexerFactory indexerFactory,
                                 IBookService bookService,
                                 IAuthorService authorService,
                                 IMakeDownloadDecision makeDownloadDecision,
+                                IConfigService configService,
+                                IMediaFileService mediaFileService,
+                                IMonthlyPackService monthlyPackService,
                                 Logger logger)
         {
             _indexerFactory = indexerFactory;
             _bookService = bookService;
             _authorService = authorService;
             _makeDownloadDecision = makeDownloadDecision;
+            _configService = configService;
+            _mediaFileService = mediaFileService;
+            _monthlyPackService = monthlyPackService;
             _logger = logger;
         }
 
@@ -58,11 +84,47 @@ namespace NzbDrone.Core.IndexerSearch
             return DeDupeDecisions(decisions);
         }
 
+        public async Task<List<DownloadDecision>> BookSearch(int bookId, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, List<Book> deferChapterSearch)
+        {
+            var book = _bookService.GetBook(bookId);
+
+            var decisions = await BookSearch(book, missingOnly, userInvokedSearch, interactiveSearch, deferChapterSearch);
+
+            return DeDupeDecisions(decisions);
+        }
+
+        // One series-name query for every given volume of one manga series (BookSearchService has already
+        // grouped them); a chapter release is kept when it completes any of them.
+        public Task<List<DownloadDecision>> ChapterSearch(List<Book> books, bool userInvokedSearch, bool interactiveSearch)
+        {
+            return ChapterSearch(books, userInvokedSearch, interactiveSearch, true);
+        }
+
+        public async Task<List<DownloadDecision>> ChapterSearch(List<Book> books, bool userInvokedSearch, bool interactiveSearch, bool stampLastSearch)
+        {
+            var author = _authorService.GetAuthor(books.First().AuthorId);
+
+            var decisions = await ChapterSearch(author, books, userInvokedSearch, interactiveSearch, stampLastSearch);
+
+            return DeDupeDecisions(decisions);
+        }
+
         public async Task<List<DownloadDecision>> BookSearch(int bookId, MediaType mediaType, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, bool stampLastSearch)
         {
             var book = _bookService.GetBook(bookId);
 
-            var decisions = await BookSearch(book, mediaType, missingOnly, userInvokedSearch, interactiveSearch, stampLastSearch);
+            // Monthly volume packs (2026-10-21): the light-novel typed search; manga volumes of the bulk search
+            // use the deferring overload above.
+            var decisions = await BookSearch(book, mediaType, missingOnly, userInvokedSearch, interactiveSearch, stampLastSearch, null, false);
+
+            return DeDupeDecisions(decisions);
+        }
+
+        public async Task<List<DownloadDecision>> BookSearch(int bookId, MediaType mediaType, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, bool stampLastSearch, List<Book> deferChapterSearch)
+        {
+            var book = _bookService.GetBook(bookId);
+
+            var decisions = await BookSearch(book, mediaType, missingOnly, userInvokedSearch, interactiveSearch, stampLastSearch, deferChapterSearch, false);
 
             return DeDupeDecisions(decisions);
         }
@@ -137,19 +199,19 @@ namespace NzbDrone.Core.IndexerSearch
             return await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
         }
 
-        public async Task<List<DownloadDecision>> BookSearch(Book book, bool missingOnly, bool userInvokedSearch, bool interactiveSearch)
+        public async Task<List<DownloadDecision>> BookSearch(Book book, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, List<Book> deferChapterSearch = null)
         {
             var decisions = new List<DownloadDecision>();
 
             foreach (var mediaType in MonitoredMediaTypes(new List<Book> { book }))
             {
-                decisions.AddRange(await BookSearch(book, mediaType, missingOnly, userInvokedSearch, interactiveSearch, true));
+                decisions.AddRange(await BookSearch(book, mediaType, missingOnly, userInvokedSearch, interactiveSearch, true, deferChapterSearch));
             }
 
             return decisions;
         }
 
-        public async Task<List<DownloadDecision>> BookSearch(Book book, MediaType mediaType, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, bool stampLastSearch = true)
+        public async Task<List<DownloadDecision>> BookSearch(Book book, MediaType mediaType, bool missingOnly, bool userInvokedSearch, bool interactiveSearch, bool stampLastSearch = true, List<Book> deferChapterSearch = null, bool searchPacks = true)
         {
             var author = _authorService.GetAuthor(book.AuthorId);
 
@@ -196,7 +258,55 @@ namespace NzbDrone.Core.IndexerSearch
                 searchSpec.BookYear = book.ReleaseDate.Value.Year;
             }
 
-            return await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
+            var decisions = await Dispatch(indexer => indexer.Fetch(searchSpec), searchSpec);
+
+            // Monthly volume packs (2026-10-21): next after the single-volume search, one pack query for a
+            // volume nothing was found for. A person at the interactive table grabs nothing here, and a
+            // command over several volumes (deferChapterSearch) or the bulk search makes one pack query for all.
+            if (mediaType == MediaType.Archive && searchPacks && deferChapterSearch == null && !interactiveSearch &&
+                !decisions.Any(d => d.Approved || d.TemporarilyRejected) &&
+                _monthlyPackService.Search(new List<Book> { book }).Any(b => b.Id == book.Id))
+            {
+                return decisions;
+            }
+
+            // Volumes built from chapter packs (2026-10-21): a chapter release is named by series and
+            // chapters ("Series c072-081 (Digital)"), so no "Series vNN" query returns it. When the
+            // volume search found nothing approved or merely waiting, for a volume with a chapter list
+            // and no file, one more query by the series name alone; only this volume is requested, so
+            // a release is kept only when it completes it. Never per chapter. A command over several
+            // volumes defers it to one ChapterSearch per series.
+            if (mediaType == MediaType.Archive && WantsChapterSearch(author, edition, decisions))
+            {
+                if (deferChapterSearch != null)
+                {
+                    deferChapterSearch.Add(book);
+                }
+                else
+                {
+                    decisions.AddRange(await ChapterSearch(author, new List<Book> { book }, userInvokedSearch, interactiveSearch, stampLastSearch));
+                }
+            }
+
+            return decisions;
+        }
+
+        private bool WantsChapterSearch(Author author, Edition edition, List<DownloadDecision> decisions)
+        {
+            return !decisions.Any(d => d.Approved || d.TemporarilyRejected) &&
+                   ChapterVolumePlanner.IsEnabled(author, _configService) &&
+                   edition?.Chapters != null &&
+                   edition.Chapters.Any() &&
+                   !_mediaFileService.GetFilesByEdition(edition.Id).Any();
+        }
+
+        private async Task<List<DownloadDecision>> ChapterSearch(Author author, List<Book> books, bool userInvokedSearch, bool interactiveSearch, bool stampLastSearch)
+        {
+            var seriesSpec = Get<AuthorSearchCriteria>(author, books, userInvokedSearch, interactiveSearch);
+            seriesSpec.MediaType = MediaType.Archive;
+            seriesSpec.StampLastSearch = stampLastSearch;
+
+            return await Dispatch(indexer => indexer.Fetch(seriesSpec), seriesSpec);
         }
 
         // The classes a search without an explicit media type covers: one per monitored edition

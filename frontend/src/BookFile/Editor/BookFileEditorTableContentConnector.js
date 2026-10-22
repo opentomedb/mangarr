@@ -40,11 +40,13 @@ function createMapStateToProps() {
     createClientSideCollectionSelector('bookFiles'),
     createSchemaSelector(),
     createAuthorSelector(),
+    (state) => state.editions.items,
     (
       bookId,
       bookFiles,
       schema,
-      author
+      author,
+      editions
     ) => {
       const {
         items,
@@ -53,6 +55,7 @@ function createMapStateToProps() {
       return {
         ...schema,
         items,
+        editions,
         ...otherProps,
         isDeleting: bookFiles.isDeleting,
         isSaving: bookFiles.isSaving
