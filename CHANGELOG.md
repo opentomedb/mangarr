@@ -12,11 +12,10 @@ Mangarr's user-facing changes, newest first. Each beta image also carries a buil
   workflow checks every push and pull request; the "analyzers off" build advice is gone from
   CONTRIBUTING. StyleCop moved to the release the other *arr projects build with (1.2.0-beta.556),
   which understands C# records; the style violations that had built up were fixed.
-- **Dependency advisories.** MailKit 4.8.0 → 4.18.2 (with MimeKit) clears its advisory. ImageSharp
-  moves 3.1.7 → 3.1.12, the last release that builds without a Six Labors licence key; the six
-  advisories fixed only in the key-gated releases (TIFF encoding, BigTIFF decoding, histogram
-  equalisation, ICC profile parsing -- none on Mangarr's cover and page path) are suppressed in the
-  audit with that reasoning beside them, so a newer SDK's restore passes.
+- **Dependency advisories cleared.** MailKit 4.8.0 → 4.18.2 (with MimeKit), ImageSharp 3.1.7 → 3.2.0
+  and ImageSharp.Drawing 2.1.5 → 2.2.0. Those ImageSharp releases check a Six Labors licence when they
+  build; Mangarr's Community key (assembly-scoped, free for open source, no personal data in it) is
+  committed as `src/sixlabors.lic`, so a plain build still just works.
 
 ## 0.1.0-beta.7
 

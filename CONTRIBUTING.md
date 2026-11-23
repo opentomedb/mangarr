@@ -40,9 +40,9 @@ That is the whole check: StyleCop and the `.editorconfig` IDE rules run as part 
 every warning is an error, so a clean `dotnet build` means the tree meets the house style. The
 [Build workflow](.github/workflows/build.yml) runs the same command, then the core tests, on every
 push and pull request. The build wants the .NET 6 SDK; a newer SDK can build it too, and its NuGet
-vulnerability audit then applies to the pinned packages. Those are kept clean, with one exception
-noted in `src/Directory.Build.props`: ImageSharp stays at 3.1.12 because every later release needs a
-Six Labors licence key to build, and the advisories fixed only there are suppressed with the reason.
+vulnerability audit then applies to the pinned packages, which are kept clean. ImageSharp and
+ImageSharp.Drawing check a Six Labors licence at build time; the project's assembly-scoped Community
+key is committed as `src/sixlabors.lic` (it holds no personal data), so a plain build just works.
 
 For the frontend: `yarn install --frozen-lockfile --ignore-engines`, then `yarn build`
 (`yarn start` watches). The Node version is 18, as in the image.
