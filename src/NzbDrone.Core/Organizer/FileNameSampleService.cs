@@ -53,6 +53,11 @@ namespace NzbDrone.Core.Organizer
             _standardBook = new Book
             {
                 Title = "The Book Title",
+                VolumeNumber = 3,
+
+                // The sample volume's own title ({Volume Title}); it must not read as a volume label
+                // ("Volume ...") or the junk filter in LightNovelTitles.DisplaySubtitleOf drops it.
+                Subtitle = "Bees: A Keeper's Tale",
                 ReleaseDate = System.DateTime.Today,
                 Author = _standardAuthor,
                 AuthorMetadata = _standardAuthor.Metadata.Value,

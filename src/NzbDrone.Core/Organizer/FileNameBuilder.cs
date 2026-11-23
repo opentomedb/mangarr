@@ -116,7 +116,7 @@ namespace NzbDrone.Core.Organizer
             var tokenHandlers = new Dictionary<string, Func<TokenMatch, string>>(FileNameBuilderTokenEqualityComparer.Instance);
 
             AddAuthorTokens(tokenHandlers, author);
-            AddBookTokens(tokenHandlers, edition);
+            AddBookTokens(tokenHandlers, author, edition);
             AddBookFileTokens(tokenHandlers, bookFile);
             AddQualityTokens(tokenHandlers, author, bookFile);
             AddMediaInfoTokens(tokenHandlers, bookFile);
@@ -301,12 +301,21 @@ namespace NzbDrone.Core.Organizer
             }
         }
 
-        private void AddBookTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Edition edition)
+        private void AddBookTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Author author, Edition edition)
         {
             // Manga volume number, with optional padding via custom format (e.g. {Volume:000} -> "001").
             // Lets the naming format match an existing flat manga library (e.g. "Series - Vol 001.cbz")
             // so Mangarr recognizes already-present files in place instead of renaming them.
             tokenHandlers["{Volume}"] = m => FormatVolumeToken(edition.Book.Value.VolumeNumber, m.CustomFormat);
+
+            // {Volume Title} (2026-11-23, GitHub #3): the volume's own title exactly as the series page
+            // shows it after "Vol. N:" (LightNovelTitles.DisplaySubtitleOf -- the catalogue's title for a
+            // manga volume, the derived subtitle for a light novel, "" when blank or junk). An empty token
+            // drops its braces' separators too ("{ - Volume Title}"), so a volume the catalogue has no
+            // title for keeps the name it had.
+            var volumeTitle = LightNovelTitles.DisplaySubtitleOf(author, edition.Book.Value) ?? string.Empty;
+            tokenHandlers["{Volume Title}"] = m => volumeTitle;
+            tokenHandlers["{Volume CleanTitle}"] = m => CleanTitle(volumeTitle);
 
             tokenHandlers["{Book Title}"] = m => edition.Title;
             tokenHandlers["{Book CleanTitle}"] = m => CleanTitle(edition.Title);

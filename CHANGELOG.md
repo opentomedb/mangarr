@@ -5,6 +5,16 @@ Mangarr's user-facing changes, newest first. Each beta image also carries a buil
 
 ## Unreleased
 
+### Naming
+
+- **`{Volume Title}` in the volume file naming format.** The volume's own title, as the series
+  page shows it after "Vol. N:", is a naming token (`{Volume CleanTitle}` strips the punctuation,
+  like the other Clean tokens). It is empty for a volume the catalogue has no title for, and an
+  empty token takes the separators written inside its braces with it, so a format such as
+  `{Author Name} - Vol. {Volume:00}{ - Volume Title}` names those files exactly as before. The
+  token list in the naming settings now shows `{Volume}` and `{Volume:000}` too. Asked for in
+  GitHub issue #3.
+
 ### Grabs
 
 - **A release that states no format is never an upgrade over a file on disk.** A volume-tokened

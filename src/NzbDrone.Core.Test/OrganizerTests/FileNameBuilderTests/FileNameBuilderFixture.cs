@@ -862,6 +862,67 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
                    .Should().Be(Path.Combine("/lightnovels/Linkin Park", "Linkin Park - Vol. 5", "Linkin Park - Vol 005.epub"));
         }
 
+        // {Volume Title} (2026-11-23, GitHub #3): the volume's own title, as the series page shows it;
+        // empty, separators and all, for a volume the catalogue has no title for.
+        [Test]
+        public void volume_title_is_the_volumes_own_title()
+        {
+            _namingConfig.StandardBookFormat = "{Author Name} - Vol {Volume:000}{ - Volume Title}";
+            _book.VolumeNumber = 5;
+            _book.Subtitle = "Rise of the Bees";
+            _edition.MediaType = MediaType.Archive;
+
+            Subject.BuildBookFileName(_author, _edition, _trackFile)
+                   .Should().Be("Linkin Park - Vol 005 - Rise of the Bees");
+        }
+
+        [Test]
+        public void volume_title_and_its_separators_stay_out_when_the_volume_has_none()
+        {
+            _namingConfig.StandardBookFormat = "{Author Name} - Vol {Volume:000}{ - Volume Title}";
+            _book.VolumeNumber = 5;
+            _book.Subtitle = null;
+            _edition.MediaType = MediaType.Archive;
+
+            Subject.BuildBookFileName(_author, _edition, _trackFile)
+                   .Should().Be("Linkin Park - Vol 005");
+        }
+
+        [Test]
+        public void volume_title_that_only_restates_the_series_stays_out()
+        {
+            _namingConfig.StandardBookFormat = "{Author Name} - Vol {Volume:000}{ - Volume Title}";
+            _book.VolumeNumber = 5;
+            _book.Subtitle = "Linkin Park";
+            _edition.MediaType = MediaType.Archive;
+
+            Subject.BuildBookFileName(_author, _edition, _trackFile)
+                   .Should().Be("Linkin Park - Vol 005");
+        }
+
+        [Test]
+        public void volume_clean_title_drops_punctuation_and_takes_the_tokens_separator()
+        {
+            _namingConfig.StandardBookFormat = "{Author.Name}.Vol.{Volume:000}{.Volume.CleanTitle}";
+            _book.VolumeNumber = 5;
+            _book.Subtitle = "Rise: of the Bees";
+            _edition.MediaType = MediaType.Archive;
+
+            Subject.BuildBookFileName(_author, _edition, _trackFile)
+                   .Should().Be("Linkin.Park.Vol.005.Rise.of.the.Bees");
+        }
+
+        [Test]
+        public void light_novel_volume_title_is_its_subtitle()
+        {
+            GivenLightNovel(MediaType.Ebook);
+            _namingConfig.StandardBookFormat = "{Author Name} - Vol {Volume:000}{ - Volume Title}";
+            _book.Subtitle = "Rise of the Bees";
+
+            Subject.BuildBookFileName(_author, _edition, _trackFile)
+                   .Should().Be(Path.Combine("Linkin Park - Vol. 5", "Linkin Park - Vol 005 - Rise of the Bees"));
+        }
+
         [Test]
         public void manga_path_stays_under_the_entry()
         {

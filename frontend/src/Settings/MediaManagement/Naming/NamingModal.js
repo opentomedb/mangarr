@@ -96,6 +96,13 @@ const authorTokens = [
 ];
 
 const bookTokens = [
+  { token: '{Volume}', example: '5' },
+  { token: '{Volume:000}', example: '005' },
+
+  { token: '{Volume Title}', example: 'Bees: A Keeper\'s Tale' },
+
+  { token: '{Volume CleanTitle}', example: 'Bees A Keepers Tale' },
+
   { token: '{Book Title}', example: 'The Volume\'s Title!: Subtitle!' },
 
   { token: '{Book TitleThe}', example: 'Volume\'s Title!, The: Subtitle!' },
