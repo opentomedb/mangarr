@@ -3,7 +3,7 @@
 Mangarr's user-facing changes, newest first. Each beta image also carries a build number
 (`10.0.0.N`, shown in System → Status); the release notes on GitHub give both.
 
-## Unreleased
+## 0.1.0-beta.8
 
 ### Naming
 
