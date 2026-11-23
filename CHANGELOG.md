@@ -5,6 +5,17 @@ Mangarr's user-facing changes, newest first. Each beta image also carries a buil
 
 ## Unreleased
 
+### Grabs
+
+- **A release that states no format is never an upgrade over a file on disk.** A volume-tokened
+  title with no format token ("Sample Saga v01-v12") is graded CBZ for manga, EPUB for a light novel
+  and Unknown Audio for audiobook wording, so the right profile can rank it; that grade is a guess,
+  and until now it counted as an upgrade over a CBR or PDF already in the library. One such torrent
+  pack was grabbed over twelve CBR volumes and held the same files byte for byte, so every import
+  failed. A guessed grade still fills a missing volume and still replaces a chapter-built stand-in;
+  only the "better than what is on disk" claim is refused, with the reason shown in the search
+  results. An interactive grab still takes whatever you pick.
+
 ### Build
 
 - **The tree builds clean with its own rules on.** A plain `dotnet build src/Readarr.sln` with the

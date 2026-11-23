@@ -2172,6 +2172,7 @@
     "ServerRejectionEditionLanguageMissing": "Keine Sprachkennzeichnung für {language} in diesem Release (die Serie ist die Ausgabe auf {language})",
     "ServerRejectionExistingFileEqualOrHigher": "Die vorhandenen Dateien auf der Festplatte haben gleiche oder höhere Präferenz: {quality}",
     "ServerRejectionExistingFilesMeetCutoff": "Die vorhandenen Dateien erreichen bereits die Schwelle: {quality}",
+    "ServerRejectionGuessedFormatNotUpgrade": "Das Release nennt kein Format; ein geratenes {quality} ist kein Upgrade gegenüber der {existing} auf der Festplatte",
     "ServerRejectionFanTranslationNeverReplaces": "Eine Fanübersetzung ersetzt nie eine vorhandene Datei",
     "ServerRejectionFanTranslationNoReleaseDate": "Eine Fanübersetzung wird nur für einen erschienenen Band genommen, und dieser hat kein Veröffentlichungsdatum",
     "ServerRejectionFanTranslationWaitDays": "Eine Fanübersetzung wird erst {days} Tage nach der Veröffentlichung des Bands genommen",

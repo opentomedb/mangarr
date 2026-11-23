@@ -2172,6 +2172,7 @@
     "ServerRejectionEditionLanguageMissing": "Aucun marqueur de langue « {language} » dans cette version (la série est l'édition en {language})",
     "ServerRejectionExistingFileEqualOrHigher": "Les fichiers existants sur le disque ont une préférence égale ou supérieure : {quality}",
     "ServerRejectionExistingFilesMeetCutoff": "Les fichiers existants atteignent déjà le seuil : {quality}",
+    "ServerRejectionGuessedFormatNotUpgrade": "La sortie n'indique aucun format ; un {quality} deviné n'est pas une amélioration par rapport au {existing} sur le disque",
     "ServerRejectionFanTranslationNeverReplaces": "Une traduction de fans ne remplace jamais un fichier existant",
     "ServerRejectionFanTranslationNoReleaseDate": "Une traduction de fans n'est prise que pour un tome déjà sorti, et celui-ci n'a pas de date de sortie",
     "ServerRejectionFanTranslationWaitDays": "Une traduction de fans n'est prise que {days} jours après la sortie du tome",

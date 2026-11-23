@@ -526,7 +526,7 @@ namespace NzbDrone.Core.Parser
                                 : QualityParser.LooksLikeAudiobook(title) || mediaType == MediaType.Audio ? Quality.UnknownAudio
                                 : Quality.EPUB;
 
-                            mangaResult.Quality = new QualityModel(lnQuality);
+                            mangaResult.Quality = new QualityModel(lnQuality) { QualityDetectionSource = QualityDetectionSource.Guess };
                         }
 
                         var bridged = mangaResult.VolumeStart.HasValue
@@ -618,11 +618,11 @@ namespace NzbDrone.Core.Parser
                                 : QualityParser.LooksLikeAudiobook(title) ? Quality.UnknownAudio
                                 : Quality.EPUB;
 
-                            batchResult.Quality = new QualityModel(quality);
+                            batchResult.Quality = new QualityModel(quality) { QualityDetectionSource = QualityDetectionSource.Guess };
                         }
                         else if (!QualityParser.LooksLikeEbook(title))
                         {
-                            batchResult.Quality = new QualityModel(Quality.CBZ);
+                            batchResult.Quality = new QualityModel(Quality.CBZ) { QualityDetectionSource = QualityDetectionSource.Guess };
                         }
                     }
 

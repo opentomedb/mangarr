@@ -7,6 +7,7 @@ using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser.Model;
+using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.DecisionEngine.Specifications
 {
@@ -41,6 +42,15 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
                 if (UpgradableSpecification.ReplacesStandIn(file.Quality, subject.ParsedBookInfo.Quality))
                 {
                     continue;
+                }
+
+                // The pack re-grab (2026-11-22): a release graded by wording alone (no format token:
+                // QualityDetectionSource.Guess) is never an upgrade over a file on disk. A "Series
+                // v01-v12" pack was guessed CBZ, taken as an upgrade over twelve CBR volumes, and held the
+                // same CBR files byte for byte. It still fills a missing volume and still replaces a stand-in.
+                if (subject.ParsedBookInfo.Quality.QualityDetectionSource == QualityDetectionSource.Guess)
+                {
+                    return Decision.Reject("Release states no format; a guessed {0} is not an upgrade over the {1} on disk", subject.ParsedBookInfo.Quality.Quality.Name, file.Quality.Quality.Name);
                 }
 
                 var customFormats = _formatService.ParseCustomFormat(file);

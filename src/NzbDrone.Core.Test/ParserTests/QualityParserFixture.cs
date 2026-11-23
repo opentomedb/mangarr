@@ -84,6 +84,30 @@ namespace NzbDrone.Core.Test.ParserTests
             ParseAndVerifyQuality(title, null, 0, Quality.CBR);
         }
 
+        // The pack re-grab (2026-11-22): an extension-less torrent title was graded CBZ by the manga default and
+        // taken as an upgrade over the library's CBR files; the pack held the same CBR files byte for byte and
+        // twelve imports failed. The manga default is a guess and says so.
+        [TestCase("Sample Saga v01-v12")]
+        [TestCase("Chainsaw Man v13 (2023) (Digital)")]
+        public void should_mark_the_manga_default_as_a_guess(string title)
+        {
+            var result = QualityParser.ParseQuality(title);
+
+            result.Quality.Should().Be(Quality.CBZ);
+            result.QualityDetectionSource.Should().Be(QualityDetectionSource.Guess);
+        }
+
+        [TestCase("Chainsaw Man v13 (2023) (CBR)", "CBR")]
+        [TestCase("Chainsaw Man v13 (2023) [CBZ]", "CBZ")]
+        [TestCase("VIZ.Media.-.Sample.Saga.Vol.9.Contact.2011.HYBRiD.COMiC.eBook-PRiNTER-xpost", "PDF")]
+        public void should_not_mark_a_stated_format_as_a_guess(string title, string quality)
+        {
+            var result = QualityParser.ParseQuality(title);
+
+            result.Quality.Name.Should().Be(quality);
+            result.QualityDetectionSource.Should().NotBe(QualityDetectionSource.Guess);
+        }
+
         // A scene eBook release tagged HYBRiD is a PDF (text + image layer), not the manga default:
         // graded CBZ, a CBR library grabbed twelve of them as upgrades and import refused each one.
         [TestCase("VIZ.Media.-.Sample.Saga.Vol.9.Contact.2011.HYBRiD.COMiC.eBook-PRiNTER-xpost")]

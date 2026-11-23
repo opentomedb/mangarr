@@ -2170,6 +2170,7 @@
     "ServerRejectionEditionLanguageMissing": "このリリースには{language}の言語表示がありません（シリーズは{language}版です）",
     "ServerRejectionExistingFileEqualOrHigher": "ディスク上の既存ファイルは同等以上の優先度です：{quality}",
     "ServerRejectionExistingFilesMeetCutoff": "既存のファイルはすでにカットオフを満たしています：{quality}",
+    "ServerRejectionGuessedFormatNotUpgrade": "リリースに形式の記載がありません。推定した {quality} はディスク上の {existing} より上位ではありません",
     "ServerRejectionFanTranslationNeverReplaces": "ファン翻訳は既存のファイルを置き換えません",
     "ServerRejectionFanTranslationNoReleaseDate": "ファン翻訳は発売済みの巻にのみ取得されますが、この巻には発売日がありません",
     "ServerRejectionFanTranslationWaitDays": "ファン翻訳は巻の発売から {days} 日後にのみ取得されます",

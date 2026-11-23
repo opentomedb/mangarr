@@ -275,9 +275,14 @@ namespace NzbDrone.Core.Parser
             // Volume-tokened releases rarely carry a format token. Grade them by wording so the
             // right profile decides: audiobook wording -> Unknown Audio; light-novel wording ->
             // EPUB; a format nothing imports (mobi/azw) -> Unknown; else the manga default CBZ.
-            // Import re-detects the real quality from the file either way.
+            // Import re-detects the real quality from the file either way. A grade by wording is a
+            // Guess (2026-11-23): never an upgrade over a file on disk (UpgradeDiskSpecification) --
+            // an extension-less Nyaa pack graded CBZ replaced twelve CBR volumes with themselves.
+            // An azw3 or HYBRiD token states the format and is not a guess.
             if (result.Quality == Quality.Unknown && MangaVolumeParser.HasVolumeToken(name))
             {
+                var guessed = true;
+
                 if (AudiobookWordingRegex.IsMatch(name))
                 {
                     result.Quality = Quality.UnknownAudio;
@@ -285,6 +290,7 @@ namespace NzbDrone.Core.Parser
                 else if (Azw3Regex.IsMatch(name))
                 {
                     result.Quality = Quality.AZW3;
+                    guessed = false;
                 }
                 else if (NonEpubEbookRegex.IsMatch(name))
                 {
@@ -297,13 +303,14 @@ namespace NzbDrone.Core.Parser
                 else if (HybridEbookRegex.IsMatch(name))
                 {
                     result.Quality = Quality.PDF;
+                    guessed = false;
                 }
                 else
                 {
                     result.Quality = Quality.CBZ;
                 }
 
-                result.QualityDetectionSource = QualityDetectionSource.Name;
+                result.QualityDetectionSource = guessed ? QualityDetectionSource.Guess : QualityDetectionSource.Name;
             }
 
             if (IsBuiltFromChapters(name))

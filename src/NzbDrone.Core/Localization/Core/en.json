@@ -1948,6 +1948,7 @@
   "ServerRejectionEditionLanguageMissing": "No {language} language marker on this release (the series is the {language} edition)",
   "ServerRejectionExistingFileEqualOrHigher": "Existing files on disk is of equal or higher preference: {quality}",
   "ServerRejectionExistingFilesMeetCutoff": "Existing files meets cutoff: {quality}",
+  "ServerRejectionGuessedFormatNotUpgrade": "Release states no format; a guessed {quality} is not an upgrade over the {existing} on disk",
   "ServerRejectionFanTranslationNeverReplaces": "A fan translation never replaces an existing file",
   "ServerRejectionFanTranslationNoReleaseDate": "A fan translation is only taken for a released volume, and this one has no release date",
   "ServerRejectionFanTranslationWaitDays": "A fan translation is only taken {days} days after the volume's release",
