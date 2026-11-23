@@ -4,10 +4,10 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books.Commands;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.MetadataSource.BookInfo;
 using NzbDrone.Core.MetadataSource.Manga;
-using NzbDrone.Core.Messaging.Commands;
 
 namespace NzbDrone.Core.Books
 {
@@ -109,6 +109,7 @@ namespace NzbDrone.Core.Books
                 {
                     var meta = author.Metadata.Value;
                     var oldId = meta.AniListId?.ToString() ?? "null";
+
                     // Preferred Edition (2026-09-24, final fix round Minor 4): a series named in its edition's
                     // language (D3) is asked about by its English anchor name, as its refresh does (plan A1);
                     // AniList does not know "L'Attaque des Titans". AnchorName is null on every English series.
@@ -138,6 +139,7 @@ namespace NzbDrone.Core.Books
                     write.AniListId = pick.Id;
                     _authorMetadataService.Upsert(write);
                     meta.AniListId = pick.Id;
+
                     // The refresh's cached lookup is keyed by the same name it asks by (the anchor, above).
                     _mangaMetadataProvider.ForgetLookup(lookupName);
                     _commandQueueManager.Push(new RefreshAuthorCommand(author.Id));

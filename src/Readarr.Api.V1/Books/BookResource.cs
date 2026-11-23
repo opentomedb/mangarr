@@ -111,9 +111,11 @@ namespace Readarr.Api.V1.Books
                     HasFile = editionFiles.Any(),
                     FileCount = editionFiles.Count,
                     Pending = edition.MediaType == MediaType.Audio && !audioAvailable && !editionFiles.Any(),
+
                     // Unreleased audio (2026-09-21): the badge shows Audible's date (or "not yet"); not missing.
                     Unreleased = edition.MediaType == MediaType.Audio && audioAvailable && !editionFiles.Any() && edition.IsUnreleasedAudio(DateTime.UtcNow),
                     AudioReleaseDate = edition.AudioReleaseDate,
+
                     // Covered volumes (2026-09-17, D8): the badge and the missing list read the mark.
                     CoveredByVolume = edition.CoveredByVolume,
                     CoveredSource = edition.CoveredSource

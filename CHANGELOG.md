@@ -3,6 +3,21 @@
 Mangarr's user-facing changes, newest first. Each beta image also carries a build number
 (`10.0.0.N`, shown in System → Status); the release notes on GitHub give both.
 
+## Unreleased
+
+### Build
+
+- **The tree builds clean with its own rules on.** A plain `dotnet build src/Readarr.sln` with the
+  .NET 6 SDK now passes with the analyzers running and warnings as errors, which is how the Build
+  workflow checks every push and pull request; the "analyzers off" build advice is gone from
+  CONTRIBUTING. StyleCop moved to the release the other *arr projects build with (1.2.0-beta.556),
+  which understands C# records; the style violations that had built up were fixed.
+- **Dependency advisories.** MailKit 4.8.0 → 4.18.2 (with MimeKit) clears its advisory. ImageSharp
+  moves 3.1.7 → 3.1.12, the last release that builds without a Six Labors licence key; the six
+  advisories fixed only in the key-gated releases (TIFF encoding, BigTIFF decoding, histogram
+  equalisation, ICC profile parsing -- none on Mangarr's cover and page path) are suppressed in the
+  audit with that reasoning beside them, so a newer SDK's restore passes.
+
 ## 0.1.0-beta.7
 
 ### Fixes

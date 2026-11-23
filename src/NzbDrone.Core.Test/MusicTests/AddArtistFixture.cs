@@ -301,7 +301,7 @@ namespace NzbDrone.Core.Test.MusicTests
             Mocker.GetMock<IAuthorService>()
                 .Verify(s => s.AddAuthor(It.Is<Author>(a => a.ForeignAuthorId == "local-sword-art-online~ln"), It.IsAny<bool>()), Times.Once());
         }
-    
+
         [Test]
         public void an_added_series_carries_its_root_folders_default_tags()
         {

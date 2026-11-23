@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using FluentAssertions;
-using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.IndexerSearch.Definitions;
@@ -134,6 +133,7 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
         private static ParsedBookInfo ParsedFromTitle(string title)
         {
             var parsed = new ParsedBookInfo { ReleaseTitle = title, Quality = QualityParser.ParseQuality(title) };
+
             // CBZ by the volume-token default; PDF for the "Hybrid.Comic.eBook" scene tag (2026-11-10) -- the
             // manga archive class either way, which is the input under test.
             MediaTypes.OfQuality(parsed.Quality.Quality).Should().Be(MediaType.Archive, "a manga archive grade is the input under test");

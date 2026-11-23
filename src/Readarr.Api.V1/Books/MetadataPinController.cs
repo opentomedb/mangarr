@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Commands;
-using NzbDrone.Core.MetadataSource.Manga;
 using NzbDrone.Core.Messaging.Commands;
+using NzbDrone.Core.MetadataSource.Manga;
 using Readarr.Http;
 
 namespace Readarr.Api.V1.Books

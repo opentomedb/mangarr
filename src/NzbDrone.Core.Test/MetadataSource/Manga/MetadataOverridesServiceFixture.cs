@@ -116,6 +116,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             Mocker.GetMock<IDiskProvider>()
                   .Verify(d => d.WriteAllText(OverridesPath + ".tmp", It.Is<string>(json => json.Contains("\"coverUrl\": \"https://example.org/fairy-tail-24.jpg\""))), Times.Once());
         }
+
         [Test]
         public void audiobook_title_pin_replaces_the_audible_product_title()
         {

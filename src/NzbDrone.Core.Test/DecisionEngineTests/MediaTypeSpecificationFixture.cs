@@ -112,6 +112,7 @@ namespace NzbDrone.Core.Test.DecisionEngineTests
             var title = "Yen.Press-The.Eminence.In.Shadow.Vol.06.Manga.2022.Hybrid.Comic.eBook-BitBook";
             var lightNovel = new Author { Id = 2, Name = "The Eminence in Shadow", AuthorMetadataId = 2, Metadata = new AuthorMetadata { Name = "The Eminence in Shadow", ForeignAuthorId = "local-the-eminence-in-shadow~ln" } };
             var ebookSearch = new BookSearchCriteria { Author = lightNovel, Books = new List<Book> { _lightNovelVolume }, MediaType = MediaType.Ebook };
+
             // "Hybrid.Comic.eBook" grades PDF since 2026-11-10 (the scene tag names a PDF); still the archive class.
             var parsed = new ParsedBookInfo { Quality = QualityParser.ParseQuality(title, null, new List<int> { 7020 }) };
             parsed.Quality.Quality.Should().Be(Quality.PDF);

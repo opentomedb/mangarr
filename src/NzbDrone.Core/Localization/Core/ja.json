@@ -2212,6 +2212,8 @@
     "ServerRejectionSeriesNotMonitored": "シリーズは監視されていません",
     "ServerRejectionSeriesTagsMismatch": "シリーズのタグがインデクサーのどのタグとも一致しません",
     "ServerRejectionTooBig": "{size} は大きすぎます。最大サイズは {maximum} です（設定->インデクサー->最大サイズ）",
+    "ServerRejectionTooBigForQuality": "{size} は {quality} の最大サイズ（{maximum}）を超えています（設定->品質）",
+    "ServerRejectionTooSmallForQuality": "{size} は {quality} の最小サイズ（{minimum}）を下回っています（設定->品質）",
     "ServerRejectionTorrentNotEnabled": "このシリーズでは Torrent が有効になっていません",
     "ServerRejectionUnableToParseRelease": "リリースを解析できません",
     "ServerRejectionUnableToParseVolumes": "リリース名から巻を解析できません",
@@ -2762,5 +2764,7 @@
     "ChapterSingle": "第{chapter}話",
     "Chapters": "話",
     "ChaptersRange": "第{first}–{last}話",
-    "ServerImportFewerPagesThanCatalogue": "{pages} ページしかありません。カタログではこの巻は {listed} ページです"
+    "ServerImportFewerPagesThanCatalogue": "{pages} ページしかありません。カタログではこの巻は {listed} ページです",
+    "ServerImportNoPages": "ページが含まれていません",
+    "ServerImportNotAReadableArchive": "読み取り可能なアーカイブではありません"
 }

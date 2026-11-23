@@ -117,7 +117,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         // Light novels (2026-09): the scheduled unit is (volume, media type); pending audio is
         // best effort (D5). The editions and files of a light-novel series come from one
         // IEditionService / IMediaFileService call per series, never from the per-row lazy loads.
-
         private Author _lightNovel;
 
         private List<Book> GivenLightNovelSeries(bool audioAvailable, DateTime? lastAudioSearch = null, bool epubOnDisk = false)
@@ -380,7 +379,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         // missing search wants the FILELESS edition and the cutoff search the below-cutoff one.
         // A scheduled cutoff run that stamped would burn the missing search's 24h back-off for an
         // edition it never searched -- the volume's audiobook would never be searched again.
-
         [Test]
         public void scheduled_cutoff_search_does_not_stamp_the_last_search_time()
         {
@@ -420,7 +418,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
         // Final review I1: BookSearchCommand.MediaType routes to the typed overload; null (every
         // caller before, every manga search) is the untyped, every-monitored-class search as before.
-
         [Test]
         public void typed_book_search_command_searches_that_class_only()
         {
@@ -451,7 +448,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
         // Copy-in hold (2026-09-16, D4b): nothing of a held entry is scheduled; the other series
         // are searched as before.
-
         [Test]
         public void pending_author_volumes_are_not_scheduled()
         {
@@ -487,7 +483,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
         // Covered volumes (2026-09-17, D4): a covered Audio edition is not wanted by the missing
         // or the cutoff search; the volume's EPUB edition and the other volumes' audio still are.
-
         [Test]
         public void covered_audio_edition_is_not_wanted_by_the_missing_search()
         {
@@ -536,7 +531,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
         // Wanted edition filter (2026-09-21): the Wanted pages launch Search All with the media
         // type of the selected filter preset, so an EPUB-filtered page searches EPUBs only.
-
         [Test]
         public void missing_search_scoped_to_a_media_type_searches_that_edition_only()
         {
@@ -643,7 +637,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         // Search All scope (2026-09-21): the Wanted pages launch Search All with the library of
         // the selected filter preset too, so a manga page never sweeps the light novels and a
         // light-novel page never sweeps the manga.
-
         [Test]
         public void missing_search_scoped_to_light_novels_leaves_the_manga_alone()
         {
@@ -783,7 +776,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         // audiobook are both wanted, so Search All must search those volumes and nothing else --
         // the library alone swept every wanted light-novel edition. Both implies light novels, so
         // the manga series drop out of the group without a library test.
-
         [Test]
         public void missing_search_both_editions_only_searches_volumes_wanting_both()
         {
@@ -838,7 +830,7 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
             Mocker.GetMock<ISearchForReleases>()
                 .Verify(v => v.AuthorSearch(It.IsAny<int>(), It.IsAny<MediaType>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never());
         }
-    
+
         // 2026-09-22: a book search command naming several volumes of ONE light novel runs one
         // series search per media type, not one volume search each.
         private void GivenBooksById(List<Book> books)

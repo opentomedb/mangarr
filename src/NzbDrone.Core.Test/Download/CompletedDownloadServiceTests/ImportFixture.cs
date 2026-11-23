@@ -28,6 +28,12 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
     [TestFixture]
     public class ImportFixture : CoreTest<CompletedDownloadService>
     {
+        // The chapter-pack grab (2026-10-21) and the monthly pack with its two files that the tests below share.
+        private const string ChapterGrab = "Sample Series c072-090 (Digital)";
+        private const string PackTitle = "Viz Manga Volumes Update 2026-10 (Digital)";
+        private const string KaijuFile = "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz";
+        private const string JujutsuFile = "Jujutsu Kaisen/Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz";
+
         private TrackedDownload _trackedDownload;
         private Author _author;
 
@@ -234,11 +240,13 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
                            {
                                new ImportResult(
                                    new ImportDecision<LocalBook>(
-                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E01.mkv".AsOsAgnostic() }, new Rejection("Rejected!")), "Test Failure"),
+                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E01.mkv".AsOsAgnostic() }, new Rejection("Rejected!")),
+                                   "Test Failure"),
 
                                new ImportResult(
                                    new ImportDecision<LocalBook>(
-                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv".AsOsAgnostic() }, new Rejection("Rejected!")), "Test Failure")
+                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv".AsOsAgnostic() }, new Rejection("Rejected!")),
+                                   "Test Failure")
                            });
 
             Subject.Import(_trackedDownload);
@@ -258,11 +266,13 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
                            {
                                new ImportResult(
                                    new ImportDecision<LocalBook>(
-                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E01.mkv".AsOsAgnostic() }, new Rejection("Rejected!")), "Test Failure"),
+                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E01.mkv".AsOsAgnostic() }, new Rejection("Rejected!")),
+                                   "Test Failure"),
 
                                new ImportResult(
                                    new ImportDecision<LocalBook>(
-                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv".AsOsAgnostic() }, new Rejection("Rejected!")), "Test Failure")
+                                       new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv".AsOsAgnostic() }, new Rejection("Rejected!")),
+                                   "Test Failure")
                            });
 
             _trackedDownload.RemoteBook.Books.Clear();
@@ -570,7 +580,8 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
 
                     new ImportResult(
                         new ImportDecision<LocalBook>(
-                            new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv", Book = books[1], Author = _author }), "Test Failure")
+                            new LocalBook { Path = @"C:\TestPath\Droned.S01E02.mkv", Book = books[1], Author = _author }),
+                        "Test Failure")
                 });
 
             var history = Builder<EntityHistory>.CreateListOfSize(2)
@@ -1403,7 +1414,6 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
 
         // Volumes built from chapter packs (2026-10-21): a chapter pack is assembled into the volumes its
         // files complete, each built CBZ imported from a work folder; the download folder is never imported.
-        private const string ChapterGrab = "Sample Series c072-090 (Digital)";
         private static readonly string WorkRoot = @"C:\AppData".AsOsAgnostic();
 
         private (Book Vol9, Book Vol10) GivenChapterPack(bool enabled = true)
@@ -1673,10 +1683,6 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
 
         // Monthly packs (2026-10-21): one torrent holding volumes of several series, only the matched files
         // selected. Each file is copied onto its own volume; the rest of the download is never read.
-        private const string PackTitle = "Viz Manga Volumes Update 2026-10 (Digital)";
-        private const string KaijuFile = "Kaiju No. 8 - Relax v02 (2026) (Digital) (Rillant).cbz";
-        private const string JujutsuFile = "Jujutsu Kaisen/Jujutsu Kaisen v28 (2026) (Digital) (Rillant).cbz";
-
         private (Book Kaiju, Book Jujutsu) GivenPack()
         {
             var kaijuSeries = new Author { Id = 1, Metadata = new AuthorMetadata { Name = "Kaiju No. 8 - Relax", ForeignAuthorId = "kaiju-relax" } };
@@ -1831,7 +1837,8 @@ namespace NzbDrone.Core.Test.Download.CompletedDownloadServiceTests
             Mocker.GetMock<IEventAggregator>()
                 .Verify(v => v.PublishEvent(It.Is<ChapterVolumeSkippedEvent>(e => e.Book == kaiju &&
                                                                                  e.Reason.English.Contains(KaijuFile) &&
-                                                                                 e.Reason.English.Contains("Not an upgrade for existing book file(s)"))), Times.Once());
+                                                                                 e.Reason.English.Contains("Not an upgrade for existing book file(s)"))),
+                                                                                 Times.Once());
             Mocker.GetMock<IEventAggregator>()
                 .Verify(v => v.PublishEvent(It.Is<ChapterVolumeSkippedEvent>(e => e.Book == jujutsu)), Times.Never());
             Mocker.GetMock<IEventAggregator>().Verify(v => v.PublishEvent(It.IsAny<DownloadCompletedEvent>()), Times.Once());

@@ -33,6 +33,7 @@ namespace NzbDrone.Core.MediaFiles
             _audioExtensions = new Dictionary<string, Quality>(StringComparer.OrdinalIgnoreCase)
             {
                 { ".m4b", Quality.M4B },
+
                 // SAB sniffs some M4B posts as .mp4 (same container); accepted on the audio side and written .m4b (FileNameBuilder)
                 { ".mp4", Quality.M4B },
                 { ".m4a", Quality.M4B },

@@ -207,7 +207,6 @@ namespace NzbDrone.Core.Test.ParserTests.ParsingServiceTests
         // (CleanName "<clean>" / "<clean>~ln"). A release whose class is already ebook / audio tries
         // the light-novel entry first; a tokenless (archive-default) one tries the manga entry first,
         // the lookup it always was; the inexact fallback is untouched.
-
         private Author _manga;
         private Author _lightNovel;
 

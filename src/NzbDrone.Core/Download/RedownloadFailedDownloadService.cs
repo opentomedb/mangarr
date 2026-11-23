@@ -30,7 +30,7 @@ namespace NzbDrone.Core.Download
         // (series, media type) so the next failures of the same burst do not repeat it. The scheduled
         // missing search picks up anything the series search did not.
         private static readonly TimeSpan SeriesResearchCooldown = TimeSpan.FromMinutes(30);
-        private readonly ConcurrentDictionary<(int AuthorId, MediaType MediaType), DateTime> _lastSeriesResearch = new ();
+        private readonly ConcurrentDictionary<(int AuthorId, MediaType MediaType), DateTime> _lastSeriesResearch = new();
 
         public RedownloadFailedDownloadService(IConfigService configService,
                                                IBookService bookService,
@@ -110,7 +110,9 @@ namespace NzbDrone.Core.Download
                 if (_lastSeriesResearch.TryGetValue(key, out var last) && now - last < SeriesResearchCooldown)
                 {
                     _logger.Debug("Series re-search for author {0} ({1}) ran {2:0} min ago; the scheduled missing search covers the rest",
-                                  message.AuthorId, mediaType, (now - last).TotalMinutes);
+                        message.AuthorId,
+                        mediaType,
+                        (now - last).TotalMinutes);
                     return;
                 }
 

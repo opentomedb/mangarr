@@ -124,6 +124,21 @@
     <PackageReference Include="coverlet.collector" />
   </ItemGroup>
 
+  <!-- NuGet vulnerability audit (SDK 8+; warnings are errors here). SixLabors.ImageSharp 3.1.12 is the last
+       release that builds without a Six Labors license key: from 3.2.0 (and in 4.x) a Release build fails
+       unless $(SixLaborsLicenseKey) or a sixlabors.lic file is present. The advisories below are fixed only
+       in those gated releases. They concern the TIFF encoders, BigTIFF decoding, HistogramEqualization and
+       ICC CLUT parsing; Mangarr decodes cover images and page scans (JPEG/PNG/WebP/GIF) and never encodes
+       TIFF. Suppressed until the licence question is settled (see CONTRIBUTING.md). -->
+  <ItemGroup>
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-jjfr-hcj7-qf5w" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j9gm-c75j-xc9q" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j3p4-wp97-rph4" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-v76p-62qx-wwq2" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-wmxv-xphr-5c9g" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-gwg2-r3hj-4w44" />
+  </ItemGroup>
+
   <!-- Set up stylecop -->
   <ItemGroup Condition="'$(ReadarrProject)'=='true' and '$(EnableAnalyzers)'!='false'">
     <!-- StyleCop analysis -->

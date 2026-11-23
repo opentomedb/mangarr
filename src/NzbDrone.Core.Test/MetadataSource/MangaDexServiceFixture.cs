@@ -42,7 +42,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- the canned MangaDex ----
-
         private static object Manga(string id, string title, int? aniListId, string altTitle = null)
         {
             return new
@@ -102,7 +101,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- the join ----
-
         [Test]
         public void joins_by_the_anilist_link_not_the_title()
         {
@@ -137,7 +135,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- the covers ----
-
         [Test]
         public void covers_are_keyed_by_integer_volume_across_pages()
         {

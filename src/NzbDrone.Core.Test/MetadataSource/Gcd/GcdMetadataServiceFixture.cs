@@ -428,13 +428,15 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
                 {
                     conn.Execute(
                         @"INSERT INTO series (gcd_series_id, name, language, is_omnibus, volume_count, status, orig_series_id, medium, dated_count, is_main, author)
-                          VALUES (@Id, @Name, @Lang, @Omni, @Vc, 'completed', @Orig, @Medium, @Dated, @Main, @Author)", rows);
+                          VALUES (@Id, @Name, @Lang, @Omni, @Vc, 'completed', @Orig, @Medium, @Dated, @Main, @Author)",
+                        rows);
                 }
                 else
                 {
                     conn.Execute(
                         @"INSERT INTO series (gcd_series_id, name, language, is_omnibus, volume_count, status, orig_series_id)
-                          VALUES (@Id, @Name, @Lang, @Omni, @Vc, 'completed', @Orig)", rows);
+                          VALUES (@Id, @Name, @Lang, @Omni, @Vc, 'completed', @Orig)",
+                        rows);
                 }
 
                 if (displayColumns)

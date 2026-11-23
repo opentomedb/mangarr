@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using NzbDrone.Core.Books;
 using FluentAssertions;
 using NUnit.Framework;
+using NzbDrone.Core.Books;
 using NzbDrone.Core.MediaFiles.BookImport.Identification;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Test.Common;

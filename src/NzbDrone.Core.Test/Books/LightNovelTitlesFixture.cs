@@ -16,12 +16,14 @@ namespace NzbDrone.Core.Test.BookTests
         [TestCase("Classroom of the Elite", 11.5, null, "Classroom of the Elite (Vol. 11.5)")]
         [TestCase("Sword Art Online", 1, "  Aincrad  ", "Sword Art Online: Aincrad (Vol. 1)")]
         [TestCase("Mushoku Tensei: Jobless Reincarnation", 14, "Boy Meets Girl, Compulsively", "Mushoku Tensei: Jobless Reincarnation: Boy Meets Girl, Compulsively (Vol. 14)")]
+
         // Defence in depth (fix round 3, 2026-09-24): a Book.Subtitle stored before Subtitles.IsJunk
         // existed must not reach the display title even if a refresh hasn't cleared it yet -- the
         // three live-finding examples that reached calibre/ABS as junk before this fix.
         [TestCase("Mushoku Tensei: Jobless Reincarnation", 1, "Jobless Reincarnation (Light Novel), Vol. 1", "Mushoku Tensei: Jobless Reincarnation (Vol. 1)")]
         [TestCase("Classroom of the Elite", 5, "Light Novel, Vol. 5", "Classroom of the Elite (Vol. 5)")]
         [TestCase("Classroom of the Elite", 10, "Light Novel (Classroom of the Elite, Book 26)", "Classroom of the Elite (Vol. 10)")]
+
         // Full-title subtitles (2026-09-24): a subtitle that is the volume's whole title, opening with
         // the series name, renders as that title -- never "<series>: <series> of ...".
         [TestCase("Rascal Does Not Dream", 1, "Rascal Does Not Dream of Bunny Girl Senpai", "Rascal Does Not Dream of Bunny Girl Senpai (Vol. 1)")]
@@ -30,6 +32,7 @@ namespace NzbDrone.Core.Test.BookTests
         [TestCase("Rascal Does Not Dream", 16, "Rascal Does Not Dream of a Beach Queen +", "Rascal Does Not Dream of a Beach Queen + (Vol. 16)")]
         [TestCase("Fullmetal Alchemist", 1, "Fullmetal Alchemist: The Land of Sand", "Fullmetal Alchemist: The Land of Sand (Vol. 1)")]
         [TestCase("Rascal Does Not Dream", 2, "Rascal Does Not Dream 2", "Rascal Does Not Dream (Vol. 2)")]
+
         // "<series>: X" subtitles (2026-09-24): Derive stores "Days"; a stored "Tokyo Ghoul: Days" shows the same.
         [TestCase("Tokyo Ghoul", 1, "Days", "Tokyo Ghoul: Days (Vol. 1)")]
         [TestCase("Tokyo Ghoul", 1, "Tokyo Ghoul: Days", "Tokyo Ghoul: Days (Vol. 1)")]

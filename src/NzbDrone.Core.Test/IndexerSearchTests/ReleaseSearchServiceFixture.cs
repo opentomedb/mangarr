@@ -199,7 +199,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         }
 
         // Light novels (2026-09): one search per monitored edition class.
-
         private (Edition Ebook, Edition Audio) GivenLightNovelVolume(bool audioMonitored = true)
         {
             _author.ForeignAuthorId = "local-overlord~ln";
@@ -318,7 +317,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
         // Copy-in hold (2026-09-16, D4a): a held entry is not searched automatically; a person at
         // the interactive table still gets a search.
-
         [Test]
         public async Task pending_author_non_interactive_search_dispatches_nothing()
         {
@@ -366,7 +364,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
         // Covered volumes (2026-09-17, D4): the audio search of a covered volume is skipped
         // automatically; a person at the interactive table still gets one; the EPUB is unaffected.
-
         [Test]
         public async Task covered_audio_non_interactive_search_dispatches_nothing()
         {
@@ -413,7 +410,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
 
         // Light-novel audio (2026-09-18, D4): the volume's subtitle and Audible title ride on an
         // Audio search's criteria only -- the EPUB search never carries them.
-
         [Test]
         public async Task audio_search_carries_the_subtitle_and_audiobook_title()
         {
@@ -448,7 +444,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         // missing search (fileless editions) and the cutoff search (below-cutoff ones). A search
         // asked not to stamp leaves it alone, so the scheduled cutoff run cannot burn the missing
         // search's 24h back-off for an edition it never searched.
-
         [Test]
         public async Task a_search_that_does_not_stamp_leaves_the_last_search_time_alone()
         {
@@ -484,7 +479,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         // Volumes built from chapter packs (2026-10-21): a chapter release is named by series and
         // chapters, never "Vol. N", so a volume search alone never finds one. When the volume search
         // approves nothing and the feature is on, one extra query by the series name alone runs.
-
         private void GivenChapterVolumes(bool global = true, bool perSeries = true)
         {
             _author.Name = "Marriagetoxin";
@@ -676,7 +670,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         }
 
         // Monthly volume packs (2026-10-21): single volume, then a monthly pack, then built from chapters.
-
         [Test]
         public async Task a_volume_search_that_approves_nothing_tries_a_monthly_pack_before_the_series_query()
         {

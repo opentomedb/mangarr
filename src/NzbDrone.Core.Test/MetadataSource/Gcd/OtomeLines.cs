@@ -12,6 +12,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         public const string MainId = "rl_224c4428cda7";
         public const string SpinOffId = "rl_b816b634db1a";
         public const string MainName = "Trapped in a Dating Sim: The World of Otome Games Is Tough for Mobs";
+
         // The real catalogue name (staging, 2026-09-28): its parenthetical repeats the shared prefix.
         public const string SpinOffName = "Trapped in a Dating Sim: The World of Otome Games Is Tough for Mobs (Trapped in a Dating Sim: Otome Games Are Tough For Us, Too!)";
 

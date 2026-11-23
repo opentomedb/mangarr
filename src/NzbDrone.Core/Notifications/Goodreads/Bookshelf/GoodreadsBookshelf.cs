@@ -168,7 +168,7 @@ namespace NzbDrone.Core.Notifications.Goodreads
 
         private IReadOnlyList<ReviewResource> SearchShelf(string shelf, string query)
         {
-            List<ReviewResource> results = new ();
+            List<ReviewResource> results = new();
 
             while (true)
             {

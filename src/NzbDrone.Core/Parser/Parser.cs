@@ -723,7 +723,7 @@ namespace NzbDrone.Core.Parser
 
                 if (foundBook == null)
                 {
-                    foundBook = GetTitleFuzzy(remainder, bestBook.Title.SplitBookTitle(authorName).Item1, out _);
+                    foundBook = GetTitleFuzzy(remainder, bestBook.Title.SplitBookTitle(authorName).Title, out _);
                 }
 
                 Logger.Trace($"Found {foundAuthor} - {foundBook} with fuzzy parser");
@@ -892,7 +892,7 @@ namespace NzbDrone.Core.Parser
             return null;
         }
 
-        public static (string, string) SplitBookTitle(this string book, string author)
+        public static (string Title, string Subtitle) SplitBookTitle(this string book, string author)
         {
             // Strip author from title, eg Tom Clancy: Ghost Protocol
             if (book.StartsWith($"{author}:"))

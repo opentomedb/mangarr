@@ -6,7 +6,6 @@ using FluentAssertions;
 using NUnit.Framework;
 using NzbDrone.Core.MediaFiles.PageFlip;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.MediaFiles.PageFlip
 {

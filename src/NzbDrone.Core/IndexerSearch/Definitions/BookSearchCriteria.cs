@@ -89,14 +89,14 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
         // Non-manga (VolumeNumber == 0) keeps the original Mangarr "<book title>" query unchanged.
         public string BookQuery => VolumeNumber > 0
             ? $"{GetQueryTitle(SearchName)}+{VolumeToken(true)}"
-            : GetQueryTitle(BookTitle.SplitBookTitle(Author.Name).Item1);
+            : GetQueryTitle(BookTitle.SplitBookTitle(Author.Name).Title);
 
         // The fielded Newznab "title=" param matches the indexer's stored book title, which for manga
         // does NOT carry a volume token — so search by series there and let the q= free-text tier carry
         // the volume. Non-manga keeps the original book-title behavior (identical to BookQuery).
         public string FieldedTitleQuery => VolumeNumber > 0
             ? GetQueryTitle(Author.Name)
-            : GetQueryTitle(BookTitle.SplitBookTitle(Author.Name).Item1);
+            : GetQueryTitle(BookTitle.SplitBookTitle(Author.Name).Title);
 
         // Recall variant: the unpadded volume form ("v5" rather than "v05"), since not every indexer or
         // release zero-pads. Null when it would duplicate BookQuery (non-manga, multi-digit, or

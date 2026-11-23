@@ -28,6 +28,30 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         private const string RawName = "Sword Art Online";
         private const string AniListTitle = "Sword Art Online Progressive";
 
+        // Shared by the tests below: covers, blurbs, ISBNs and ids.
+        private const string OpenLibraryCover = "https://covers.openlibrary.org/b/id/2405586-L.jpg";
+        private const string MangaDexCover = "https://uploads.mangadex.org/covers/227e3f72/v1.jpg";
+        private const string GoogleCover = "https://books.google.com/books/content?id=S7qCngEACAAJ&printsec=frontcover&img=1&zoom=4";
+        private const string AniListCover = "https://s4.anilist.co/bx30598.jpg";
+        private const string EnglishBlurb = "Created by manga-ka Hiro Mashima of Rave Master fame, FAIRY TAIL takes place in a unique magical world where a young mage joins a guild.";
+        private const string JapaneseBlurb = "TV・CMなどで活躍中の人気アイドル木村好珠ちゃんとのコラボ写真集。";
+        private const string NotebookBlurb = "**************Note: This is Notebook Not Story or Manga Volume. Lined pages for your own ideas.";
+        private const string PinnedCover24 = "https://example.org/fairy-tail-24.jpg";
+        private const string PinnedCover1 = "https://example.org/fairy-tail-1.jpg";
+        private const string LnIsbn = "9780316371247";
+        private const string OtherBlurb = "A different edition's blurb, long enough to pass the description gate of the provider and then some.";
+        private const string Tbate = "The Beginning After the End";
+        private const string SampleIsbn = "9780000000019";
+        private const int DisplayId = 85737;
+        private const string DisplayCover = "https://s4.anilist.co/bx85737.jpg";
+        private const string DisplayBlurb = "About the parent work.";
+
+        // The two Google cover hosts as the dev server stores them (2026-09-24): a catalogue-only record
+        // (Marriagetoxin Vol. 1) and a publisher's record (Mushoku Tensei LN Vol. 1). Both declare only
+        // the 128 px thumbnail (783 of 925 cached records do).
+        private const string CatalogueThumbnail = "https://books.google.com/books/content?id=2UcC0AEACAAJ&printsec=frontcover&img=1&zoom=1&imgtk=AFLRE7016Mm46RQK&source=gbs_api";
+        private const string PublisherThumbnail = "https://books.google.com/books/publisher/content?id=9qGQEAAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&imgtk=AFLRE722sjn6wpyr&source=gbs_api";
+
         private static readonly GcdSeries MainLine = Line(1, "Sword Art Online", 28);
         private static readonly GcdSeries ProgressiveLine = Line(2, "Sword Art Online Progressive", 9);
 
@@ -338,7 +362,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         // ---- binding (D1-D4) ----
-
         [Test]
         public void a_stored_id_is_fetched_as_is_and_the_search_is_skipped()
         {
@@ -426,7 +449,9 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
                                            LibraryType.Manga,
                                            24,
                                            It.Is<IReadOnlyList<string>>(a => a.SequenceEqual(new[] { "Mushoku Tensei Jobless Reincarnation", "Mushoku Tensei: Jobless Reincarnation", "Jobless Reincarnation" })),
-                                           false, It.IsAny<bool>(), null))
+                                           false,
+                                           It.IsAny<bool>(),
+                                           null))
                   .Returns(Bound(85564, "alias", "Mushoku Tensei: Jobless Reincarnation"));
 
             var series = Subject.GetSeries("Mushoku Tensei", 0, resolveVolumeDetails: true, LibraryType.Manga, null, "Mushoku Tensei Jobless Reincarnation");
@@ -477,7 +502,9 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
                                            LibraryType.Manga,
                                            18,
                                            It.Is<IReadOnlyList<string>>(a => a.SequenceEqual(new[] { "Inuyasha Vizbig Edition", "Inuyasha", "InuYasha: A Feudal Fairy Tale" })),
-                                           false, It.IsAny<bool>(), null))
+                                           false,
+                                           It.IsAny<bool>(),
+                                           null))
                   .Returns(Bound(30676, "alias", "Inuyasha"));
 
             var pick = Subject.ResolveAniList("Inuyasha (VizBig edition)", LibraryType.Manga, "Inuyasha Vizbig Edition");
@@ -638,15 +665,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         // ---- covers + descriptions (D1, D2, D4, D5, D10) ----
-
-        private const string OpenLibraryCover = "https://covers.openlibrary.org/b/id/2405586-L.jpg";
-        private const string MangaDexCover = "https://uploads.mangadex.org/covers/227e3f72/v1.jpg";
-        private const string GoogleCover = "https://books.google.com/books/content?id=S7qCngEACAAJ&printsec=frontcover&img=1&zoom=4";
-        private const string AniListCover = "https://s4.anilist.co/bx30598.jpg";
-        private const string EnglishBlurb = "Created by manga-ka Hiro Mashima of Rave Master fame, FAIRY TAIL takes place in a unique magical world where a young mage joins a guild.";
-        private const string JapaneseBlurb = "TV・CMなどで活躍中の人気アイドル木村好珠ちゃんとのコラボ写真集。";
-        private const string NotebookBlurb = "**************Note: This is Notebook Not Story or Manga Volume. Lined pages for your own ideas.";
-
         private static GcdVolume Row(int number, string isbn13, string cover = null)
         {
             return new GcdVolume { VolumeNumber = number, Isbn13 = isbn13, CoverUrl = cover, ReleaseDate = "2021-05-04", PageCount = 192 };
@@ -753,12 +771,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             series.VolumeCoverUrl.Should().Be(expectedUrl);
             series.PosterFellBackOnMiss.Should().BeFalse();
         }
-
-        // The two Google cover hosts as the dev server stores them (2026-09-24): a catalogue-only record
-        // (Marriagetoxin Vol. 1) and a publisher's record (Mushoku Tensei LN Vol. 1). Both declare only
-        // the 128 px thumbnail (783 of 925 cached records do).
-        private const string CatalogueThumbnail = "https://books.google.com/books/content?id=2UcC0AEACAAJ&printsec=frontcover&img=1&zoom=1&imgtk=AFLRE7016Mm46RQK&source=gbs_api";
-        private const string PublisherThumbnail = "https://books.google.com/books/publisher/content?id=9qGQEAAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&imgtk=AFLRE722sjn6wpyr&source=gbs_api";
 
         // A scan is the poster as declared. A thumbnail is the poster too (2026-09-24, reversing finding
         // #1 of the 2026-09-16 review): asked with fife=w800 it is the same English cover at the size
@@ -1182,9 +1194,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             Mocker.GetMock<IDiskProvider>().Setup(d => d.ReadAllText(path)).Returns(json);
         }
 
-        private const string PinnedCover24 = "https://example.org/fairy-tail-24.jpg";
-        private const string PinnedCover1 = "https://example.org/fairy-tail-1.jpg";
-
         // Fairy Tail 24 as Google titles it ("FAIRY TAIL 24"): D5 accepts it and takes its cover.
         [Test]
         public void a_record_titled_in_capitals_is_accepted_by_d5_and_its_cover_taken()
@@ -1247,9 +1256,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         // ---- D5 re-admission (B3b, 2026-09-18): a record titled by the volume's own subtitle is not a mismatch ----
-
-        private const string LnIsbn = "9780316371247";
-
         private static VolumeDetails LnRecord(string title)
         {
             return new VolumeDetails { Isbn13 = LnIsbn, Title = title, SeriesBookTitle = "Early Years", Description = EnglishBlurb, CoverUrl = GoogleCover, CoverSize = "large", Language = "en", PageCount = 250, ReleaseDate = new DateTime(2021, 5, 4) };
@@ -1347,8 +1353,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         // Fix round 1 (review, M1): the loop's title search ran before the record could be re-admitted.
         // A re-admitted volume is replayed from the record first — its pages, date and blurb — and the
         // title search's answer fills only what the record left, as the accepted path orders them.
-        private const string OtherBlurb = "A different edition's blurb, long enough to pass the description gate of the provider and then some.";
-
         private static readonly AudibleProduct EarlyYears = new AudibleProduct { Asin = "B0EARLY", Title = "Early Years", Sequence = "1" };
 
         private void GivenTitleSearchAnswersAnotherEdition()
@@ -1496,7 +1500,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         // ---- finding #2: the miss flags (BookInfoProxy's cover + poster ratchet) ----
-
         [Test]
         public void a_volume_whose_record_answered_is_not_flagged_as_missed()
         {
@@ -1549,7 +1552,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         // ---- finding #3: the per-pass quota breaker ----
-
         [Test]
         public void three_consecutive_429s_stop_the_google_calls_for_the_rest_of_the_pass()
         {
@@ -1674,9 +1676,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         // ---- Audiobook identity B1 (2026-09-17, D1-D3): Audible products mapped onto the volumes ----
-
-        private const string Tbate = "The Beginning After the End";
-
         // A light-novel line bound by its raw name, with the given number of ISBN-less volumes (no
         // Google ISBN call; the title search answers nothing).
         private void GivenLightNovelLine(string name, int volumes)
@@ -1900,8 +1899,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         // Manga volume titles (2026-11-06, GitHub #3): a manga volume takes its own title the way a
         // light novel does, from the catalogue's volume title only, through the same gate. An invented
         // series: a bound manga line and its rows.
-        private const string SampleIsbn = "9780000000019";
-
         private void GivenSampleManga(params GcdVolume[] rows)
         {
             Mocker.GetMock<IAniListService>()
@@ -2010,7 +2007,7 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             parsed.Value.Kind.Should().Be(DateTimeKind.Utc);
             parsed.Value.ToLocalTime().Date.Should().Be(new DateTime(2015, 8, 18));   // still the same calendar day, whatever the process TZ
         }
-    
+
         // 2026-09-22: OpenTome's per-line status "stalled" reaches the series as Stalled.
         [Test]
         public void a_stalled_catalogue_line_reads_stalled()
@@ -2127,11 +2124,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         // ---- display fallback (OpenTome display_anilist_id, 2026-09-24) ----
-
-        private const int DisplayId = 85737;
-        private const string DisplayCover = "https://s4.anilist.co/bx85737.jpg";
-        private const string DisplayBlurb = "About the parent work.";
-
         private static GcdSeries DisplayLine(int id, string name, int volumes, int? displayId = DisplayId, string medium = "manga")
         {
             var line = Line(id, name, volumes);
@@ -2480,7 +2472,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         }
 
         // ---- KR/CN piece 2 (2026-10-02, M6): the origin total ----
-
         [Test]
         public void a_manhwa_lines_total_ignores_the_mangadex_aggregate()
         {

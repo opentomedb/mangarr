@@ -9,9 +9,9 @@ using NLog.Targets;
 using NUnit.Framework;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Commands;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.MetadataSource.Manga;
-using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Test.Framework;
 using NzbDrone.Test.Common;
 

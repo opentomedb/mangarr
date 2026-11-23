@@ -67,6 +67,9 @@ namespace NzbDrone.Core.MetadataSource.Manga
 
     public class MangaSeriesMetadataProvider : IMangaSeriesMetadataProvider
     {
+        // Consecutive 429s that open the per-pass quota breaker (see GetSeries).
+        private const int QuotaBreakerThreshold = 3;
+
         // Preferred Edition (2026-09-24, M13 pre-review fix, ruling (c)): the stored name an ENGLISH resolve
         // keys its pins by, for the one entry state that needs it -- a series localized and then changed back
         // to English without Rename (Name "L'Attaque des Titans", AnchorName "Attack on Titan"). Its pins
@@ -860,6 +863,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                     .GroupBy(v => v.VolumeNumber)
                     .ToDictionary(g => g.Key, g => g.First());
                 _logger.Debug("GCD spine for '{0}' (id {1}): {2} volumes", name, line.GcdSeriesId, volumeCount);
+
                 // The page-count tell is tuned for manga (deluxe ~400pp vs singles ~200pp); light-novel
                 // volumes run past 320pp on their own, so a light novel is collected only by its omnibus
                 // flag or composition data.
@@ -1289,7 +1293,8 @@ namespace NzbDrone.Core.MetadataSource.Manga
                     // Preferred Edition (2026-09-24): an edition asks in its own language and volume label.
                     var byTitle = Google(() => englishText
                         ? _googleBooksService.LookupVolume(displayName, i)
-                        : _googleBooksService.LookupVolume(displayName, i, editionLanguage), out var titleQuotaMiss);
+                        : _googleBooksService.LookupVolume(displayName, i, editionLanguage),
+                        out var titleQuotaMiss);
                     googleMissed |= titleQuotaMiss;
 
                     if (held != null)
@@ -1747,9 +1752,6 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 .Where(candidate => candidate.IsNotNullOrWhiteSpace())
                 .Any(candidate => TitleMatcher.Normalize(candidate) == title);
         }
-
-        // Consecutive 429s that open the per-pass quota breaker (see GetSeries).
-        private const int QuotaBreakerThreshold = 3;
 
         // Audiobook identity B1 (2026-09-17, D1-D3): the series' Audible products, mapped onto the
         // volumes by Audible's own sequence field. Singles first ("7" -> Vol. 7; "3.5" -> a volume

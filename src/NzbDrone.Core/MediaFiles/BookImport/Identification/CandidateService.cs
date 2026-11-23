@@ -144,7 +144,8 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Identification
             // Sort by most voted so less likely to swap to a random release
             return GetDbCandidatesByEdition(_editionService.GetEditionsByBook(book.Id)
                                             .OrderByDescending(x => x.Ratings.Popularity)
-                                            .ToList(), includeExisting);
+                                            .ToList(),
+                                            includeExisting);
         }
 
         private List<CandidateEdition> GetDbCandidatesByAuthor(LocalEdition localEdition, Author author, bool includeExisting)

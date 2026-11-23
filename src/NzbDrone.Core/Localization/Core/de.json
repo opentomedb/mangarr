@@ -2214,6 +2214,8 @@
     "ServerRejectionSeriesNotMonitored": "Die Serie wird nicht überwacht",
     "ServerRejectionSeriesTagsMismatch": "Die Tags der Serie passen zu keinem der Indexer-Tags",
     "ServerRejectionTooBig": "{size} ist zu groß, die maximale Größe ist {maximum} (Einstellungen->Indexer->Maximale Größe)",
+    "ServerRejectionTooBigForQuality": "{size} ist größer als das Maximum für {quality} ({maximum}) (Einstellungen->Qualität)",
+    "ServerRejectionTooSmallForQuality": "{size} ist kleiner als das Minimum für {quality} ({minimum}) (Einstellungen->Qualität)",
     "ServerRejectionTorrentNotEnabled": "Torrent ist für diese Serie nicht aktiviert",
     "ServerRejectionUnableToParseRelease": "Das Release konnte nicht analysiert werden",
     "ServerRejectionUnableToParseVolumes": "Die Bände konnten nicht aus dem Release-Namen ermittelt werden",
@@ -2764,5 +2766,7 @@
     "ChapterSingle": "Kapitel {chapter}",
     "Chapters": "Kapitel",
     "ChaptersRange": "Kapitel {first}–{last}",
-    "ServerImportFewerPagesThanCatalogue": "Enthält {pages} Seiten; der Katalog nennt {listed} für diesen Band"
+    "ServerImportFewerPagesThanCatalogue": "Enthält {pages} Seiten; der Katalog nennt {listed} für diesen Band",
+    "ServerImportNoPages": "Enthält keine Seiten",
+    "ServerImportNotAReadableArchive": "Ist kein lesbares Archiv"
 }

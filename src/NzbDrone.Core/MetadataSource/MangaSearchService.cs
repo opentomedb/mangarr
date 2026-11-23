@@ -103,7 +103,10 @@ namespace NzbDrone.Core.MetadataSource
             if (completed.Count < tasks.Count)
             {
                 _logger.Debug("Manga discovery for '{0}': {1}/{2} indexers answered within {3}s",
-                    seriesTitle, completed.Count, tasks.Count, DiscoveryTimeout.TotalSeconds);
+                    seriesTitle,
+                    completed.Count,
+                    tasks.Count,
+                    DiscoveryTimeout.TotalSeconds);
             }
 
             _logger.Debug("Manga discovery for '{0}': highest volume found = {1}", seriesTitle, highest);

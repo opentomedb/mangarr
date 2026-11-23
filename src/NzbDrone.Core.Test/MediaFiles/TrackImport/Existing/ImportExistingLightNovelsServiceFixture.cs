@@ -27,7 +27,6 @@ using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Profiles.Qualities;
 using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Test.MediaFiles;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.MediaFiles.BookImport.Existing
@@ -48,6 +47,10 @@ namespace NzbDrone.Core.Test.MediaFiles.BookImport.Existing
         private const string Epub102 = "/books/Kugane Maruyama/Overlord, Vol. 6 (102)/Overlord, Vol. 6 - Kugane Maruyama.epub";
         private const string Copy6 = "/lightnovels/Overlord/Overlord - Vol. 6/Overlord - Vol 006.epub";
         private const string Held6 = "/lightnovels/.adopted-holding/Overlord/Overlord - Vol. 6/Overlord - Vol 006.epub";
+
+        // Covered volumes (2026-09-17, D4): the Audiobookshelf pack items GivenTbate sets up.
+        private const string TbatePack1 = "The Beginning After the End: Publisher's Pack";
+        private const string TbatePack2 = "The Beginning After the End: Publisher's Pack 2: The Beginning After the End, Books 3-4";
 
         private static readonly string[] Abs1Files =
         {
@@ -216,9 +219,6 @@ namespace NzbDrone.Core.Test.MediaFiles.BookImport.Existing
 
         // Covered volumes (2026-09-17, D4): the live entry whose Audiobookshelf items are packs. Vols 1-4,
         // no Calibre hits; the ABS items are each test's.
-        private const string TbatePack1 = "The Beginning After the End: Publisher's Pack";
-        private const string TbatePack2 = "The Beginning After the End: Publisher's Pack 2: The Beginning After the End, Books 3-4";
-
         private List<Book> GivenTbate()
         {
             _author = new Author

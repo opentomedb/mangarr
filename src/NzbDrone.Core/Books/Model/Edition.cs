@@ -45,6 +45,7 @@ namespace NzbDrone.Core.Books
         {
             return MediaType == MediaType.Audio && (Asin.IsNullOrWhiteSpace() || !AudioReleaseDate.HasValue || AudioReleaseDate.Value > now);
         }
+
         public double? CoveredByVolume { get; set; }
 
         // Covered volumes (2026-09-17, D4a): who wrote CoveredByVolume — CoveredSources.Audible,
@@ -165,6 +166,7 @@ namespace NzbDrone.Core.Books
 
             Title = other.Title;
             Language = other.Language;
+
             // D3 (2026-09-16): the "<Series>, volume N." placeholder earlier builds minted when no
             // source had a description is not local data worth keeping — a real description
             // replaces it and an empty remote clears it. Checked against the local title before the
@@ -179,6 +181,7 @@ namespace NzbDrone.Core.Books
             var localOverview = IsPlaceholderOverview(Overview, localTitle) || !GoogleBooksService.IsAcceptableDescription(Overview, null, EditionLanguages.FromIso3(Language), out _)
                 ? string.Empty
                 : Overview;
+
             // D5 (2026-09-17): a rejected remote clears the text — the source that gave it was the
             // ISBN record that no longer passes, and a wrong blurb is worse than none.
             Overview = other.OverviewRejected ? string.Empty : (other.Overview.IsNullOrWhiteSpace() ? localOverview : other.Overview);

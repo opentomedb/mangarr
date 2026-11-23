@@ -146,7 +146,6 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
         }
 
         // ---- the id is re-read at write time: a bind or unbind made mid-resolve wins ----
-
         [Test]
         public void a_bind_made_while_the_refresh_was_resolving_wins_over_its_snapshot()
         {
@@ -183,7 +182,6 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
         }
 
         // ---- a bound entry whose by-id fetch failed keeps its stored presentation ----
-
         [Test]
         public void a_bound_entry_whose_id_fetch_failed_keeps_its_stored_presentation()
         {
@@ -231,7 +229,6 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
         }
 
         // ---- finding #2 (2026-09-16 review): the poster ratchets on a Google volume-1 miss ----
-
         [Test]
         public void a_poster_that_fell_back_only_because_google_missed_keeps_the_stored_one()
         {
@@ -261,7 +258,6 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
         }
 
         // ---- display fallback (2026-09-24): a display fetch that did not answer blanks nothing ----
-
         [Test]
         public void a_failed_display_fetch_keeps_the_stored_poster_and_overview()
         {
@@ -301,7 +297,6 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
         }
 
         // ---- names never change on refresh (the stored name is curated) ----
-
         [Test]
         public void a_refresh_keeps_the_stored_name_when_the_anilist_title_differs_beyond_punctuation()
         {
@@ -326,6 +321,7 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
 
             meta.Overview.Should().Be("Rudeus starts over.");
             meta.Images.Should().ContainSingle(i => i.Url == "https://s4.anilist.co/bx85564.jpg");
+
             // the kept stored name is shorter than AniList's: AniList's title leads the aliases (2026-10-17)
             meta.Aliases.Should().Equal("Mushoku Tensei: Jobless Reincarnation", "Mushoku Tensei: Isekai Ittara Honki Dasu");
             meta.TotalVolumes.Should().Be(24);

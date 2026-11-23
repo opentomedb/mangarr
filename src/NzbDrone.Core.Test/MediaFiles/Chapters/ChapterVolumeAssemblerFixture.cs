@@ -5,14 +5,14 @@ using System.Linq;
 using FluentAssertions;
 using Moq;
 using NUnit.Framework;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Localization;
 using NzbDrone.Core.MediaCover;
 using NzbDrone.Core.MediaFiles.Chapters;
 using NzbDrone.Core.Test.Framework;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace NzbDrone.Core.Test.MediaFiles.Chapters
 {

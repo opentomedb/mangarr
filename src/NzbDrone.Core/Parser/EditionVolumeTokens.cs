@@ -22,14 +22,17 @@ namespace NzbDrone.Core.Parser
         // Preferred Edition (2026-09-24): "T05", or the range "T01 à T03" / "T01-T03" / "T01-03" -- the range read in the same match, so a
         // pack never becomes "Vol. 01 à T03" (volume 1). Same acceptance gate either way.
         private static readonly Regex FrShort = new Regex(@"(?<![\w'])T(?<s>\d{1,3})(?:\s*(?:à|a|-|\p{Pd})\s*T?(?<e>\d{1,3}))?\b", RegexOptions.Compiled);
+
         // Fix round 1: "Band.05" (a dotted scene name keeps the dot before a digit) reads like "Band 05".
         private static readonly Regex DeRange = new Regex(@"\b(?:Bände|Baende|Bd|Band)\s*\.?\s*(?<s>\d{1,3})\s*(?:bis|-|\p{Pd})\s*(?:(?:Bände|Baende|Bd|Band)\s*\.?\s*)?(?<e>\d{1,3})\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex DeSingle = new Regex(@"\b(?:Band|Bd)\s*\.?\s*(?<n>\d{1,3}(?:\.\d{1,2})?)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         // Preferred Edition (2026-09-24, M9 fix round 1 I2): "1-5巻" / "第01-34巻" is a pack. It is written as
         // "Volumes 1 to 5", which ParseVolume reads as a range and the single-volume parses do not read at all,
         // so a pack is never its last volume. A single N巻 never follows a digit, an adjacent dash or 全 ("全34巻"
         // is a whole set, not volume 34).
         private static readonly Regex JaRange = new Regex(@"(?:第\s*)?(?<![\d.])(?<s>\d{1,3})\s*[\p{Pd}～〜]\s*(?<e>\d{1,3})\s*巻", RegexOptions.Compiled);
+
         // Polish: a dash blocks only when it touches the number ("-5巻" is a pack's tail); a spaced separator
         // ("進撃の巨人 - 5巻") is volume 5 -- JaRange has already taken every "N - M巻" pack.
         private static readonly Regex JaSingle = new Regex(@"(?<!第\s*)(?<![\d.～〜全]\s*)(?<!\p{Pd})(?<n>\d{1,3})\s*巻", RegexOptions.Compiled);

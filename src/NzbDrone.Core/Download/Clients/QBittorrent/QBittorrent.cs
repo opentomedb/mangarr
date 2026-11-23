@@ -21,6 +21,9 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
 {
     public class QBittorrent : TorrentClientBase<QBittorrentSettings>, ISelectTorrentFiles
     {
+        // 100 ms polls: 5 s for a monthly pack, whose torrent file is large enough to list slowly.
+        private const int PackLoadWaitAttempts = 50;
+
         private readonly IQBittorrentProxySelector _proxySelector;
         private readonly ICached<SeedingTimeCacheEntry> _seedingTimeCache;
 
@@ -387,12 +390,8 @@ namespace NzbDrone.Core.Download.Clients.QBittorrent
                    httpException.Response?.StatusCode == HttpStatusCode.Conflict;
         }
 
-        // 100 ms polls: 5 s for a monthly pack, whose torrent file is large enough to list slowly.
-        private const int PackLoadWaitAttempts = 50;
-
         protected bool WaitForTorrent(string hash, int count = 10)
         {
-
             while (count != 0)
             {
                 try

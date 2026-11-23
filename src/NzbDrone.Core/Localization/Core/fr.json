@@ -2214,6 +2214,8 @@
     "ServerRejectionSeriesNotMonitored": "La série n'est pas surveillée",
     "ServerRejectionSeriesTagsMismatch": "Les étiquettes de la série ne correspondent à aucune étiquette de l'indexeur",
     "ServerRejectionTooBig": "{size} est trop volumineux, la taille maximum est {maximum} (Paramètres->Indexeurs->Taille maximum)",
+    "ServerRejectionTooBigForQuality": "{size} est plus volumineux que le maximum pour {quality} ({maximum}) (Paramètres->Qualité)",
+    "ServerRejectionTooSmallForQuality": "{size} est plus petit que le minimum pour {quality} ({minimum}) (Paramètres->Qualité)",
     "ServerRejectionTorrentNotEnabled": "Torrent n'est pas activé pour cette série",
     "ServerRejectionUnableToParseRelease": "Impossible d'analyser la version",
     "ServerRejectionUnableToParseVolumes": "Impossible d'analyser les tomes à partir du nom de la version",
@@ -2764,5 +2766,7 @@
     "ChapterSingle": "Chapitre {chapter}",
     "Chapters": "Chapitres",
     "ChaptersRange": "Chapitres {first}–{last}",
-    "ServerImportFewerPagesThanCatalogue": "Contient {pages} pages ; le catalogue en indique {listed} pour ce tome"
+    "ServerImportFewerPagesThanCatalogue": "Contient {pages} pages ; le catalogue en indique {listed} pour ce tome",
+    "ServerImportNoPages": "Ne contient aucune page",
+    "ServerImportNotAReadableArchive": "N'est pas une archive lisible"
 }

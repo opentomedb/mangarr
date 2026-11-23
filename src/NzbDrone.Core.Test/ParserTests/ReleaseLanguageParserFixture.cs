@@ -64,6 +64,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("海贼王 第05卷", new[] { "zh" })]
         [TestCase("刀剑神域・进击篇 第05卷", new[] { "zh" })]
         [TestCase("海贼王 第05卷 [CHS]", new[] { "zh" })]
+
         // Final review follow-up (2026-09-25): an explicit other-language tag wins over kana.
         [TestCase("進撃の巨人 第05巻 [ENG]", new[] { "en" })]
         [TestCase("進撃の巨人 第05巻 [JP][ENG]", new[] { "ja", "en" })]

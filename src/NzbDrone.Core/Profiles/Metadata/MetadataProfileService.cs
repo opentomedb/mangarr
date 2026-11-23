@@ -194,7 +194,11 @@ namespace NzbDrone.Core.Profiles.Metadata
             // Final fix round Minor 2 (2026-09-24): a non-English series' Audio edition is the English
             // audiobook (D8) and is stamped "eng"; it stays allowed exactly as it was under the series'
             // own language, whatever the profile's languages. English series: unchanged (seriesEdition null).
-            FilterByPredicate(hash, x => x.ForeignEditionId, localHash, profile,
+            FilterByPredicate(
+                hash,
+                x => x.ForeignEditionId,
+                localHash,
+                profile,
                 (x, p) => !allowedLanguages.Any() ||
                           allowedLanguages.Contains(x.Language?.CanonicalizeLanguage()) ||
                           (seriesEdition != null && x.Language?.CanonicalizeLanguage() == seriesEdition) ||

@@ -6,9 +6,9 @@ using NzbDrone.Core.AuthorStats;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.Books.Commands;
 using NzbDrone.Core.MediaCover;
+using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.MetadataSource.Manga;
-using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.RootFolders;
 using Readarr.Http;
 

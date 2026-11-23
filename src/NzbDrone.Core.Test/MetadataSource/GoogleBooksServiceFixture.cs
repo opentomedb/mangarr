@@ -188,7 +188,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- D2 ----
-
         [TestCase("The three notebooks in Eren's basement hold the truth about the Titans and the world beyond the walls.", "en", true, null)]
         [TestCase("The three notebooks in Eren's basement hold the truth about the Titans and the world beyond the walls.", null, true, null)]
         [TestCase("The three notebooks in Eren's basement hold the truth about the Titans and the world beyond the walls.", "ja", false, "language ja")]
@@ -236,6 +235,7 @@ namespace NzbDrone.Core.Test.MetadataSource
         [TestCase("Dans son journal, Kafka raconte comment une étrange créature a bouleversé sa vie de nettoyeur.", "fr", "fr", true, null)]
         [TestCase("Dans son journal, Kafka raconte comment une étrange créature a bouleversé sa vie de nettoyeur.", null, "en", false, "product note 'journal'")]
         [TestCase("Kaiju No. 8 Journal: 120 lined pages for your notes, sketches and ideas, 6 x 9 inches.", "en", "en", false, "product note 'Journal'")]
+
         // Fix round 1 (Minor 1): only "journal" is exempt outside English -- a Notebook listing is junk in
         // every edition language.
         [TestCase("L'Attaque des Titans Notebook: 120 lined pages for your own ideas, 6 x 9 inches.", null, "fr", false, "product note 'Notebook'")]
@@ -333,7 +333,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- the ISBN record (D1) ----
-
         [Test]
         public void isbn_lookup_takes_the_records_own_description_language_and_largest_cover()
         {
@@ -471,7 +470,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- the title search (D2 in the ranking) ----
-
         [Test]
         public void title_search_skips_non_english_records_and_prefers_an_acceptable_blurb()
         {
@@ -528,7 +526,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- the on-disk ISBN cache ----
-
         [Test]
         public void an_isbn_record_is_written_through_to_disk_and_read_back_by_a_new_process_without_http()
         {
@@ -678,7 +675,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         // ---- the on-disk title-search store (2026-10-20) ----
         // The nightly refresh asked Google the same title searches every day and spent the 1,000/day
         // quota by mid-morning; answers (and no-matches, for a week) are kept on disk like ISBN records.
-
         private string TitleCachePath => System.IO.Path.Combine(TestFolderInfo.AppDataFolder, "metadata", "googlebooks-title-cache.json");
 
         private Func<string> CaptureTitleWrites()
@@ -851,7 +847,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- the record's title fields + complete records never expire (D6) ----
-
         [Test]
         public void isbn_record_carries_title_subtitle_and_series_book_title()
         {

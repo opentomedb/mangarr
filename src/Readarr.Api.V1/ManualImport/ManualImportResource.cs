@@ -50,6 +50,7 @@ namespace Readarr.Api.V1.ManualImport
                 Size = model.Size,
                 Author = model.Author.ToResource(),
                 Book = model.Book.ToResource(),
+
                 // Light novels (2026-09): a two-edition volume has two monitored editions, so the
                 // fallback is the edition of the file's class, then the display edition. Manga: the
                 // volume's one edition either way.

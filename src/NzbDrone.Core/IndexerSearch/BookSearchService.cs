@@ -429,8 +429,9 @@ namespace NzbDrone.Core.IndexerSearch
             var books = _bookCutoffService.BooksWhereCutoffUnmet(pagingSpec).Records.ToList();
 
             var queued = QueuedEditions();
+
+            // Wanted edition filter (2026-09-21), as the missing search above.
             var wanted = BothEditionsOnly(WantedEditions(books, message.Library, BelowCutoff), message.BothEditions)
-                // Wanted edition filter (2026-09-21), as the missing search above.
                 .Where(w => !message.MediaType.HasValue || w.MediaType == message.MediaType.Value)
                 .Where(w => !queued.Contains((w.Book.Id, w.MediaType)))
                 .ToList();
@@ -564,8 +565,8 @@ namespace NzbDrone.Core.IndexerSearch
         {
             var now = DateTime.UtcNow;
 
+            // Copy-in hold (2026-09-16, D4b): a held entry is not probed, so its weekly stamp is not burnt.
             var authors = (authorId.HasValue ? new List<Author> { _authorService.GetAuthor(authorId.Value) } : _authorService.GetAllAuthors())
-                // Copy-in hold (2026-09-16, D4b): a held entry is not probed, so its weekly stamp is not burnt.
                 .Where(a => a != null && a.Monitored && a.Library == LibraryType.LightNovel && !a.AudioAvailable && !a.CopyInPending)
                 .Where(a => manual || !a.LastAudioSearch.HasValue || a.LastAudioSearch.Value < now - AudioProbeInterval)
                 .ToList();
@@ -574,9 +575,9 @@ namespace NzbDrone.Core.IndexerSearch
 
             foreach (var author in authors)
             {
+                // Covered volumes (2026-09-17, D4): the audiobook is inside another volume's file.
                 var audioEditions = _editionService.GetEditionsByAuthor(author.Id)
                     .Where(e => e.Monitored && e.MediaType == MediaType.Audio)
-                    // Covered volumes (2026-09-17, D4): the audiobook is inside another volume's file.
                     .Where(e => !e.CoveredByVolume.HasValue)
                     .ToLookup(e => e.BookId);
                 var files = _mediaFileService.GetFilesByAuthor(author.Id).ToLookup(f => f.EditionId);

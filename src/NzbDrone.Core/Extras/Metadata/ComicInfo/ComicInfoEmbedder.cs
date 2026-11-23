@@ -6,7 +6,6 @@ using System.Text;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
-using NzbDrone.Common.Instrumentation;
 
 namespace NzbDrone.Core.Extras.Metadata.ComicInfo
 {

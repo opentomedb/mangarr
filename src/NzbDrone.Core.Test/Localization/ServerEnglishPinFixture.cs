@@ -39,11 +39,13 @@ namespace NzbDrone.Core.Test.Localization
         [TestCase("Destination series folder {0} is not in a Root Folder", new object[] { "/manga/Series" }, "Destination series folder /manga/Series is not in a Root Folder")]
         [TestCase("Destination folder {0} is not in a Root Folder", new object[] { "/manga/Series" }, "Destination folder /manga/Series is not in a Root Folder")]
         [TestCase("Book already imported at {0}", new object[] { "9/26/2026 10:00:00 AM" }, "Book already imported at 9/26/2026 10:00:00 AM")]
+
         // Plan E37 (final review 2026-09-27): the corrected English; the old code said "Unknown Author for file: {0}".
         [TestCase("Unknown Series for file: {0}", new object[] { "Series v01.cbz" }, "Unknown Series for file: Series v01.cbz")]
         [TestCase("This series has already been added as '{0}'", new object[] { "Rascal Does Not Dream" }, "This series has already been added as 'Rascal Does Not Dream'")]
         [TestCase("This series has already been added as '{0}'", new object[] { "Odd {Name}" }, "This series has already been added as 'Odd {Name}'")]
         [TestCase("No {0} edition of this series in the catalogue", new object[] { "Portuguese (Brazil)" }, "No Portuguese (Brazil) edition of this series in the catalogue")]
+
         // i18n leftovers (2026-09-28): "Already the {0} edition", one row per converted site -- English/English
         // no-op (EditionPreviewService.cs:213-214), same-edition not English (EditionPreviewService.cs:228),
         // rename-only without rename (ReResolveEditionService.cs:126, log-only).
@@ -84,6 +86,7 @@ namespace NzbDrone.Core.Test.Localization
         [TestCase("Grouping {0} tracks", new object[] { 4 }, "Grouping 4 tracks")]
         [TestCase("Identifying volume {0}/{1}", new object[] { 1, 3 }, "Identifying volume 1/3")]
         [TestCase("Import List Sync Completed. Items found: {0}, Series added: {1}, Volumes added: {2}", new object[] { 5, 2, 3 }, "Import List Sync Completed. Items found: 5, Series added: 2, Volumes added: 3")]
+
         // Fix round 1: enum values rendered into the old template become literal words, one template per value
         // (old: "One {0} series search ...", type; "... using mode {1}", ImportMode; "... please use {0} to install",
         // UpdateMechanism.External). Each row renders what the enum's ToString() produced.
@@ -407,6 +410,7 @@ namespace NzbDrone.Core.Test.Localization
         [TestCase("get info of {0}", new object[] { "/downloads/manga" }, "get info of /downloads/manga")]
         [TestCase("{0} - Unknown error", new object[] { 599 }, "599 - Unknown error")]
         [TestCase("Info of {0} not found on {1}:{2}", new object[] { NzbDrone.Core.Download.Clients.DownloadStation.DiskStationApi.DownloadStationTask, "nas.local", 5000 }, "Info of DownloadStationTask not found on nas.local:5000")]
+
         // Prowl: the old concatenation went through ProwlException's (message, innerException, params args)
         // constructor with zero args, which string.Formatted it -- a brace in ex.Message threw FormatException.
         // The new form passes ex.Message as the argument, so the brace row renders instead of throwing.
@@ -503,6 +507,7 @@ namespace NzbDrone.Core.Test.Localization
             unexpected.Message.Should().Be($"Unexpected response from {url}");
             works.Message.Should().Be($"Failed to get works for {foreignAuthorId}");
             books.Message.Should().Be($"Failed to get books for {foreignBookId}");
+
             // Task 8 review: BookInfoProxy's missing-series invariant was new BookInfoException(string.Format(…)) (the
             // plain constructor, so no Text); it now takes the params constructor.
             var book = new Book { ForeignBookId = "anilist:30013-v1", Title = "Vol. {1}" };

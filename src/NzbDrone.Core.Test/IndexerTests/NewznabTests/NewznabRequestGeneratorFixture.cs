@@ -267,7 +267,6 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
         }
 
         // Light novels (2026-09): categories follow the searched edition class (D10).
-
         [Test]
         public void should_search_only_book_categories_for_an_archive_or_ebook_search()
         {
@@ -318,7 +317,6 @@ namespace NzbDrone.Core.Test.IndexerTests.NewznabTests
 
         // An indexer with no category of the searched class gets no request for that leg -- never
         // the other class's categories (Add wraps an empty page set, so assert on the requests).
-
         [Test]
         public void audio_search_sends_nothing_to_an_indexer_without_an_audio_category()
         {

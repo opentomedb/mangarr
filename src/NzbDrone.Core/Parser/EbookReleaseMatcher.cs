@@ -30,11 +30,11 @@ namespace NzbDrone.Core.Parser
     // A release carrying a range is a pack and never bridges; manga never enters.
     public static class EbookReleaseMatcher
     {
-        private static readonly Logger Logger = NzbDroneLogger.GetLogger(typeof(EbookReleaseMatcher));
-
         // Same floor as the parser's accepted series keys: a 3-character name is too short to
         // identify a series on its own.
         private const int SeriesKeyFloor = 4;
+
+        private static readonly Logger Logger = NzbDroneLogger.GetLogger(typeof(EbookReleaseMatcher));
 
         private static readonly Regex BracketGroup = new Regex(@"\[[^\]]*\]", RegexOptions.Compiled);
         private static readonly Regex Parenthetical = new Regex(@"\([^)]*\)", RegexOptions.Compiled);

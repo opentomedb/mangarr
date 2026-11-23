@@ -84,6 +84,7 @@ namespace NzbDrone.Core.MetadataSource
         // edition word, so an article never makes a real subtitle junk and IsFullTitle still counts it.
         private static readonly HashSet<string> FrenchArticles = new HashSet<string> { "le", "la", "les", "l", "un", "une", "des" };
         private static readonly HashSet<string> GermanArticles = new HashSet<string> { "der", "die", "das", "ein", "eine" };
+
         // M14 polish (2026-09-24): every Unicode space (\s is \p{Z} plus the controls -- a French
         // non-breaking U+00A0, a Japanese ideographic U+3000) and both apostrophes separate words.
         private static readonly Regex WordAndElisionSeparators = new Regex(@"[\s'\u2019]+", RegexOptions.Compiled);

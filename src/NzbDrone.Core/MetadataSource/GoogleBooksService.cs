@@ -86,6 +86,13 @@ namespace NzbDrone.Core.MetadataSource
         // redirect, and carries both number_of_pages and publish_date.
         private const string OpenLibraryUrl = "https://openlibrary.org/api/books";
 
+        // The two on-disk stores under <appdata>/metadata, described at their lifetimes below.
+        private const string IsbnCacheFileName = "googlebooks-isbn-cache.json";
+        private const string TitleCacheFileName = "googlebooks-title-cache.json";
+
+        // Consecutive empty intitle: answers that skip the operator for a while (IntitleSkipLifetime, below).
+        private const int EmptyIntitleRunLimit = 25;
+
         // Box-set / collection titles that an intitle search can return instead of the single volume.
         private static readonly string[] RejectTitleTokens = { "box set", "omnibus", "collection", "3-in-1", "boxed", "deluxe", "book edition" };
 
@@ -106,7 +113,6 @@ namespace NzbDrone.Core.MetadataSource
         // 30 days for incomplete records; complete ones (IsComplete) the provider accepted are kept.
         // Only a definite answer is stored: a 429/5xx never reaches the file. The in-process ICached
         // stays the hot layer in front of it.
-        private const string IsbnCacheFileName = "googlebooks-isbn-cache.json";
         private static readonly TimeSpan IsbnCacheLifetime = TimeSpan.FromDays(30);
 
         private readonly object _isbnStoreMutex = new object();
@@ -118,7 +124,6 @@ namespace NzbDrone.Core.MetadataSource
         // 1,000/day quota by mid-morning, before the volumes still missing a sharp cover were reached.
         // An answer is kept 30 days (a complete one for good, like an ISBN record); a no-match 7 days,
         // so a volume Google adds later is still found. A 429/5xx is never stored.
-        private const string TitleCacheFileName = "googlebooks-title-cache.json";
         private static readonly TimeSpan NoMatchLifetime = TimeSpan.FromDays(7);
 
         private Dictionary<string, TitleCacheEntry> _titleStore;
@@ -132,7 +137,6 @@ namespace NzbDrone.Core.MetadataSource
         // Since 2026-10-17 intitle: answers no items for any query, and each volume spent three queries
         // on it before the plain-words search. After a run of empty intitle: answers the operator is
         // skipped for a while; the first query after that probes it again.
-        private const int EmptyIntitleRunLimit = 25;
         private static readonly TimeSpan IntitleSkipLifetime = TimeSpan.FromHours(6);
         private int _emptyIntitleRun;
         private DateTime _skipIntitleUntil = DateTime.MinValue;
@@ -670,7 +674,6 @@ namespace NzbDrone.Core.MetadataSource
         }
 
         // ---- the on-disk ISBN store ----
-
         private string IsbnCachePath => Path.Combine(_appFolderInfo.AppDataFolder, "metadata", IsbnCacheFileName);
 
         private VolumeDetails FindStoredIsbnRecord(string isbn13)
@@ -730,7 +733,6 @@ namespace NzbDrone.Core.MetadataSource
         }
 
         // ---- the on-disk title-search store ----
-
         private string TitleCachePath => Path.Combine(_appFolderInfo.AppDataFolder, "metadata", TitleCacheFileName);
 
         private static string TitleKey(string language, string seriesTitle, int volumeNumber)
@@ -1088,14 +1090,15 @@ namespace NzbDrone.Core.MetadataSource
                 return false;
             }
 
-            // Positively identify volume N in a recognized form (avoid "Vol. 11" matching "Vol. 1").
+            // Positively identify volume N in a recognized form (avoid "Vol. 11" matching "Vol. 1"):
+            // "Vol. N" / "vol N", "Volume N", "#N", or a trailing "01"/"12" (e.g. "Fire Force 01").
             // A result whose title carries no volume marker (a bare series title) is rejected: trusting
             // search ranking there would risk attaching the wrong volume's page/date.
             var n = volumeNumber;
-            if (Regex.IsMatch(lower, $@"\bvol\.?\s*0*{n}\b") ||      // "Vol. N" / "vol N"
-                Regex.IsMatch(lower, $@"\bvolume\s*0*{n}\b") ||      // "Volume N"
-                Regex.IsMatch(lower, $@"#\s*0*{n}\b") ||             // "#N"
-                Regex.IsMatch(lower, $@"(^|\s)0*{n}\s*$"))           // trailing "01"/"12" (e.g. "Fire Force 01")
+            if (Regex.IsMatch(lower, $@"\bvol\.?\s*0*{n}\b") ||
+                Regex.IsMatch(lower, $@"\bvolume\s*0*{n}\b") ||
+                Regex.IsMatch(lower, $@"#\s*0*{n}\b") ||
+                Regex.IsMatch(lower, $@"(^|\s)0*{n}\s*$"))
             {
                 return true;
             }

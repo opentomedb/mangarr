@@ -18,6 +18,10 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
     [TestFixture]
     public class MangaSeriesMetadataProviderEditionFixture : CoreTest<MangaSeriesMetadataProvider>
     {
+        // The description round's blurbs (see RefreshJapaneseLine).
+        private const string JapaneseBlurb = "\u3053\u306e\u7269\u8a9e\u306f\u3001\u30b9\u30bf\u30f3\u30c9\u30a2\u30c3\u30d7\u3092\u76ee\u6307\u3059\u5c11\u5e74\u305f\u3061\u306e\u9752\u6625\u3067\u3059\u3002" + "\u3053\u306e\u7269\u8a9e\u306f\u3001\u30b9\u30bf\u30f3\u30c9\u30a2\u30c3\u30d7\u3092\u76ee\u6307\u3059\u5c11\u5e74\u305f\u3061\u306e\u9752\u6625\u3067\u3059\u3002";
+        private const string EnglishBlurb = "A group of boys chases a dream of standing up on stage, and the summer that tests them all.";
+
         private static readonly GcdSeries Anchor = new GcdSeries
         {
             GcdSeriesId = 1001, Name = "Attack on Titan", Language = "en", VolumeCount = 34, Status = "completed",
@@ -239,7 +243,12 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         {
             GivenResolution(French, "fr");
 
-            Subject.GetSeries("Attack on Titan", 0, false, LibraryType.Manga, null, "Attack On Titan",
+            Subject.GetSeries("Attack on Titan",
+                0,
+                false,
+                LibraryType.Manga,
+                null,
+                "Attack On Titan",
                 new EditionRequest { Language = "fr", TomeLineId = "rl_fr", StoredName = "Attack on Titan" });
 
             Mocker.GetMock<IMetadataOverridesService>()
@@ -593,7 +602,8 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
             {
                 GcdSeriesId = gcdSeriesId, Name = "Sword Art Online", Language = "ja", VolumeCount = 2, OrigSeriesId = null,
                 TomeId = "rl_jaln", TomeWorkId = "w_sao", Medium = "light_novel", LocalName = "ソードアート・オンライン"
-            }, "ja");
+            },
+            "ja");
         }
 
         private MangaSeriesMetadata JapaneseNovelSeries()
@@ -898,9 +908,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Manga
         // Description round (KR/CN consumer, the maintainer 2026-09-29 "Go with english"): a fallback series' per-volume blurbs
         // and subtitles are fetched and gated as English, exactly as for an unbound English entry; covers and the
         // structure stay the bound line's. Paired with the same binding as a real edition (fallback false).
-        private const string JapaneseBlurb = "\u3053\u306e\u7269\u8a9e\u306f\u3001\u30b9\u30bf\u30f3\u30c9\u30a2\u30c3\u30d7\u3092\u76ee\u6307\u3059\u5c11\u5e74\u305f\u3061\u306e\u9752\u6625\u3067\u3059\u3002" + "\u3053\u306e\u7269\u8a9e\u306f\u3001\u30b9\u30bf\u30f3\u30c9\u30a2\u30c3\u30d7\u3092\u76ee\u6307\u3059\u5c11\u5e74\u305f\u3061\u306e\u9752\u6625\u3067\u3059\u3002";
-        private const string EnglishBlurb = "A group of boys chases a dream of standing up on stage, and the summer that tests them all.";
-
         private MangaSeriesMetadata RefreshJapaneseLine(bool fallback, LibraryType library = LibraryType.Manga, string artifactTitle = null, string englishBlurb = EnglishBlurb)
         {
             var line = library == LibraryType.Manga ? Japanese : new GcdSeries

@@ -208,7 +208,8 @@ namespace NzbDrone.Core.Test.MediaFiles.BookImport.Existing
 
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<Dictionary<int, CalibreBook>>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<Dictionary<int, CalibreBook>>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<Dictionary<int, CalibreBook>>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"20\": {\"application_id\": 20, \"title\": \"Mushoku Tensei (Vol. 1)\", \"title_sort\": \"Mushoku Tensei 0001\", \"format_metadata\": {}}}")));
 
             var aligned = Subject.Sync(_author, new List<BookFile> { row }, _settings, out var failure);

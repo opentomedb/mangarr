@@ -93,6 +93,7 @@ namespace Readarr.Api.V1.BookFiles
                 Quality = model.Quality,
                 QualityWeight = QualityWeight(model.Quality),
                 MediaInfo = model.MediaInfo.ToResource(),
+
                 // judged by the profile of the file's media type (the audio profile for an audio file)
                 QualityCutoffNotMet = upgradableSpecification.QualityCutoffNotMet(author.QualityProfileFor(model.Edition?.Value?.MediaType ?? MediaType.Archive), model.Quality),
                 IndexerFlags = (int)model.IndexerFlags,

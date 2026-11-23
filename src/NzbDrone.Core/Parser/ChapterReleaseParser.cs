@@ -13,6 +13,9 @@ namespace NzbDrone.Core.Parser
     // removed first, so a name's own "Chapter 4" (Re:ZERO's arcs) never counts as a chapter.
     public static class ChapterReleaseParser
     {
+        // Stands in for a stripped series name: not a word character, so the token regexes read it as a separator.
+        private const char NameMark = '\u0001';
+
         // "c001", "c001-073", "Ch. 12", "Chapter 12", "Chapters 1-73", "c073.5"; an end may repeat the token ("c001-c073").
         // A bare "c" right after "(" is a Comiket tag ("(C102)"), never a chapter.
         private static readonly Regex EnglishChapterRegex = new Regex(
@@ -27,9 +30,6 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex WordCharRegex = new Regex(@"[\p{L}\p{N}]", RegexOptions.Compiled);
         private static readonly Regex WordRegex = new Regex(@"[\p{L}\p{N}]+", RegexOptions.Compiled);
         private static readonly Regex FileExtensionRegex = new Regex(@"\.[a-z][a-z0-9]{1,3}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-        // Stands in for a stripped series name: not a word character, so the token regexes read it as a separator.
-        private const char NameMark = '\u0001';
 
         // A chapter release of THIS series: one of its names, then the chapter token, then only tags
         // ("Marriagetoxin c001-073 (Digital) (empyrealarrow)"). Names are replaced first, so a name's own

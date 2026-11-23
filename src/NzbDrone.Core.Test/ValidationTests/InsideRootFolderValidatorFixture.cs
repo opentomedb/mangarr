@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.IO;
 using FizzWare.NBuilder;
 using FluentAssertions;
-using Moq;
 using NUnit.Framework;
 using NzbDrone.Core.Books;
 using NzbDrone.Core.RootFolders;

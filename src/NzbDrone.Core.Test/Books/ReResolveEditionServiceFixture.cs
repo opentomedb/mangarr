@@ -77,7 +77,8 @@ namespace NzbDrone.Core.Test.BookTests
             Execute("fr");
 
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
-                m.EditionLanguage == "fr" && m.TomeLineId == "rl_fr" && m.AnchorName == null && m.Name == "Attack on Titan")), Times.Once());
+                m.EditionLanguage == "fr" && m.TomeLineId == "rl_fr" && m.AnchorName == null && m.Name == "Attack on Titan")),
+                Times.Once());
             Mocker.GetMock<IManageCommandQueue>().Verify(q => q.Push(It.IsAny<RefreshAuthorCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
             Mocker.GetMock<IManageCommandQueue>().Verify(q => q.Push(It.IsAny<MoveAuthorCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
         }
@@ -134,7 +135,8 @@ namespace NzbDrone.Core.Test.BookTests
             Execute("fr", rename: true);
 
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
-                m.Name == "L'Attaque des Titans" && m.AnchorName == "Attack on Titan" && m.EditionLanguage == "fr")), Times.Once());
+                m.Name == "L'Attaque des Titans" && m.AnchorName == "Attack on Titan" && m.EditionLanguage == "fr")),
+                Times.Once());
             Mocker.GetMock<IMetadataOverridesService>().Verify(s => s.Set("L'Attaque des Titans", "3", It.IsAny<VolumeOverride>()), Times.Once());
             Mocker.GetMock<IMetadataOverridesService>().Verify(s => s.Remove("Attack on Titan", "3"), Times.Once());
             Mocker.GetMock<IAuthorService>().Verify(s => s.UpdateAuthor(It.Is<Author>(a => a.Path == "/manga/L'Attaque des Titans")), Times.Once());
@@ -162,7 +164,8 @@ namespace NzbDrone.Core.Test.BookTests
             Execute("en");
 
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
-                m.EditionLanguage == null && m.AnchorName == "Attack on Titan" && m.Name == "L'Attaque des Titans")), Times.Once());
+                m.EditionLanguage == null && m.AnchorName == "Attack on Titan" && m.Name == "L'Attaque des Titans")),
+                Times.Once());
         }
 
         // Preferred Edition (2026-09-24, controller pin ruling): every row under the old pin key moves --
@@ -209,7 +212,8 @@ namespace NzbDrone.Core.Test.BookTests
             Execute("en", rename: true);
 
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
-                m.Name == "Attack on Titan" && m.AnchorName == null && m.EditionLanguage == null && m.TomeLineId == "rl_en")), Times.Once());
+                m.Name == "Attack on Titan" && m.AnchorName == null && m.EditionLanguage == null && m.TomeLineId == "rl_en")),
+                Times.Once());
             VerifyPinsMoved("L'Attaque des Titans", "Attack on Titan");
             Mocker.GetMock<IManageCommandQueue>().Verify(q => q.Push(It.Is<MoveAuthorCommand>(c => c.SourcePath == "/manga/L'Attaque des Titans" && c.DestinationPath == "/manga/Attack on Titan"), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
             Mocker.GetMock<IManageCommandQueue>().Verify(q => q.Push(It.IsAny<RefreshAuthorCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
@@ -393,7 +397,8 @@ namespace NzbDrone.Core.Test.BookTests
             Execute("en", rename: true);
 
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
-                m.Name == "Attack on Titan" && m.AnchorName == null && m.EditionLanguage == null)), Times.Once());
+                m.Name == "Attack on Titan" && m.AnchorName == null && m.EditionLanguage == null)),
+                Times.Once());
         }
 
         [Test]
@@ -492,7 +497,8 @@ namespace NzbDrone.Core.Test.BookTests
             Execute("en", rename: true);
 
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
-                m.Name == "Stand Up Start" && m.AnchorName == null && m.EditionLanguage == null && m.TomeLineId == "rl_en_sus" && !m.EditionFallback)), Times.Once());
+                m.Name == "Stand Up Start" && m.AnchorName == null && m.EditionLanguage == null && m.TomeLineId == "rl_en_sus" && !m.EditionFallback)),
+                Times.Once());
         }
 
         [Test]
@@ -503,7 +509,8 @@ namespace NzbDrone.Core.Test.BookTests
             Execute("en");
 
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
-                m.Name == "Sutando Appu Sutato" && m.AnchorName == "Stand Up Start" && m.EditionLanguage == null && m.TomeLineId == "rl_en_sus")), Times.Once());
+                m.Name == "Sutando Appu Sutato" && m.AnchorName == "Stand Up Start" && m.EditionLanguage == null && m.TomeLineId == "rl_en_sus")),
+                Times.Once());
         }
     }
 }

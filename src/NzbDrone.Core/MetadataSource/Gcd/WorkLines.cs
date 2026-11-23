@@ -85,6 +85,8 @@ namespace NzbDrone.Core.MetadataSource.Gcd
             return library == LibraryType.LightNovel ? MangaSeriesMetadataProvider.StripLightNovelQualifier(name) : name;
         }
 
+        private const string NIn1 = @"\d+\s*-?\s*in\s*-?\s*1";
+
         // Review fixes (2026-09-28, I6); ported from mangarrbot/spinoff.py (2026-09-28) so the bot's
         // "Spin-off of" label reads the same as Mangarr's. KEEP THESE WORD LISTS IN STEP WITH THAT FILE
         // (EDITION_WORDS / MEDIUM_WORDS) -- a line is another edition/format of the same run, never a
@@ -109,8 +111,6 @@ namespace NzbDrone.Core.MetadataSource.Gcd
             "médias", "medias", "media", "print", "digital", "e-book", "ebook",
             "roman illustré", "roman illustre", "illustrated novel", "printed media", "print media"
         };
-
-        private const string NIn1 = @"\d+\s*-?\s*in\s*-?\s*1";
 
         private static readonly Regex EditionQualifier = BuildWordsRegex(EditionWords);
         private static readonly Regex AnyQualifier = BuildWordsRegex(EditionWords.Concat(MediumWords));

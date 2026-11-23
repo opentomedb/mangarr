@@ -73,6 +73,7 @@ namespace NzbDrone.Core.Books
 
                 _eventAggregator.PublishEvent(new AuthorMovedEvent(author, sourcePath, destinationPath));
             }
+
             // Preferred Edition (2026-09-24, M13 fix round 1): a permissions failure (UnauthorizedAccessException,
             // not an IOException) left the author pointing at a folder that was never created.
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)

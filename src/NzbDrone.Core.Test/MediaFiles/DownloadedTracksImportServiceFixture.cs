@@ -473,6 +473,7 @@ namespace NzbDrone.Core.Test.MediaFiles
             var folder = @"c:\drop\[PZG].Classroom.of.the.Elite,.Vol..04. Audiobook .[Seven.Seas.Siren]-xpost".AsOsAgnostic();
             var epub = Path.Combine(folder, "Classroom of the Elite - Volume 04 [Seven Seas] [LuCaZ].epub");
             var m4b = Path.Combine(folder, "Classroom of the Elite, Vol. 04 [PZG].m4b");
+
             // the audiobook is far bigger than the bundled EPUB that sorts first
             FileSystem.AddFile(epub, new MockFileData("".PadRight(100)));
             FileSystem.AddFile(m4b, new MockFileData("".PadRight(5000)));

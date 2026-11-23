@@ -151,7 +151,8 @@ namespace NzbDrone.Core.Test.MusicTests
                 .Verify(
                     v => v.TransferFolder(_command.SourcePath,
                         _command.DestinationPath,
-                        TransferMode.Move), Times.Never());
+                        TransferMode.Move),
+                    Times.Never());
 
             Mocker.GetMock<IBuildFileNames>()
                 .Verify(v => v.GetAuthorFolder(It.IsAny<Author>(), null), Times.Never());

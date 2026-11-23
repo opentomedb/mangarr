@@ -72,6 +72,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Specifications
             if (lastImported.DownloadId == downloadClientItem.DownloadId)
             {
                 _logger.Debug("Book previously imported at {0}", lastImported.Date);
+
                 // Server messages (2026-09-26): RejectionMessagePrefix's text inlined, so the template is one
                 // literal the guard can key; the constant stays for IsAlreadyImportedRejection's StartsWith.
                 return Decision.Reject("Book already imported at {0}", lastImported.Date);

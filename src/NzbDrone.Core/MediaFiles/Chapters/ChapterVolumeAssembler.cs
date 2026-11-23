@@ -31,6 +31,7 @@ namespace NzbDrone.Core.MediaFiles.Chapters
     public class ChapterAssemblyResult
     {
         public List<AssembledVolume> Volumes { get; set; } = new List<AssembledVolume>();
+
         // Why a mapped volume was not built, in English ("Vol. 9: chapter 75 missing"); SkippedTexts carries
         // the same reasons for the queue in the UI language, SkippedBooks the volume each one is about.
         public List<string> Skipped { get; set; } = new List<string>();

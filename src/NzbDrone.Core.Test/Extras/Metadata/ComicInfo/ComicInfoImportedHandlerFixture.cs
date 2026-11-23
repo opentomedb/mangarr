@@ -25,9 +25,12 @@ namespace NzbDrone.Core.Test.Extras.Metadata.ComicInfo
         {
             var item = downloadId == null ? null : new DownloadClientItem { DownloadId = downloadId };
 
-            return new BookImportedEvent(new Author(), new Book { Title = "Chainsaw Man Vol. 1" },
+            return new BookImportedEvent(new Author(),
+                new Book { Title = "Chainsaw Man Vol. 1" },
                 new List<BookFile> { new BookFile { Path = "/manga/Chainsaw Man/Chainsaw Man - Vol 001.cbz" } },
-                new List<BookFile>(), newDownload, item);
+                new List<BookFile>(),
+                newDownload,
+                item);
         }
 
         private static IEnumerable<TestCaseData> Paths()

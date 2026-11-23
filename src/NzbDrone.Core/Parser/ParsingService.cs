@@ -554,7 +554,9 @@ namespace NzbDrone.Core.Parser
                     if (seriesClean.StartsWith(authorClean) || seriesStripped.StartsWith(authorClean))
                     {
                         _logger.Debug("Manga release '{0}': series '{1}' extends searched author '{2}', rejecting (different series)",
-                            parsedBookInfo.ReleaseTitle, releaseSeries, searchCriteria.Author.Name);
+                            parsedBookInfo.ReleaseTitle,
+                            releaseSeries,
+                            searchCriteria.Author.Name);
                         return null;
                     }
                 }

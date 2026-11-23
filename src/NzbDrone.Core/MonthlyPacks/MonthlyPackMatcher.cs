@@ -24,8 +24,8 @@ namespace NzbDrone.Core.MonthlyPacks
     public class MonthlyPackMatcher : IMonthlyPackMatcher
     {
         private static readonly string[] ComicExtensions = { ".cbz", ".cbr", ".cb7", ".zip" };
-        private static readonly Regex ParentheticalRegex = new (@"\([^)]*\)", RegexOptions.Compiled);
-        private static readonly Regex EditionWordingRegex = new (@"\b(edition|omnibus|deluxe|collector)|\bbox\b|\bin[- ]1\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex ParentheticalRegex = new(@"\([^)]*\)", RegexOptions.Compiled);
+        private static readonly Regex EditionWordingRegex = new(@"\b(edition|omnibus|deluxe|collector)|\bbox\b|\bin[- ]1\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private readonly Logger _logger;
 

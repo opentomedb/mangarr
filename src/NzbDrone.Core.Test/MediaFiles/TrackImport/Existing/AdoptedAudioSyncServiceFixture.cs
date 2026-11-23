@@ -8,7 +8,6 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport.Existing;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Test.MediaFiles;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.MediaFiles.BookImport.Existing
@@ -261,10 +260,12 @@ namespace NzbDrone.Core.Test.MediaFiles.BookImport.Existing
         {
             GivenItem("item-1", "/audiobooks/Mushoku Tensei/Vol 1", "Mushoku Tensei #2");
 
-            Subject.Sync(_author, GivenRows(1,
+            Subject.Sync(_author,
+                GivenRows(1,
                 "/srv/audiobooks/Mushoku Tensei/Vol 1/Vol 1 - 01.mp3",
                 "/srv/audiobooks/Mushoku Tensei/Vol 1/Vol 1 - 02.mp3",
-                "/srv/audiobooks/Mushoku Tensei/Vol 1/Vol 1 - 03.mp3"), out _);
+                "/srv/audiobooks/Mushoku Tensei/Vol 1/Vol 1 - 03.mp3"),
+                out _);
 
             Mocker.GetMock<IAudiobookshelfClient>().Verify(v => v.PatchMetadata("item-1", "Mushoku Tensei", "1", "Mushoku Tensei (Vol. 1)", null), Times.Once());
             Mocker.GetMock<IAudiobookshelfClient>().Verify(v => v.GetLibraryItems(), Times.Once());

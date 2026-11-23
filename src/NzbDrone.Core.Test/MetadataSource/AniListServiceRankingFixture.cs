@@ -69,7 +69,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- the canned AniList ----
-
         private static Media M(int id, string romaji, string english, string format, string status, int? volumes, int popularity, params string[] synonyms)
         {
             return new Media
@@ -135,7 +134,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- the seven audited entries ----
-
         [Test]
         public void fairy_tail_binds_the_serial_not_the_anthology_carrying_its_name_as_a_synonym()
         {
@@ -451,7 +449,6 @@ namespace NzbDrone.Core.Test.MetadataSource
 
         // ---- OpenTome 2026-09-24 tiers through FindSeries (recorded pages, opentome
         // export/fixtures/anilist/) ----
-
         [Test]
         public void weed_binds_the_full_serial_through_the_ceiling_tier_before_any_alias_search()
         {
@@ -745,7 +742,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- D7: the decisions are visible at Info ----
-
         [Test]
         public void a_match_logs_the_decision_at_info()
         {
@@ -795,7 +791,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- wire shapes (serialised camelCase by Json.ToJson; the service's DTOs read them) ----
-
         public class Media
         {
             public int Id { get; set; }

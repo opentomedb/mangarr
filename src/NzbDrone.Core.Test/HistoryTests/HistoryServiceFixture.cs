@@ -259,7 +259,8 @@ namespace NzbDrone.Core.Test.HistoryTests
                     h.DownloadId == "abcd" &&
                     h.SourceTitle == "Overlord Vol. 5" &&
                     h.Data["StatusMessages"].Contains("Vol. 6: chapter 85 missing") &&
-                    h.Data[EntityHistory.MEDIA_TYPE] == "archive")), Times.Once());
+                    h.Data[EntityHistory.MEDIA_TYPE] == "archive")),
+                    Times.Once());
         }
 
         [Test]

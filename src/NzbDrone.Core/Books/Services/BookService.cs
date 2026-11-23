@@ -122,7 +122,7 @@ namespace NzbDrone.Core.Books
                 tc((a, t) => a.CleanTitle.FuzzyMatch(t), title.RemoveBracketsAndContents().RemoveAfterDash().CleanAuthorName()),
                 tc((a, t) => t.FuzzyContains(a.CleanTitle), cleanTitle),
                 tc((a, t) => t.FuzzyContains(a.Title), title),
-                tc((a, t) => a.Title.SplitBookTitle(a.AuthorMetadata.Value.Name).Item1.FuzzyMatch(t), title)
+                tc((a, t) => a.Title.SplitBookTitle(a.AuthorMetadata.Value.Name).Title.FuzzyMatch(t), title)
             };
 
             return scoringFunctions;

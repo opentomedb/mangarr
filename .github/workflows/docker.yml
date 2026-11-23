@@ -97,7 +97,7 @@ jobs:
       - name: Build
         run: |
           for project in src/NzbDrone.Mono/Readarr.Mono.csproj src/Readarr.Api.V1/Readarr.Api.V1.csproj src/NzbDrone.Core.Test/Readarr.Core.Test.csproj; do
-            dotnet build "$project" -c Release -p:Platform=Posix -p:SolutionDir="$GITHUB_WORKSPACE/src/" -p:RunAnalyzers=false -nologo -v q
+            dotnet build "$project" -c Release -p:Platform=Posix -p:SolutionDir="$GITHUB_WORKSPACE/src/" -nologo -v q
           done
           cp _output/net6.0/Readarr.Mono.dll _tests/net6.0/
 
@@ -106,7 +106,7 @@ jobs:
       - name: Test
         run: >
           dotnet test src/NzbDrone.Core.Test/Readarr.Core.Test.csproj -c Release -p:Platform=Posix
-          -p:SolutionDir="$GITHUB_WORKSPACE/src/" -p:RunAnalyzers=false --no-build
+          -p:SolutionDir="$GITHUB_WORKSPACE/src/" --no-build
           --filter "Category!=ManualTest&Category!=IntegrationTest&Category!=AutomationTest&Category!=WINDOWS"
           --logger "trx;LogFileName=core.trx" --results-directory TestResults
 

@@ -16,11 +16,11 @@ using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.IndexerSearch;
 using NzbDrone.Core.Lifecycle;
-using NzbDrone.Core.MetadataSource.Gcd;
 using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.MediaFiles.PdfConversion;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
+using NzbDrone.Core.MetadataSource.Gcd;
 
 namespace NzbDrone.Core.Jobs
 {
@@ -83,7 +83,6 @@ namespace NzbDrone.Core.Jobs
                         Interval = 5,
                         TypeName = typeof(MessagingCleanupCommand).FullName
                     },
-
 
                     new ScheduledTask
                     {

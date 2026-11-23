@@ -71,6 +71,7 @@ namespace NzbDrone.Core.Test.BookTests
             Subject.ClearCopyInPending(author);
 
             author.CopyInPending.Should().BeFalse();
+
             // params Expression<Func<Author, object>>[] -- match the array, not the lambda (Moq compares expression trees
             // by reference for params arrays); the property name is asserted through the compiled selector.
             Mocker.GetMock<IAuthorRepository>().Verify(v => v.SetFields(author, It.Is<System.Linq.Expressions.Expression<Func<Author, object>>[]>(p => p.Length == 1 && p[0].ToString().Contains("CopyInPending"))), Times.Once());

@@ -35,7 +35,8 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         public void should_insert_ebook_pdf_unticked_below_azw3_on_the_manga_profile()
         {
             // the dev server's Manga profile after 054.
-            var profile = MigrateProfile("Manga", 2,
+            var profile = MigrateProfile("Manga",
+                2,
                 "[{\"quality\":7,\"items\":[],\"allowed\":false},{\"quality\":6,\"items\":[],\"allowed\":false},{\"quality\":13,\"items\":[],\"allowed\":false},{\"quality\":10,\"items\":[],\"allowed\":false},{\"quality\":11,\"items\":[],\"allowed\":false},{\"quality\":12,\"items\":[],\"allowed\":false},{\"quality\":0,\"items\":[],\"allowed\":false},{\"quality\":1,\"items\":[],\"allowed\":true},{\"quality\":5,\"items\":[],\"allowed\":true},{\"quality\":4,\"items\":[],\"allowed\":true},{\"quality\":3,\"items\":[],\"allowed\":true},{\"quality\":2,\"items\":[],\"allowed\":true}]");
 
             profile.Cutoff.Should().Be(2);
@@ -48,7 +49,8 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         public void should_insert_ebook_pdf_unticked_below_an_allowed_azw3_on_the_light_novel_epub_profile()
         {
             // The Light Novel EPUB profile as GetDefaultProfile built it, after 054 (AZW3 allowed).
-            var profile = MigrateProfile("Light Novel EPUB", 6,
+            var profile = MigrateProfile("Light Novel EPUB",
+                6,
                 "[{\"quality\":0,\"items\":[],\"allowed\":false},{\"quality\":1,\"items\":[],\"allowed\":false},{\"quality\":5,\"items\":[],\"allowed\":false},{\"quality\":4,\"items\":[],\"allowed\":false},{\"quality\":3,\"items\":[],\"allowed\":false},{\"quality\":2,\"items\":[],\"allowed\":false},{\"quality\":7,\"items\":[],\"allowed\":true},{\"quality\":6,\"items\":[],\"allowed\":true},{\"quality\":13,\"items\":[],\"allowed\":false}]");
 
             profile.Cutoff.Should().Be(6);
@@ -61,7 +63,8 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_insert_ebook_pdf_unticked_before_a_group_holding_azw3_even_when_the_group_is_allowed()
         {
-            var profile = MigrateProfile("Grouped", 1000,
+            var profile = MigrateProfile("Grouped",
+                1000,
                 "[{\"id\":1000,\"name\":\"Ebook\",\"items\":[{\"quality\":7,\"items\":[],\"allowed\":true},{\"quality\":6,\"items\":[],\"allowed\":true}],\"allowed\":true},{\"quality\":0,\"items\":[],\"allowed\":false}]");
 
             profile.Cutoff.Should().Be(1000);
@@ -76,7 +79,8 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_insert_ebook_pdf_below_epub_when_a_profile_has_no_azw3()
         {
-            var profile = MigrateProfile("Custom EPUB", 6,
+            var profile = MigrateProfile("Custom EPUB",
+                6,
                 "[{\"quality\":0,\"items\":[],\"allowed\":false},{\"quality\":6,\"items\":[],\"allowed\":true}]");
 
             profile.Items.Select(i => i.Quality).Should().Equal(0, 8, 6);
@@ -86,7 +90,8 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_insert_ebook_pdf_at_index_zero_when_a_profile_has_neither()
         {
-            var profile = MigrateProfile("Audio only", 10,
+            var profile = MigrateProfile("Audio only",
+                10,
                 "[{\"quality\":13,\"items\":[],\"allowed\":true},{\"quality\":10,\"items\":[],\"allowed\":true}]");
 
             profile.Items.Select(i => i.Quality).Should().Equal(8, 13, 10);
@@ -96,7 +101,8 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_not_duplicate_ebook_pdf_on_a_profile_that_already_has_it()
         {
-            var profile = MigrateProfile("Already patched", 6,
+            var profile = MigrateProfile("Already patched",
+                6,
                 "[{\"quality\":8,\"items\":[],\"allowed\":true},{\"quality\":7,\"items\":[],\"allowed\":true},{\"quality\":6,\"items\":[],\"allowed\":true}]");
 
             profile.Items.Select(i => i.Quality).Should().Equal(8, 7, 6);

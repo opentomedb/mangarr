@@ -7,7 +7,6 @@ using NzbDrone.Core.Books.Commands;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.BookImport.Existing;
 using NzbDrone.Core.Test.Framework;
-using NzbDrone.Core.Test.MediaFiles;
 using NzbDrone.Test.Common;
 
 namespace NzbDrone.Core.Test.MediaFiles.BookImport.Existing

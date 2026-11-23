@@ -94,6 +94,7 @@ namespace NzbDrone.Core.Books
             NameLastFirst = other.NameLastFirst;
             SortName = other.SortName;
             SortNameLastFirst = other.SortNameLastFirst;
+
             // Keep-local when remote is empty (metadata ratchet): a refresh where AniList missed
             // must not wipe the stored alt titles that search recall depends on.
             Aliases = other.Aliases != null && other.Aliases.Any() ? other.Aliases : Aliases;
@@ -105,6 +106,7 @@ namespace NzbDrone.Core.Books
             Died = other.Died;
             Status = other.Status;
             TotalVolumes = other.TotalVolumes;
+
             // Never un-bind from an empty refresh: a null remote id means "nothing resolved",
             // not "unbind" (unbinding is Fix Match's explicit null, written directly).
             // The refresh path does not call this method (RefreshAuthorService uses
@@ -112,6 +114,7 @@ namespace NzbDrone.Core.Books
             // whole): BookInfoProxy.BuildFakeAuthor's carry-forward is what keeps a stored id
             // across a miss — this ratchet is not redundant with it, and neither replaces the other.
             AniListId = other.AniListId ?? AniListId;
+
             // Preferred Edition: the binding ratchets like AniListId -- a change of edition is the
             // re-resolve command's explicit write, never a refresh's empty value.
             EditionLanguage = other.EditionLanguage ?? EditionLanguage;
@@ -119,6 +122,7 @@ namespace NzbDrone.Core.Books
             AnchorName = other.AnchorName ?? AnchorName;
             EditionCollected = other.TomeLineId != null ? other.EditionCollected : EditionCollected;
             EditionFallback = other.TomeLineId != null ? other.EditionFallback : EditionFallback;
+
             // Plain copy: the writer ladder (IWriterResolver) is handed the stored author and owns
             // any keep-existing decision before this is reached.
             Writer = other.Writer;

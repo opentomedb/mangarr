@@ -67,7 +67,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
 
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<CalibreBook>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"application_id\": 7, \"format_metadata\": {\"EPUB\": {\"path\": \"/calibre/A/B (7)/B.epub\", \"size\": 3, \"mtime\": \"2026-01-01T00:00:00+00:00\"}}}")));
 
             Subject.GetBook(7, settings).Formats["EPUB"].Path.Should().Be("/srv/calibre/A/B (7)/B.epub");
@@ -84,7 +85,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
 
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<CalibreBook>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"application_id\": 7, \"format_metadata\": {\"EPUB\": {\"path\": \"/books/A/B (7)/B.epub\", \"size\": 3, \"mtime\": \"2026-01-01T00:00:00+00:00\"}}}")));
 
             Subject.GetBook(7, settings).Formats["EPUB"].Path.Should().Be("/books/A/B (7)/B.epub");
@@ -99,7 +101,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
 
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<CalibreBook>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"application_id\": 7, \"format_metadata\": {\"EPUB\": {\"path\": \"/elsewhere/B.epub\", \"size\": 3, \"mtime\": \"2026-01-01T00:00:00+00:00\"}}}")));
 
             Assert.Throws<CalibreException>(() => Subject.GetBook(7, settings)).Message.Should().Contain("Path As Calibre Sees It");
@@ -142,7 +145,6 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
         // One copy each (2026-09-20): the author calibre files a light-novel EPUB under is the real
         // writer (AuthorMetadata.Writer), falling back to the entry name; a manga entry keeps the
         // entry name. Adding a format to a book calibre already has leaves its authors alone.
-
         private List<HttpRequest> _executed;
 
         private void GivenCalibreAccepts(int bookId)
@@ -160,7 +162,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
 
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<CalibreBook>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r,
+                    new HttpHeader(),
                     $"{{\"application_id\": {bookId}, \"format_metadata\": {{\"EPUB\": {{\"path\": \"/books/x.epub\", \"size\": 3, \"mtime\": \"2026-01-01T00:00:00+00:00\"}}}}}}")));
         }
 
@@ -204,7 +207,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
         {
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<Dictionary<int, CalibreBook>>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<Dictionary<int, CalibreBook>>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<Dictionary<int, CalibreBook>>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"7\": {\"application_id\": 7, \"format_metadata\": {\"EPUB\": {\"path\": \"/books/x.epub\", \"size\": 3, \"mtime\": \"2026-01-01T00:00:00+00:00\"}}}, \"999\": null}")));
 
             Mocker.GetMock<IRemotePathMappingService>()
@@ -228,7 +232,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
         {
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<Dictionary<int, CalibreBook>>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<Dictionary<int, CalibreBook>>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<Dictionary<int, CalibreBook>>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"7\": {\"application_id\": 7, \"title\": \"Sword Art Online: Aincrad (Vol. 1)\", \"title_sort\": \"Sword Art Online 0001\", \"format_metadata\": {}}}")));
 
             var books = Subject.GetBooks(new List<int> { 7 }, _settings);
@@ -241,7 +246,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
         {
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<CalibreBook>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"application_id\": 7, \"title\": \"Sword Art Online: Aincrad (Vol. 1)\", \"title_sort\": \"Sword Art Online 0001\", \"format_metadata\": {}}")));
 
             Subject.GetBook(7, _settings).Sort.Should().Be("Sword Art Online 0001");
@@ -480,7 +486,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
 
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<CalibreBook>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r,
+                    new HttpHeader(),
                     $"{{\"application_id\": 7, \"format_metadata\": {{\"EPUB\": {{\"path\": \"{renamedPath.Replace("\\", "\\\\")}\", \"size\": 3, \"mtime\": \"2026-01-01T00:00:00+00:00\"}}}}}}")));
 
             Subject.SetTitle(file, "Sword Art Online: Aincrad (Vol. 1)", "Sword Art Online 0001", _settings);
@@ -511,7 +518,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
 
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<CalibreBook>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"application_id\": 7, \"format_metadata\": {" +
                     "\"mobi\": {\"path\": \"" + mobiPath + "\", \"size\": 3, \"mtime\": \"2026-01-01T12:00:00+00:00\"}, " +
                     "\"epub\": {\"path\": \"" + epubPath + "\", \"size\": 3, \"mtime\": \"2026-01-01T08:00:00+00:00\"}}}")));
@@ -541,7 +549,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
 
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<CalibreBook>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"application_id\": 7, \"format_metadata\": {" +
                     "\"epub\": {\"path\": \"" + epubPath + "\", \"size\": 3, \"mtime\": \"2026-01-01T12:00:00+00:00\"}, " +
                     "\"pdf\": {\"path\": \"" + pdfPath + "\", \"size\": 3, \"mtime\": \"2026-01-01T08:00:00+00:00\"}}}")));
@@ -570,7 +579,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
 
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<CalibreBook>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<CalibreBook>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"application_id\": 7, \"format_metadata\": {" +
                     "\"azw3\": {\"path\": \"" + azw3Path + "\", \"size\": 3, \"mtime\": \"2026-01-01T12:00:00+00:00\"}, " +
                     "\"pdf\": {\"path\": \"" + pdfPath + "\", \"size\": 3, \"mtime\": \"2026-01-01T08:00:00+00:00\"}}}")));
@@ -645,7 +655,8 @@ namespace NzbDrone.Core.Test.BookTests.Calibre
 
             Mocker.GetMock<IHttpClient>()
                 .Setup(c => c.Get<CalibreBookData>(It.IsAny<HttpRequest>()))
-                .Returns<HttpRequest>(r => new HttpResponse<CalibreBookData>(new HttpResponse(r, new HttpHeader(),
+                .Returns<HttpRequest>(r => new HttpResponse<CalibreBookData>(new HttpResponse(r,
+                    new HttpHeader(),
                     "{\"book_id\": 7, \"input_formats\": [" + formats + "], \"conversion_options\": {\"options\": {}}}")));
         }
 

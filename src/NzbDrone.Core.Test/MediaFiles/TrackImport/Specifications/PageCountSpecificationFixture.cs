@@ -13,6 +13,7 @@ using NzbDrone.Core.Test.Framework;
 namespace NzbDrone.Core.Test.MediaFiles.BookImport.Specifications
 {
     // Page-count check (2026-11-07): a cut-short volume file is refused; an unknown count never is.
+    // The junk check (2026-11-14): a .cbz/.zip that is not a zip, or holds no pages, is refused outright.
     [TestFixture]
     public class PageCountSpecificationFixture : CoreTest<PageCountSpecification>
     {
@@ -95,19 +96,60 @@ namespace NzbDrone.Core.Test.MediaFiles.BookImport.Specifications
             Subject.IsSatisfiedBy(Local(Cbz(10), 0), null).Accepted.Should().BeTrue();
         }
 
+        // The junk check (2026-11-14): a .cbz or .zip that is not a zip archive at all, or holds no page
+        // images, is never a usable volume and is refused whatever the catalogue lists.
         [Test]
-        public void an_unreadable_archive_passes()
+        public void a_cbz_that_is_not_a_zip_is_refused()
         {
             var path = Path.Combine(_dir, "Sample Saga v01.cbz");
             File.WriteAllText(path, "not a zip");
 
-            Subject.IsSatisfiedBy(Local(path, 192), null).Accepted.Should().BeTrue();
+            var decision = Subject.IsSatisfiedBy(Local(path, 192), null);
+
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Contain("not a readable archive");
         }
 
         [Test]
-        public void an_archive_without_pages_passes()
+        public void an_archive_without_pages_is_refused()
         {
-            Subject.IsSatisfiedBy(Local(Cbz(0), 192), null).Accepted.Should().BeTrue();
+            var decision = Subject.IsSatisfiedBy(Local(Cbz(0), 192), null);
+
+            decision.Accepted.Should().BeFalse();
+            decision.Reason.Should().Contain("no pages");
+        }
+
+        [Test]
+        public void junk_is_refused_even_without_a_catalogue_count()
+        {
+            var path = Path.Combine(_dir, "Sample Saga v01.cbz");
+            File.WriteAllText(path, "~^WtF[nZb]~");
+
+            Subject.IsSatisfiedBy(Local(path, 0), null).Accepted.Should().BeFalse();
+        }
+
+        [Test]
+        public void junk_already_in_the_library_passes()
+        {
+            var path = Path.Combine(_dir, "Sample Saga v01.cbz");
+            File.WriteAllText(path, "not a zip");
+
+            Subject.IsSatisfiedBy(Local(path, 192, existing: true), null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void a_light_novel_zip_without_pages_passes()
+        {
+            Subject.IsSatisfiedBy(Local(Cbz(0, "Sample Saga v01.zip"), 192, LibraryType.LightNovel, Quality.ZIP), null).Accepted.Should().BeTrue();
+        }
+
+        [Test]
+        public void a_light_novel_cbz_that_is_not_a_zip_is_refused()
+        {
+            var path = Path.Combine(_dir, "Sample Saga v01.cbz");
+            File.WriteAllText(path, "not a zip");
+
+            Subject.IsSatisfiedBy(Local(path, 192, LibraryType.LightNovel), null).Accepted.Should().BeFalse();
         }
 
         [TestCase(9)]

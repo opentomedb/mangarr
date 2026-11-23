@@ -187,7 +187,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Audible
         }
 
         // ---- the sample answer ----
-
         [Test]
         public void keys_a_series_field_carrying_a_light_novel_parenthetical_to_the_bare_name()
         {
@@ -343,7 +342,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Audible
         }
 
         // ---- the bare-name / alias fallback (2026-09-17) ----
-
         [Test]
         public void the_bare_name_query_matches_the_series_field_without_the_edition_tag()
         {
@@ -414,7 +412,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Audible
         }
 
         // ---- fail-soft ----
-
         [Test]
         public void a_transport_failure_is_null_and_not_cached()
         {
@@ -438,7 +435,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Audible
         }
 
         // ---- the caches ----
-
         [Test]
         public void an_answer_is_cached_in_process()
         {
@@ -549,7 +545,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Audible
         }
 
         // ---- AudibleSequence ----
-
         [TestCase("7", 7, 7)]
         [TestCase("1-2", 1, 2)]
         [TestCase("3.5", 3.5, 3.5)]

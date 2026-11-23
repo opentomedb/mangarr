@@ -315,7 +315,6 @@ namespace NzbDrone.Core.Test.AuthorStatsTests
 
         // Covered volumes (2026-09-17, D8): a covered Audio edition is satisfied without a file of
         // its own -- the audiobook is inside another volume's file.
-
         [Test]
         public void a_covered_audio_edition_without_a_file_counts_as_satisfied()
         {

@@ -345,6 +345,7 @@ namespace NzbDrone.Core.Download.Pending
                 {
                     Author = author,
                     Books = books,
+
                     // Light novels (2026-09): the stored parsed info is post-regrade, so its quality
                     // class names the edition this release targets (Archive for every manga row).
                     MediaType = ParsingService.ResolveMediaType(release.ParsedBookInfo, author, null),

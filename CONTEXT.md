@@ -121,7 +121,7 @@ falling back to a stub count so add always works with no indexer/metadata.
 ## Deployment
 
 - Runs as a Docker container (web UI on port 8787), config persisted via a `/config` bind mount.
-- Built from the repo-root `Dockerfile` (was `Dockerfile.dev` until 2026-09-28; SDK build with analyzers OFF: `-p:RunAnalyzers=false -p:TreatWarningsAsErrors=false`). The dev-only fast overlays live in `scripts/dev/`.
+- Built from the repo-root `Dockerfile` (was `Dockerfile.dev` until 2026-09-28; SDK build with analyzers OFF: `-p:RunAnalyzers=false -p:TreatWarningsAsErrors=false`; the analyzers run in `.github/workflows/build.yml` and in a plain `dotnet build`, which pass clean since 2026-11-22). The dev-only fast overlays live in `scripts/dev/`.
 - Indexers and download clients are configured inside the app's Settings UI; secrets are env-first, never committed.
 
 ## Where things live

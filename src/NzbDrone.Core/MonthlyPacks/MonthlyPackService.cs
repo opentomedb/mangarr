@@ -41,9 +41,9 @@ namespace NzbDrone.Core.MonthlyPacks
         private const int MaximumFetchesPerRun = 10;
         private const int MaximumRedirects = 10;
 
-        private static readonly Regex VolumesUpdateRegex = new (@"\bVolumes\s+Update\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex DigitalRegex = new (@"\(Digital\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex ScanRegex = new (@"\bscan(s|lation)?\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex VolumesUpdateRegex = new(@"\bVolumes\s+Update\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex DigitalRegex = new(@"\(Digital\)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex ScanRegex = new(@"\bscan(s|lation)?\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private readonly IConfigService _configService;
         private readonly IIndexerFactory _indexerFactory;
@@ -180,6 +180,7 @@ namespace NzbDrone.Core.MonthlyPacks
                 .Where(e => e.MediaType == MediaType.Archive)
                 .ToLookup(e => e.BookId);
             var files = _mediaFileService.GetFilesByBooks(ids).ToLookup(f => f.EditionId);
+
             // Fan translations (2026-11-05): a queued fan copy holds back no official volume.
             var queued = _queueService.GetQueue()
                 .Where(q => q.Book != null && q.Quality?.Quality != Quality.CbzFanTranslation)

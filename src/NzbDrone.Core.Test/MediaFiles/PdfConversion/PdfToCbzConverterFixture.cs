@@ -43,7 +43,8 @@ namespace NzbDrone.Core.Test.MediaFiles.PdfConversion
         // each listed as the page's single image.
         private void GivenPdf(int pages, byte[] pageBytes)
         {
-            GivenPages(pages, (dest, page) => new[] { WriteImage(dest, page, 0, ".jpg", pageBytes.Concat(new[] { (byte)(page - 1) }).ToArray()) },
+            GivenPages(pages,
+                       (dest, page) => new[] { WriteImage(dest, page, 0, ".jpg", pageBytes.Concat(new[] { (byte)(page - 1) }).ToArray()) },
                        Enumerable.Range(1, pages).Select(p => Image(p, "image", "icc", 8)).ToArray());
         }
 
@@ -170,8 +171,10 @@ namespace NzbDrone.Core.Test.MediaFiles.PdfConversion
                     _ => new[] { WriteImage(dest, 4, 0, ".png", new byte[] { 4 }) }
                 },
                 Image(1, "image", "icc", 8),
-                Image(2, "image", "icc", 8), Image(2, "image", "icc", 8),
-                Image(3, "image", "gray", 8), Image(3, "smask", "gray", 8),
+                Image(2, "image", "icc", 8),
+                Image(2, "image", "icc", 8),
+                Image(3, "image", "gray", 8),
+                Image(3, "smask", "gray", 8),
                 Image(4, "stencil", "-", 1));
             var pdf = Path.Combine(_dir, "vol.pdf");
             File.WriteAllText(pdf, "pdf");
@@ -205,7 +208,8 @@ namespace NzbDrone.Core.Test.MediaFiles.PdfConversion
                     _ => new[] { WriteImage(dest, 3, 0, ".png", new byte[] { 3 }), WriteImage(dest, 3, 1, ".png", new byte[] { 3 }) }
                 },
                 Image(1, "image", "gray", 8, 600),
-                Image(3, "stencil", "-", 1, 600), Image(3, "stencil", "-", 1, 600));
+                Image(3, "stencil", "-", 1, 600),
+                Image(3, "stencil", "-", 1, 600));
             var pdf = Path.Combine(_dir, "vol.pdf");
             File.WriteAllText(pdf, "pdf");
 

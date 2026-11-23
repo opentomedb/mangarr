@@ -133,6 +133,7 @@ namespace NzbDrone.Core.Books
                 // Preferred Edition (2026-09-24): the Add form's edition rides in AddOptions (null = Auto,
                 // the chain -- today's three-argument call).
                 var requestedEdition = newAuthor.AddOptions?.EditionLanguage;
+
                 // Staging fix S1 (2026-10-01, spec §3.2): an Auto add of a fallback candidate carries the line the
                 // search chose (EditionFallback + TomeLineId + EditionLanguage in the posted metadata); the resolve
                 // binds it by id, since the work's name may not find the line again.
@@ -244,7 +245,9 @@ namespace NzbDrone.Core.Books
             if (existingByName != null)
             {
                 _logger.Debug("Series '{0}' already exists as '{1}' ({2}); rejecting duplicate add",
-                    newAuthor.Metadata.Value.Name, existingByName.Name, existingByName.Metadata.Value.ForeignAuthorId);
+                    newAuthor.Metadata.Value.Name,
+                    existingByName.Name,
+                    existingByName.Metadata.Value.ForeignAuthorId);
 
                 throw new ValidationException(new List<ValidationFailure>
                 {

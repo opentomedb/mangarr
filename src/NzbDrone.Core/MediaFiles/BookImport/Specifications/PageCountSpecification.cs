@@ -16,8 +16,14 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Specifications
     // the slot with a truncated copy (manual import can still take it). "Far fewer" is under two thirds:
     // a good digital copy drops covers and adverts and stays well above that (179 pages of a 192-page
     // volume), the truncated copy that prompted this held 112. Nothing is refused on an unknown count:
-    // no catalogue count, an archive that cannot be read, a PDF pdfinfo cannot count, a stand-in built
-    // from chapters (its pages are whatever the chapters held), a file already in the library.
+    // no catalogue count, a PDF pdfinfo cannot count, a stand-in built from chapters (its pages are
+    // whatever the chapters held), a file already in the library.
+    //
+    // The junk check (2026-11-14): a .cbz or .zip that is not a zip archive at all, or that holds no
+    // page images, is never a usable volume and is refused outright, whatever the catalogue lists --
+    // a usenet post whose "volume" was a 12-byte text file named .cbz was imported twice as a finished
+    // volume under the earlier "unreadable means unknown" reading. A light-novel zip is allowed to hold
+    // no page images (it wraps an ebook, not pages); a file already in the library is left alone.
     public class PageCountSpecification : IImportDecisionEngineSpecification<LocalBook>
     {
         public const int MinimumThirds = 2;
@@ -33,17 +39,43 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Specifications
 
         public Decision IsSatisfiedBy(LocalBook localBook, DownloadClientItem downloadClientItem)
         {
+            if (localBook.ExistingFile)
+            {
+                return Decision.Accept();
+            }
+
+            var lightNovel = localBook.Author?.Library == LibraryType.LightNovel;
+            var zip = IsZipArchive(localBook.Path);
+            var held = zip ? ArchivePages.Count(localBook.Path) : null;
+
+            if (zip)
+            {
+                if (held == null)
+                {
+                    _logger.Debug("'{0}' is not a readable archive", localBook.Path);
+                    return Decision.Reject("Is not a readable archive");
+                }
+
+                if (held == 0 && !lightNovel)
+                {
+                    _logger.Debug("'{0}' holds no pages", localBook.Path);
+                    return Decision.Reject("Holds no pages");
+                }
+            }
+
             var listed = localBook.Edition?.PageCount ?? 0;
 
             if (listed <= 0 ||
-                localBook.ExistingFile ||
-                localBook.Author?.Library == LibraryType.LightNovel ||
+                lightNovel ||
                 UpgradableSpecification.IsStandIn(localBook.Quality))
             {
                 return Decision.Accept();
             }
 
-            var held = Pages(localBook.Path);
+            if (!zip)
+            {
+                held = PdfPages(localBook.Path);
+            }
 
             if (held == null || held <= 0)
             {
@@ -59,15 +91,17 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Specifications
             return Decision.Accept();
         }
 
-        private int? Pages(string path)
+        private static bool IsZipArchive(string path)
         {
             var extension = Path.GetExtension(path);
 
-            if (string.Equals(extension, ".cbz", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase))
-            {
-                return ArchivePages.Count(path);
-            }
+            return string.Equals(extension, ".cbz", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private int? PdfPages(string path)
+        {
+            var extension = Path.GetExtension(path);
 
             if (string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase))
             {

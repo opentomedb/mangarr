@@ -205,6 +205,7 @@ namespace NzbDrone.Core.Test.MediaFiles.MediaFileDeletionService
             Mocker.GetMock<IRecycleBinProvider>().Verify(v => v.DeleteFile(_trackFile.Path, "Author Name"), Times.Once());
             Mocker.GetMock<IMediaFileService>().Verify(v => v.Delete(_trackFile, DeleteMediaFileReason.Manual), Times.Never());
         }
+
         // One copy each (2026-09-20): an off-entry row is deleted by its home, never through the
         // entry's root folder (its path is not under it); an adopted original is never touched.
         [Test]

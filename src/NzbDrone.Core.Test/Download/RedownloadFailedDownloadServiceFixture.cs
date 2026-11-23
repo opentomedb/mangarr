@@ -201,7 +201,6 @@ namespace NzbDrone.Core.Test.Download
         // Light novels (2026-09, final review I1): the re-search is per (volume, media type). A
         // failed audiobook grab for a volume that already has its EPUB is still wanted -- on its
         // Audio edition -- and the search pushed is typed to that class only.
-
         [Test]
         public void should_search_the_failed_media_type_of_a_light_novel_volume_that_has_its_other_format()
         {
@@ -273,7 +272,6 @@ namespace NzbDrone.Core.Test.Download
         }
 
         // Manga: one Archive edition per volume, the book-level file check as before, untyped search.
-
         [Test]
         public void should_not_search_a_manga_volume_that_has_a_file()
         {
@@ -305,7 +303,7 @@ namespace NzbDrone.Core.Test.Download
             Mocker.GetMock<IMediaFileService>()
                 .Verify(x => x.GetFilesByEdition(It.IsAny<int>()), Times.Never());
         }
-    
+
         // 2026-09-22: a failed grab of a light novel with several volumes of that class still wanted
         // queues ONE typed series search, and the rest of the burst does not repeat it.
         private List<Book> GivenLightNovelSeriesOfTwoWanted()
@@ -346,7 +344,9 @@ namespace NzbDrone.Core.Test.Download
 
             Mocker.GetMock<IManageCommandQueue>()
                 .Verify(x => x.Push(It.Is<AuthorSearchCommand>(c => c.AuthorId == _author.Id && c.MediaType == MediaType.Ebook),
-                                    It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
+                                    It.IsAny<CommandPriority>(),
+                                    It.IsAny<CommandTrigger>()),
+                                    Times.Once());
             Mocker.GetMock<IManageCommandQueue>()
                 .Verify(x => x.Push(It.IsAny<BookSearchCommand>(), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Never());
         }
@@ -375,7 +375,9 @@ namespace NzbDrone.Core.Test.Download
 
             Mocker.GetMock<IManageCommandQueue>()
                 .Verify(x => x.Push(It.Is<AuthorSearchCommand>(c => c.MediaType == MediaType.Audio),
-                                    It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
+                                    It.IsAny<CommandPriority>(),
+                                    It.IsAny<CommandTrigger>()),
+                                    Times.Once());
         }
     }
 }

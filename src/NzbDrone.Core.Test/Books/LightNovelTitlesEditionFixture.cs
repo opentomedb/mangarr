@@ -64,6 +64,7 @@ namespace NzbDrone.Core.Test.BookTests
         [TestCase("下巻", "ja", true)]
         [TestCase("ライトノベル", "ja", true)]
         [TestCase("アリシゼーション・ビギニング", "ja", false)]
+
         // M14 polish (2026-09-24): a non-breaking space (French typography) and an ideographic space separate words.
         [TestCase("Le\u00A0roman", "fr", true)]
         [TestCase("小説\u3000文庫", "ja", true)]

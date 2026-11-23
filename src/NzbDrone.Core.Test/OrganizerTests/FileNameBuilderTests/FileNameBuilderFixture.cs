@@ -714,7 +714,6 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         }
 
         // Light novels (2026-09): one folder per volume, part numbers on split audio (D6).
-
         private void GivenLightNovel(MediaType editionType)
         {
             _author.Metadata.Value.ForeignAuthorId = "local-linkin-park~ln";
@@ -811,7 +810,6 @@ namespace NzbDrone.Core.Test.OrganizerTests.FileNameBuilderTests
         // One copy each (2026-09-20): a light novel's audio is placed in Audiobookshelf's own tree,
         // one flat "<Series> - Vol. N" folder per audiobook under the mount; the EPUB path stays under
         // the entry (a staging name only -- calibre takes the file), and manga never leaves the entry.
-
         [Test]
         public void light_novel_audio_path_is_under_the_audiobooks_mount()
         {

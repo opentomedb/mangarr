@@ -13,6 +13,7 @@ using NzbDrone.Core.Test.Framework;
 namespace NzbDrone.Core.Test.MetadataSource.Goodreads
 {
     [TestFixture]
+
     // Beta readiness (2026-09-28, S1): retired, not deleted, to keep the upstream file for reference. These
     // are Readarr's live Goodreads/BookInfo integration tests (real HTTP, Goodreads ids); upstream's time-boxed
     // Ignore expired 2026-01-15. Mangarr has no metadata server: BookInfoProxy builds series locally (SPIKE).

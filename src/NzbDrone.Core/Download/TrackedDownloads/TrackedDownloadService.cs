@@ -350,8 +350,11 @@ namespace NzbDrone.Core.Download.TrackedDownloads
                         if (bounded.Any() && bounded.Count < trackedDownload.RemoteBook.Books.Count)
                         {
                             _logger.Info("Bounded mapping for '{0}': {1} -> {2} books via client-title range {3}-{4}",
-                                trackedDownload.DownloadItem.Title, trackedDownload.RemoteBook.Books.Count,
-                                bounded.Count, clientRange.VolumeStart, clientRange.VolumeEnd);
+                                trackedDownload.DownloadItem.Title,
+                                trackedDownload.RemoteBook.Books.Count,
+                                bounded.Count,
+                                clientRange.VolumeStart,
+                                clientRange.VolumeEnd);
                             trackedDownload.RemoteBook.Books = bounded;
                         }
                     }

@@ -76,7 +76,6 @@ namespace NzbDrone.Core.Test.IndexerSearchTests
         // Light-novel audio (2026-09-18, D4): the subtitle tier -- "<Series> <N>: <Subtitle>" and the
         // Audible title when it says something else -- exists for an Audio volume search only.
         // GetQueryTitle joins with '+' and drops the colon, exactly as it does for BookQuery.
-
         private static BookSearchCriteria VolumeCriteria(MediaType mediaType, string series, double volume, string subtitle, string audiobookTitle, params string[] aliases)
         {
             var author = new Author { Name = series };

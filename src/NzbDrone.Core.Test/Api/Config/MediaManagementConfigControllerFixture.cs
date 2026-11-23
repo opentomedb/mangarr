@@ -100,12 +100,22 @@ namespace NzbDrone.Core.Test.Api.Config
             var app = appMock.Object;
 
             return new TestableController(Mocker.GetMock<IConfigService>().Object,
-                new PathExistsValidator(disk.Object), new FolderChmodValidator(disk.Object), new FolderWritableValidator(disk.Object),
-                new AuthorPathValidator(authors), new StartupFolderValidator(app), new SystemFolderValidator(),
-                new RootFolderAncestorValidator(roots), new RootFolderValidator(roots), new InsideRootFolderValidator(roots),
-                new PathExistsValidator(disk.Object), new FolderWritableValidator(disk.Object),
-                new AuthorPathValidator(authors), new StartupFolderValidator(app), new SystemFolderValidator(),
-                new RootFolderAncestorValidator(roots), new RootFolderValidator(roots));
+                new PathExistsValidator(disk.Object),
+                new FolderChmodValidator(disk.Object),
+                new FolderWritableValidator(disk.Object),
+                new AuthorPathValidator(authors),
+                new StartupFolderValidator(app),
+                new SystemFolderValidator(),
+                new RootFolderAncestorValidator(roots),
+                new RootFolderValidator(roots),
+                new InsideRootFolderValidator(roots),
+                new PathExistsValidator(disk.Object),
+                new FolderWritableValidator(disk.Object),
+                new AuthorPathValidator(authors),
+                new StartupFolderValidator(app),
+                new SystemFolderValidator(),
+                new RootFolderAncestorValidator(roots),
+                new RootFolderValidator(roots));
         }
 
         [Test]

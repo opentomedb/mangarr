@@ -482,7 +482,7 @@ namespace NzbDrone.Core.Test.BookTests
         // imported by hand for a covered volume takes over from the pack.
         private static BookFileAddedEvent Added(Edition edition, Quality quality)
         {
-            return new BookFileAddedEvent(new BookFile { Id = edition.Id * 100 + 1, EditionId = edition.Id, Quality = new QualityModel(quality) });
+            return new BookFileAddedEvent(new BookFile { Id = (edition.Id * 100) + 1, EditionId = edition.Id, Quality = new QualityModel(quality) });
         }
 
         [Test]

@@ -329,7 +329,6 @@ namespace NzbDrone.Core.MetadataSource.Audible
         }
 
         // ---- the on-disk store ----
-
         private string CachePath => Path.Combine(_appFolderInfo.AppDataFolder, "metadata", CacheFileName);
 
         // The entry (its FetchedAt sizes the in-process lifetime), or null when absent or expired.

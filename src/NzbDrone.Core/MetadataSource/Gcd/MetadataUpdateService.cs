@@ -1,8 +1,8 @@
 using System;
 using System.Data.SQLite;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using Dapper;
 using Newtonsoft.Json;
 using NLog;
@@ -197,7 +197,9 @@ namespace NzbDrone.Core.MetadataSource.Gcd
 
             // A retry after a failed first download stays quiet too (F1).
             _logger.Log(localVersion == null && _quietWhileAbsent && !_forced ? LogLevel.Debug : LogLevel.Info,
-                "GCD metadata update available: {0} → {1}; downloading", localVersion ?? "(none)", manifest.GcdDump);
+                "GCD metadata update available: {0} → {1}; downloading",
+                localVersion ?? "(none)",
+                manifest.GcdDump);
 
             var targetPath = _gcdMetadataService.OverrideArtifactPath;
             var overrideDir = Path.GetDirectoryName(targetPath);
@@ -222,7 +224,8 @@ namespace NzbDrone.Core.MetadataSource.Gcd
                     LogFailure(
                         null,
                         "GCD metadata download sha256 mismatch (expected={0} actual={1}); discarding",
-                        manifest.Sha256, actualHash);
+                        manifest.Sha256,
+                        actualHash);
                     SafeDelete(tempPath);
                     Record("download of " + manifest.GcdDump + " discarded: sha256 mismatch");
                     return;

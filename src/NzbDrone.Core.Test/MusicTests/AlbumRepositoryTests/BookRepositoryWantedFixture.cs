@@ -539,7 +539,6 @@ namespace NzbDrone.Core.Test.MusicTests.BookRepositoryTests
 
         // Routed from the Task 2 review (2026-09-21): the combinations the presets never send on
         // their own, plus the count the Both filter has to get right on a second page.
-
         [Test]
         public void a_media_type_filter_without_a_library_still_never_lists_manga()
         {

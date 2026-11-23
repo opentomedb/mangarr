@@ -145,16 +145,18 @@ namespace NzbDrone.Core.Qualities
             // INSERTION order here is the order QualityProfileService.GetDefaultProfile builds a
             // new profile's items in.
             // No MaxSize cap (manga volumes vary widely in size; audiobooks even more).
+            // The size floor (2026-11-14): 10 MB minimum on the five volume comic grades -- a smaller
+            // "volume" is a post with nothing in it. Chapters, ebooks and audio keep no minimum.
             DefaultQualityDefinitions = new HashSet<QualityDefinition>
             {
                 new QualityDefinition(Quality.Unknown)      { Weight = 1, MinSize = 0, MaxSize = null, GroupWeight = 1 },
                 new QualityDefinition(Quality.CbzFanTranslation) { Weight = 2, MinSize = 0, MaxSize = null, GroupWeight = 2 },
                 new QualityDefinition(Quality.CbzChapters)  { Weight = 4, MinSize = 0, MaxSize = null, GroupWeight = 4 },
-                new QualityDefinition(Quality.PDF)          { Weight = 5, MinSize = 0, MaxSize = null, GroupWeight = 5 },
-                new QualityDefinition(Quality.RAR)          { Weight = 8, MinSize = 0, MaxSize = null, GroupWeight = 8 },
-                new QualityDefinition(Quality.ZIP)          { Weight = 10, MinSize = 0, MaxSize = null, GroupWeight = 10 },
-                new QualityDefinition(Quality.CBR)          { Weight = 15, MinSize = 0, MaxSize = null, GroupWeight = 15 },
-                new QualityDefinition(Quality.CBZ)          { Weight = 20, MinSize = 0, MaxSize = null, GroupWeight = 20 },
+                new QualityDefinition(Quality.PDF)          { Weight = 5, MinSize = 10, MaxSize = null, GroupWeight = 5 },
+                new QualityDefinition(Quality.RAR)          { Weight = 8, MinSize = 10, MaxSize = null, GroupWeight = 8 },
+                new QualityDefinition(Quality.ZIP)          { Weight = 10, MinSize = 10, MaxSize = null, GroupWeight = 10 },
+                new QualityDefinition(Quality.CBR)          { Weight = 15, MinSize = 10, MaxSize = null, GroupWeight = 15 },
+                new QualityDefinition(Quality.CBZ)          { Weight = 20, MinSize = 10, MaxSize = null, GroupWeight = 20 },
                 new QualityDefinition(Quality.EbookPdf)     { Weight = 22, MinSize = 0, MaxSize = null, GroupWeight = 22 },
                 new QualityDefinition(Quality.AZW3)         { Weight = 23, MinSize = 0, MaxSize = null, GroupWeight = 23 },
                 new QualityDefinition(Quality.EPUB)         { Weight = 25, MinSize = 0, MaxSize = null, GroupWeight = 25 },

@@ -22,12 +22,12 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
     [TestFixture]
     public class MetadataUpdateServiceFixture : CoreTest<MetadataUpdateService>
     {
-        private string _overridePath;
-
         // Manifest values used across tests.
         private const string RemoteVersion = "2026-06-01.sql";
         private const string OlderVersion  = "2026-05-01.sql";
         private const string SameLabel     = "opentome-2026-09-18";
+
+        private string _overridePath;
 
         [SetUp]
         public void Setup()
@@ -44,7 +44,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         }
 
         // ── helpers ────────────────────────────────────────────────────────────
-
         private static string BuildManifestJson(string version, string sha256, string artifactUrl)
         {
             return JsonConvert.SerializeObject(new
@@ -127,7 +126,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         }
 
         // ── tests: version comparison ──────────────────────────────────────────
-
         [Test]
         public void remote_newer_triggers_download_and_reload()
         {
@@ -202,7 +200,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         }
 
         // ── tests: sha256 mismatch ─────────────────────────────────────────────
-
         [Test]
         public void sha256_mismatch_aborts_without_replacing()
         {
@@ -227,7 +224,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         }
 
         // ── tests: config gate ─────────────────────────────────────────────────
-
         [Test]
         public void auto_update_disabled_skips_all_http_calls()
         {
@@ -275,7 +271,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         }
 
         // ── tests: fail-soft ───────────────────────────────────────────────────
-
         [Test]
         public void manifest_fetch_failure_does_not_throw()
         {
@@ -296,7 +291,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         }
 
         // ── tests: first start without a catalogue (beta readiness F1) ─────────
-
         [Test]
         public void startup_without_a_catalogue_queues_a_metadata_update()
         {
@@ -368,7 +362,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
 
         // ── tests: the stable manifest URL with the GitHub fallback (E2) ───────
         // Both URLs end in version.json, so these mocks key on the exact URL.
-
         private void GivenManifestAt(string url, Func<HttpRequest, HttpResponse> respond)
         {
             Mocker.GetMock<IHttpClient>()
@@ -503,7 +496,6 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         // A republish under the same per-build label is visible only through the manifest's
         // sha256. The local file is the one LocalDumpVersion() read (ArtifactInfo().Path), not
         // necessarily OverrideArtifactPath; it is never SQLite-validated, only the download is.
-
         [Test]
         public void same_label_with_different_sha256_downloads_and_reloads()
         {
@@ -572,16 +564,16 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
             File.ReadAllBytes(_overridePath).Should().Equal(artifact);
             File.ReadAllText(bakedPath).Should().Be("baked-in build under the same label");
         }
-    
+
         // ---- IsNewer: version labels are opaque, not lexicographically sortable ----
         // The previous implementation was string.Compare(remote, local, Ordinal) <= 0.
         // These cases are exactly the ones it got wrong.
-
         [TestCase("2026-06-01.sql", "2026-05-01.sql", true,  Description = "later dump is newer")]
         [TestCase("2026-05-01.sql", "2026-06-01.sql", false, Description = "earlier dump is not")]
         [TestCase("2026-06-01.sql", "2026-06-01.sql", false, Description = "same version")]
         [TestCase("opentome-2026-08-27", "opentome-2026-08-20", true,  Description = "dated labels compare by date")]
         [TestCase("opentome-2026-08-20", "opentome-2026-08-27", false, Description = "older dated label rejected")]
+
         // Ordinal compare said "2026-06-01.sql" > "opentome-..." is FALSE ('2' < 'o'),
         // so a switch to the new publisher would have been refused forever.
         [TestCase("opentome-2026-08-27", "2026-06-01.sql", true,  Description = "cross-publisher switch by date")]
@@ -595,13 +587,16 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
 
         // ---- IsNewer + sha256 (D5): equal labels compare hashes; the local hash is a factory ----
         // invoked only on the equal-label path and at most once, because it reads the whole file.
-
         [Test]
         public void IsNewer_same_label_and_different_sha256_is_newer()
         {
             var calls = 0;
 
-            MetadataUpdateService.IsNewer(SameLabel, SameLabel, "aaaa", () => { calls++; return "bbbb"; })
+            MetadataUpdateService.IsNewer(SameLabel, SameLabel, "aaaa", () =>
+                {
+                    calls++;
+                    return "bbbb";
+                })
                 .Should().BeTrue();
 
             calls.Should().Be(1);
@@ -612,7 +607,11 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         {
             var calls = 0;
 
-            MetadataUpdateService.IsNewer(SameLabel, SameLabel, "ABCDEF", () => { calls++; return "abcdef"; })
+            MetadataUpdateService.IsNewer(SameLabel, SameLabel, "ABCDEF", () =>
+                {
+                    calls++;
+                    return "abcdef";
+                })
                 .Should().BeFalse();
 
             calls.Should().Be(1);
@@ -625,7 +624,11 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
         {
             var calls = 0;
 
-            MetadataUpdateService.IsNewer(SameLabel, SameLabel, remoteSha256, () => { calls++; return "bbbb"; })
+            MetadataUpdateService.IsNewer(SameLabel, SameLabel, remoteSha256, () =>
+                {
+                    calls++;
+                    return "bbbb";
+                })
                 .Should().BeFalse();
 
             calls.Should().Be(0);
@@ -653,7 +656,11 @@ namespace NzbDrone.Core.Test.MetadataSource.Gcd
             var calls = 0;
 
             // The factory would report the hashes as equal; the date rule must not care.
-            MetadataUpdateService.IsNewer(remote, local, "aaaa", () => { calls++; return "aaaa"; })
+            MetadataUpdateService.IsNewer(remote, local, "aaaa", () =>
+                {
+                    calls++;
+                    return "aaaa";
+                })
                 .Should().Be(expected);
 
             calls.Should().Be(0);

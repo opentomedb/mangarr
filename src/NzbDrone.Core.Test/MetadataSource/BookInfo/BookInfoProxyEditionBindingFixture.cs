@@ -171,8 +171,14 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
 
             author.Name.Should().Be("L'Attaque des Titans");
             Mocker.GetMock<IMangaSeriesMetadataProvider>()
-                  .Verify(s => s.GetSeries("Attack on Titan", It.IsAny<int>(), It.IsAny<bool>(), LibraryType.Manga, It.IsAny<int?>(), It.IsAny<string>(),
-                      It.Is<EditionRequest>(r => r.Language == "fr" && r.TomeLineId == "rl_fr" && r.Chain == null)), Times.Once());
+                  .Verify(s => s.GetSeries("Attack on Titan",
+                      It.IsAny<int>(),
+                      It.IsAny<bool>(),
+                      LibraryType.Manga,
+                      It.IsAny<int?>(),
+                      It.IsAny<string>(),
+                      It.Is<EditionRequest>(r => r.Language == "fr" && r.TomeLineId == "rl_fr" && r.Chain == null)),
+                      Times.Once());
         }
 
         // Ruling S1: the stored name rides in the request, so the provider keys pins by it.
@@ -184,8 +190,14 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             Subject.GetAuthorInfo("local-attack-on-titan");
 
             Mocker.GetMock<IMangaSeriesMetadataProvider>()
-                  .Verify(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<LibraryType>(), It.IsAny<int?>(), It.IsAny<string>(),
-                      It.Is<EditionRequest>(r => r.StoredName == "L'Attaque des Titans")), Times.Once());
+                  .Verify(s => s.GetSeries(It.IsAny<string>(),
+                      It.IsAny<int>(),
+                      It.IsAny<bool>(),
+                      It.IsAny<LibraryType>(),
+                      It.IsAny<int?>(),
+                      It.IsAny<string>(),
+                      It.Is<EditionRequest>(r => r.StoredName == "L'Attaque des Titans")),
+                      Times.Once());
         }
 
         // Rulings S1 + A1/S3: a compatible re-resolve to French that kept the English name. The name is
@@ -202,8 +214,14 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             author.Metadata.Value.TomeLineId.Should().Be("rl_fr");
             author.Metadata.Value.AnchorName.Should().BeNull();
             Mocker.GetMock<IMangaSeriesMetadataProvider>()
-                  .Verify(s => s.GetSeries("Attack on Titan", It.IsAny<int>(), It.IsAny<bool>(), LibraryType.Manga, It.IsAny<int?>(), It.IsAny<string>(),
-                      It.Is<EditionRequest>(r => r.Language == "fr" && r.StoredName == "Attack on Titan")), Times.Once());
+                  .Verify(s => s.GetSeries("Attack on Titan",
+                      It.IsAny<int>(),
+                      It.IsAny<bool>(),
+                      LibraryType.Manga,
+                      It.IsAny<int?>(),
+                      It.IsAny<string>(),
+                      It.Is<EditionRequest>(r => r.Language == "fr" && r.StoredName == "Attack on Titan")),
+                      Times.Once());
         }
 
         // A1/S3: an edition line without a local name is named by the anchor -- no AnchorName either.
@@ -546,8 +564,14 @@ namespace NzbDrone.Core.Test.MetadataSource.BookInfo
             Subject.GetAuthorInfo("local-attack-on-titan", false, false, "fr");
 
             Mocker.GetMock<IMangaSeriesMetadataProvider>()
-                  .Verify(s => s.GetSeries(It.IsAny<string>(), It.IsAny<int>(), false, LibraryType.Manga, It.IsAny<int?>(), It.IsAny<string>(),
-                      It.Is<EditionRequest>(r => r.Language == "fr" && r.Chain == null)), Times.Once());
+                  .Verify(s => s.GetSeries(It.IsAny<string>(),
+                      It.IsAny<int>(),
+                      false,
+                      LibraryType.Manga,
+                      It.IsAny<int?>(),
+                      It.IsAny<string>(),
+                      It.Is<EditionRequest>(r => r.Language == "fr" && r.Chain == null)),
+                      Times.Once());
         }
 
         // Preferred Edition (2026-09-24, M6b): a disk-discovered extra volume of a French series is

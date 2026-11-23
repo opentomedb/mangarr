@@ -14,7 +14,7 @@ namespace NzbDrone.Core.ImportLists.Goodreads
 
     public class GoodreadsSeriesImportListSettings : IImportListSettings
     {
-        private static readonly GoodreadsSeriesImportListValidator Validator = new ();
+        private static readonly GoodreadsSeriesImportListValidator Validator = new();
 
         public GoodreadsSeriesImportListSettings()
         {

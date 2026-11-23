@@ -82,7 +82,6 @@ namespace NzbDrone.Core.Test.MusicTests
         // Final review I3: a newly minted edition is seeded from the series -- a class no existing
         // edition of the series monitors is inserted unmonitored, so the add-time "Audiobook"
         // unticked survives every catalogue volume minted later.
-
         [Test]
         public void a_new_volume_of_a_series_with_no_monitored_audio_gets_its_audio_edition_unmonitored()
         {

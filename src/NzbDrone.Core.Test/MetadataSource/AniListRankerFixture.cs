@@ -16,6 +16,7 @@ namespace NzbDrone.Core.Test.MetadataSource
         private const string OneShot = "ONE_SHOT";
         private const string Finished = "FINISHED";
         private const string Releasing = "RELEASING";
+        private const string Novel = "NOVEL";
 
         private static AniListCandidate C(int id, string romaji, string english, string format, string status, int? volumes, int popularity, params string[] synonyms)
         {
@@ -292,7 +293,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- OpenTome 2026-09-24: the fallback tiers R4-R7 (export/test_resolve_anilist.py) ----
-
         private static readonly AniListCandidate Serial = C(2, null, "X", Manga, Finished, 20, 5);
         private static readonly AniListCandidate Carrier = C(3, null, "Y", Manga, Finished, 21, 99, "X");
 
@@ -357,8 +357,6 @@ namespace NzbDrone.Core.Test.MetadataSource
             C(200561, "Doll Man Doll", "Doll Man Doll", OneShot, Finished, null, 79),
             C(30298, "DOLL: IC in a Doll", "DOLL: IC in a Doll", Manga, Finished, 6, 786, "Doru", "Dōru")
         };
-
-        private const string Novel = "NOVEL";
 
         // Every candidate of the recorded page; the CJK / French / Thai / Portuguese synonyms are
         // trimmed — none changes which entries contain "ascendanceofabookworm" at 3 volumes (only
@@ -741,7 +739,6 @@ namespace NzbDrone.Core.Test.MetadataSource
         }
 
         // ---- KR/CN piece 2 (2026-10-02, M4): the origin guard ----
-
         [Test]
         public void a_manhwa_line_drops_a_japanese_entry_carrying_its_title()
         {

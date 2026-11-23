@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using FluentAssertions;
 using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Cache;
@@ -76,7 +75,7 @@ namespace NzbDrone.Core.Test.BookTests
 
             VerifySearches(Times.Once());
         }
-    
+
         // Adopt before search (2026-10-21): a refresh that adds light-novel volumes adopts what the
         // user already owns first; the adoption searches the new volumes (owned volumes were grabbed
         // again, minutes before adoption found them in Calibre).

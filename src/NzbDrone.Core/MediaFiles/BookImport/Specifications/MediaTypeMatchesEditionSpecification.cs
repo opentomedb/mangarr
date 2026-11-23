@@ -28,6 +28,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Specifications
             if (library == LibraryType.Manga && fileType != MediaType.Archive)
             {
                 _logger.Debug("'{0}' is {1} but {2} is a manga entry", localBook.Path, fileType, localBook.Author);
+
                 // Server messages (2026-09-26): one whole sentence per class, never the class word as an
                 // argument, so each sentence translates with its own grammar.
                 return fileType == MediaType.Audio

@@ -166,7 +166,8 @@ namespace NzbDrone.Core.Test.MediaFiles
                 .Setup(s => s.FindByDownloadId("SABnzbd_nzo_abc123"))
                 .Returns(new List<EntityHistory>());
 
-            Subject.Import(new List<ImportDecision<LocalBook>> { _approvedDecisions.First() }, true,
+            Subject.Import(new List<ImportDecision<LocalBook>> { _approvedDecisions.First() },
+                true,
                 new DownloadClientItem { Title = "Alien.Ant.Farm-Truant", DownloadId = "SABnzbd_nzo_abc123", CanMoveFiles = true, DownloadClientInfo = _clientInfo });
 
             Mocker.GetMock<IEventAggregator>()

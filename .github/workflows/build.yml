@@ -1,0 +1,59 @@
+# Builds the whole solution the way a plain `dotnet build` runs it -- analyzers on, warnings as
+# errors -- and runs the core tests, on every push to main and every pull request. The Docker
+# workflow (docker.yml) builds release images on tags; this is the check that keeps the tree
+# buildable for anyone who clones it.
+name: Build
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and core tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container: mcr.microsoft.com/dotnet/sdk:6.0
+    # MSBuild reads these as properties. SourceLink's git reader (Microsoft.Build.Tasks.Git 1.1.1) fails on
+    # the checkout's repositoryformatversion 1 ("Only versions up to 0 are supported").
+    env:
+      EnableSourceControlManagerQueries: 'false'
+      EnableSourceLink: 'false'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      # The database tests load the system libsqlite3.so.0, which the SDK image lacks. Pinned to the
+      # Debian 11 main-archive build; the security-archive build the image prefers has 404ed.
+      - name: Install libsqlite3
+        run: apt-get update -qq && apt-get install -y -qq libsqlite3-0=3.34.1-3
+
+      # The whole solution, analyzers on: StyleCop and the IDE rules in .editorconfig are errors here,
+      # exactly as they are for a contributor's plain `dotnet build`.
+      - name: Build (analyzers on)
+        run: dotnet build src/Readarr.sln -c Release -p:Platform=Posix -nologo -v q
+
+      - name: Core tests
+        run: >
+          dotnet test src/NzbDrone.Core.Test/Readarr.Core.Test.csproj -c Release -p:Platform=Posix
+          -p:SolutionDir="$GITHUB_WORKSPACE/src/" --no-build
+          --filter "Category!=ManualTest&Category!=IntegrationTest&Category!=AutomationTest&Category!=WINDOWS"
+          --logger "trx;LogFileName=core.trx" --results-directory TestResults
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-test-results
+          path: TestResults

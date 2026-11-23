@@ -187,7 +187,6 @@ namespace NzbDrone.Core.Test.MediaFiles
         // One copy each (2026-09-20): a light-novel EPUB is handed to calibre's content server, its
         // audio is moved into Audiobookshelf's tree, and an adopted original is never replaced.
         // Placement keys on the destination; removal of each old file keys on that file's home.
-
         private string _lnPath = @"C:\Test\LightNovels\KonoSuba".AsOsAgnostic();
         private CalibreSettings _lnCalibre;
 

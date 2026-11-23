@@ -154,7 +154,10 @@ namespace NzbDrone.Core.Books
                 if (collision != null && collision.Id != local.Id)
                 {
                     _logger.Warn("Refresh wants to rename CleanName of {0} from '{1}' to '{2}', but that name is already used by {3}; keeping '{1}'",
-                        local, existingCleanName, local.CleanName, collision);
+                        local,
+                        existingCleanName,
+                        local.CleanName,
+                        collision);
                     local.CleanName = existingCleanName;
                 }
             }
@@ -249,7 +252,9 @@ namespace NzbDrone.Core.Books
                 // CleanName so this refresh still lands instead of failing forever.
                 var stored = _authorService.GetAuthor(local.Id);
                 _logger.Warn("CleanName '{0}' for {1} collided on save (unique index); keeping stored '{2}'",
-                    local.CleanName, local, stored.CleanName);
+                    local.CleanName,
+                    local,
+                    stored.CleanName);
                 local.CleanName = stored.CleanName;
                 _authorService.UpdateAuthor(local);
             }

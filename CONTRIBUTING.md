@@ -25,16 +25,24 @@ The Docker image is the reference build:
 docker build --build-arg MANGARR_VERSION=10.0.0.$(git rev-list --count HEAD) -t mangarr:local .
 ```
 
-It builds the frontend with Node 18 / Yarn and the backend with the .NET 6 SDK in Release
-(analyzers off), on Debian 12. `MANGARR_VERSION` stamps every assembly; without it the build
+It builds the frontend with Node 18 / Yarn and the backend with the .NET 6 SDK in Release on
+Debian 12 (the image build skips the analyzers for speed; the Build workflow below runs them). `MANGARR_VERSION` stamps every assembly; without it the build
 reports `10.0.0.0`. CI release images add the private history's commit count (the exported `.build-base`),
 so their numbers continue the private series; a local build from the public repo numbers from 1.
 
 For the backend alone (from the repo root, .NET 6 SDK):
 
 ```sh
-dotnet build src/Readarr.sln -c Release -p:Platform=Posix -p:RunAnalyzers=false -p:TreatWarningsAsErrors=false
+dotnet build src/Readarr.sln -c Release -p:Platform=Posix
 ```
+
+That is the whole check: StyleCop and the `.editorconfig` IDE rules run as part of the build and
+every warning is an error, so a clean `dotnet build` means the tree meets the house style. The
+[Build workflow](.github/workflows/build.yml) runs the same command, then the core tests, on every
+push and pull request. The build wants the .NET 6 SDK; a newer SDK can build it too, and its NuGet
+vulnerability audit then applies to the pinned packages. Those are kept clean, with one exception
+noted in `src/Directory.Build.props`: ImageSharp stays at 3.1.12 because every later release needs a
+Six Labors licence key to build, and the advisories fixed only there are suppressed with the reason.
 
 For the frontend: `yarn install --frozen-lockfile --ignore-engines`, then `yarn build`
 (`yarn start` watches). The Node version is 18, as in the image.
@@ -49,10 +57,10 @@ the SDK container:
 docker run --rm -v "$PWD":/src -w /src mcr.microsoft.com/dotnet/sdk:6.0 sh -c '
   apt-get update -qq && apt-get install -y -qq libsqlite3-0=3.34.1-3 >/dev/null
   for p in src/NzbDrone.Mono/Readarr.Mono.csproj src/Readarr.Api.V1/Readarr.Api.V1.csproj src/NzbDrone.Core.Test/Readarr.Core.Test.csproj; do
-    dotnet build "$p" -c Release -p:Platform=Posix -p:SolutionDir=/src/src/ -p:RunAnalyzers=false -nologo -v q || exit 1
+    dotnet build "$p" -c Release -p:Platform=Posix -p:SolutionDir=/src/src/ -nologo -v q || exit 1
   done
   cp _output/net6.0/Readarr.Mono.dll _tests/net6.0/
-  dotnet test src/NzbDrone.Core.Test/Readarr.Core.Test.csproj -c Release -p:Platform=Posix -p:SolutionDir=/src/src/ -p:RunAnalyzers=false --no-build \
+  dotnet test src/NzbDrone.Core.Test/Readarr.Core.Test.csproj -c Release -p:Platform=Posix -p:SolutionDir=/src/src/ --no-build \
     --filter "Category!=ManualTest&Category!=IntegrationTest&Category!=AutomationTest&Category!=WINDOWS"'
 ```
 

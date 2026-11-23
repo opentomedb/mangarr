@@ -344,6 +344,7 @@ namespace NzbDrone.Core.Test.ParserTests
             result.VolumeStart.Should().Be(1);
             result.VolumeEnd.Should().Be(5);
         }
+
         // A series literally named in brackets ("[Oshi no Ko]") is stripped as if it were a scene
         // tag, which left no series to match: "[Oshi No Ko] v13 (2026) (Digital) (ShelfLife)" was
         // rejected as unparseable while the volume sat on the tracker. The bracket contents are

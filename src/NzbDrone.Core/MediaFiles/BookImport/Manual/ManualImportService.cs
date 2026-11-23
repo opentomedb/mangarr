@@ -213,6 +213,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
         public List<ManualImportItem> UpdateItems(List<ManualImportItem> items)
         {
             var replaceExistingFiles = items.All(x => x.ReplaceExistingFiles);
+
             // Light novels (2026-09): the EPUB row and the audiobook row of one volume are two
             // groups, each re-resolved against ITS edition (SingleRelease stays true: a group is one
             // edition's files and must stay one release, e.g. a 12-part MP3 set). Manga: one edition
@@ -343,6 +344,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Manual
 
             var imported = new List<ImportResult>();
             var importedTrackedDownload = new List<ManuallyImportedFile>();
+
             // Light novels (2026-09): one group per (volume, edition), like UpdateItems -- the EPUB
             // and the audio parts of a volume import separately, so PartCount counts one edition's
             // parts and never the EPUB. Manga: one edition per volume, so the book groups of before.

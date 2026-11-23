@@ -63,6 +63,7 @@ namespace NzbDrone.Core.Test.Localization
             ("reject", new Regex(@"\bDecision\.Reject\("), 0),
             ("rejection", new Regex(@"\bnew Rejection\("), 0),
             ("importresult", new Regex(@"\bnew ImportResult\("), 1),
+
             // Fix round 1 (2026-09-26): any receiver ENDING in trackedDownload/TrackedDownload, not only that
             // exact identifier -- a field like _trackedDownload.Warn( has no boundary before its "t" (the
             // preceding "_" is a word char too), so the old \b[tT]rackedDownload anchor missed it.

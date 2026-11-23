@@ -115,7 +115,6 @@ namespace NzbDrone.Core.MetadataSource.Manga
             return Path.Combine(appDataFolder, "metadata", OverridesFileName);
         }
 
-
         public void Apply(string seriesName, List<MangaVolumeMetadata> volumes)
         {
             var map = Load();
@@ -279,6 +278,7 @@ namespace NzbDrone.Core.MetadataSource.Manga
                 // Write beside the target and move into place: a half-written overrides.json
                 // is read as corrupt and every pin in it is lost.
                 var temp = path + ".tmp";
+
                 // Indented: this file is edited by hand as often as through the UI.
                 // Trailing newline: most editors add one, and without it every hand edit
                 // shows up as a spurious whole-last-line diff.

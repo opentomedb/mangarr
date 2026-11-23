@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
@@ -42,10 +41,9 @@ namespace NzbDrone.Core.Extras.Metadata.ComicInfo
 
         public static string Merge(string existingXml, ComicInfoFields fields)
         {
-            XDocument doc;
             XElement root;
 
-            if (existingXml.IsNotNullOrWhiteSpace() && TryParse(existingXml, out doc) && doc.Root?.Name.LocalName == "ComicInfo")
+            if (existingXml.IsNotNullOrWhiteSpace() && TryParse(existingXml, out var doc) && doc.Root?.Name.LocalName == "ComicInfo")
             {
                 root = doc.Root;
             }

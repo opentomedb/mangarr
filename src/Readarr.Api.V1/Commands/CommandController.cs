@@ -65,6 +65,7 @@ namespace Readarr.Api.V1.Commands
             Request.Body.Seek(0, SeekOrigin.Begin);
             using var reader = new StreamReader(Request.Body);
             var body = reader.ReadToEnd();
+
             // Interactive commands jump the queue ahead of scheduled background work
             // (the minute-ly queue-refresh pair runs High; a Normal user click would
             // otherwise wait behind it).

@@ -165,6 +165,7 @@ namespace NzbDrone.Core.Test.ParserTests
         [TestCase("Spy x Family v01-v12 Complete", "Spy x Family")]
         [TestCase("Berserk Volumes 1-41", "Berserk")]
         [TestCase("Solo Leveling Books 1 to 5", "Solo Leveling")]
+
         // Leading scene/format tags must be stripped so they don't poison the series name.
         [TestCase("[Manga] Tokyo Ghoul v01", "Tokyo Ghoul")]
         [TestCase("[danke-Empire] Berserk Vol. 10", "Berserk")]
@@ -203,6 +204,7 @@ namespace NzbDrone.Core.Test.ParserTests
         {
             MangaVolumeParser.HasVolumeToken(title).Should().BeFalse();
         }
+
         [TestCase("Tensei Shitara Slime Datta Ken / That Time I Got Reincarnated as a Slime", "Tensei Shitara Slime Datta Ken", "That Time I Got Reincarnated as a Slime")]
         [TestCase("Kekkon suru tte, Hontou desu ka | 365 Days to the Wedding", "Kekkon suru tte, Hontou desu ka", "365 Days to the Wedding")]
         public void should_expand_dual_titles_to_both_halves(string series, string first, string second)

@@ -176,7 +176,8 @@ namespace NzbDrone.Core.Test.BookTests
                 m.AniListId == 101 &&
                 !m.Aliases.Any() &&
                 m.AnchorName == null &&
-                !m.EditionCollected)), Times.Once());
+                !m.EditionCollected)),
+                Times.Once());
             _author.Name.Should().Be(OtomeLines.MainName);
             Mocker.GetMock<IManageCommandQueue>().Verify(q => q.Push(It.Is<RefreshAuthorCommand>(c => c.AuthorId == 107), It.IsAny<CommandPriority>(), It.IsAny<CommandTrigger>()), Times.Once());
             Mocker.GetMock<IMangaSeriesMetadataProvider>().Verify(p => p.ForgetLookup(SpinOffEntryName), Times.Once());
@@ -359,7 +360,8 @@ namespace NzbDrone.Core.Test.BookTests
                 m.TomeLineId == "rl_ja_main" &&
                 m.Name == "Otome Game Sekai wa Mob ni Kibishii Sekai desu" &&
                 m.AniListId == 301 &&
-                m.AnchorName == OtomeLines.MainName)), Times.Once());
+                m.AnchorName == OtomeLines.MainName)),
+                Times.Once());
         }
 
         // KR/CN piece 2 (2026-10-02, M5): a Korean-edition series switched to another Korean line is named like
@@ -397,7 +399,8 @@ namespace NzbDrone.Core.Test.BookTests
                 m.TomeLineId == "rl_ko_main" &&
                 m.Name == "Otome Game Sekai wa Mob ni Kibishii Sekai desu" &&
                 m.AniListId == 311 &&
-                m.AnchorName == OtomeLines.MainName)), Times.Once());
+                m.AnchorName == OtomeLines.MainName)),
+                Times.Once());
         }
 
         // No romaji from AniList: the add path's fallback, the English anchor's name (then no separate anchor).
@@ -410,7 +413,8 @@ namespace NzbDrone.Core.Test.BookTests
 
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
                 m.Name == OtomeLines.MainName &&
-                m.AnchorName == null)), Times.Once());
+                m.AnchorName == null)),
+                Times.Once());
         }
 
         // Final fix wave I2: a fallback series (a Korean work with no line in the user's languages) switched to a
@@ -443,7 +447,8 @@ namespace NzbDrone.Core.Test.BookTests
             Switch("rl_ko_main").Switched.Should().BeTrue();
 
             Mocker.GetMock<IAuthorMetadataService>().Verify(s => s.Upsert(It.Is<AuthorMetadata>(m =>
-                m.TomeLineId == "rl_ko_main" && m.Name == "Solo Leveling (Webtoon)")), Times.Once());
+                m.TomeLineId == "rl_ko_main" && m.Name == "Solo Leveling (Webtoon)")),
+                Times.Once());
         }
 
         [Test]

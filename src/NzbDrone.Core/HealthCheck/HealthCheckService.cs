@@ -92,7 +92,6 @@ namespace NzbDrone.Core.HealthCheck
 
             // Beta readiness (2026-09-28, E5): no server-side notifications. Upstream fetched health lines from
             // Readarr's service host and showed them as Mangarr's own; that host is retired and not ours.
-
             foreach (var result in results)
             {
                 if (result.Type == HealthCheckResult.Ok)

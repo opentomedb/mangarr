@@ -1,4 +1,6 @@
 using NLog;
+using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Localization;
 using NzbDrone.Core.IndexerSearch.Definitions;
 using NzbDrone.Core.Parser.Model;
 using NzbDrone.Core.Qualities;
@@ -21,53 +23,47 @@ namespace NzbDrone.Core.DecisionEngine.Specifications
 
         public Decision IsSatisfiedBy(RemoteBook subject, SearchCriteriaBase searchCriteria)
         {
-            _logger.Debug("size restriction not implemented");
-            return Decision.Accept();
+            // The size floor (2026-11-14): the quality definition's MinSize / MaxSize (MB, the Quality
+            // Definitions sliders) were inert since the fork -- Readarr left this rule stubbed. A 5 MB
+            // "volume" post with nothing but an .nfo in it was grabbed, sat in the queue as import
+            // pending and blocked the real copy. Unknown size is still accepted; 0 means no limit.
+            var size = subject.Release.Size;
 
-            /*
-            _logger.Debug("Beginning size check for: {0}", subject);
-
-            var quality = subject.ParsedBookInfo.Quality.Quality;
-
-            if (subject.Release.Size == 0)
+            if (size == 0)
             {
                 _logger.Debug("Release has unknown size, skipping size check");
                 return Decision.Accept();
             }
 
+            var quality = subject.ParsedBookInfo.Quality.Quality;
             var qualityDefinition = _qualityDefinitionService.Get(quality);
 
-            if (qualityDefinition.MinSize.HasValue)
+            if (qualityDefinition.MinSize.HasValue && qualityDefinition.MinSize.Value > 0)
             {
-                var minSize = qualityDefinition.MinSize.Value.Kilobits();
+                var minSize = qualityDefinition.MinSize.Value.Megabytes();
 
-                //If the parsed size is smaller than minSize we don't want it
-                if (subject.Release.Size < minSize)
+                if (size < minSize)
                 {
-                    _logger.Debug("Item: {0}, Size: {1} is smaller than minimum allowed size ({2} bytes), rejecting.", subject, subject.Release.Size, minSize);
-                    return Decision.Reject("{0} is smaller than minimum allowed {1}", subject.Release.Size.SizeSuffix(), minSize.SizeSuffix());
+                    var reason = new ServerText("{0} is smaller than the minimum for {1} ({2}) (Settings->Quality)", size.SizeSuffix(), quality.Name, minSize.SizeSuffix());
+                    _logger.Debug(reason.English);
+                    return Decision.Reject(reason);
                 }
             }
 
-            if (!qualityDefinition.MaxSize.HasValue || qualityDefinition.MaxSize.Value == 0)
+            if (qualityDefinition.MaxSize.HasValue && qualityDefinition.MaxSize.Value > 0)
             {
-                _logger.Debug("Max size is unlimited, skipping size check");
-            }
-            else
-            {
-                var maxSize = qualityDefinition.MaxSize.Value.Kilobits();
+                var maxSize = qualityDefinition.MaxSize.Value.Megabytes();
 
-                //If the parsed size is greater than maxSize we don't want it
-                if (subject.Release.Size > maxSize)
+                if (size > maxSize)
                 {
-                    _logger.Debug("Item: {0}, Size: {1} is greater than maximum allowed size ({2} bytes), rejecting.", subject, subject.Release.Size, maxSize);
-                    return Decision.Reject("{0} is larger than maximum allowed {1}", subject.Release.Size.SizeSuffix(), maxSize.SizeSuffix());
+                    var reason = new ServerText("{0} is larger than the maximum for {1} ({2}) (Settings->Quality)", size.SizeSuffix(), quality.Name, maxSize.SizeSuffix());
+                    _logger.Debug(reason.English);
+                    return Decision.Reject(reason);
                 }
             }
 
             _logger.Debug("Item: {0}, meets size constraints", subject);
             return Decision.Accept();
-            */
         }
     }
 }

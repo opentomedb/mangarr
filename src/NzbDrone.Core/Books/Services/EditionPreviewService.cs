@@ -313,8 +313,13 @@ namespace NzbDrone.Core.Books
             // Fix round 1 (I2): only manga is ever renamed (plan A7); a taken destination blocks the rename.
             if (preview.NewName != null && author.Library == LibraryType.Manga)
             {
-                preview.RenameBlockedReason = EditionChangeChecks.RenameBlockedReason(author, preview.NewName,
-                    EditionChangeChecks.NewPath(author, preview.NewName, _fileNameBuilder), _diskProvider, _authorService, _metadataOverrides);
+                preview.RenameBlockedReason = EditionChangeChecks.RenameBlockedReason(
+                    author,
+                    preview.NewName,
+                    EditionChangeChecks.NewPath(author, preview.NewName, _fileNameBuilder),
+                    _diskProvider,
+                    _authorService,
+                    _metadataOverrides);
 
                 if (preview.RenameOnly && preview.RenameBlockedReason != null)
                 {

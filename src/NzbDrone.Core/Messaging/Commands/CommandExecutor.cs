@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using NLog;
 using NzbDrone.Common;
-using NzbDrone.Common.Localization;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.ProgressMessaging;

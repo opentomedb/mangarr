@@ -996,7 +996,9 @@ namespace NzbDrone.Core.MetadataSource.Gcd
                     _logger.Warn(
                         "No {0} in {1}; falling back to {2}. The updater writes {0}, so this file " +
                         "will not receive updates.",
-                        ArtifactName, overrideDir, Path.GetFileName(other));
+                        ArtifactName,
+                        overrideDir,
+                        Path.GetFileName(other));
                     return other;
                 }
             }

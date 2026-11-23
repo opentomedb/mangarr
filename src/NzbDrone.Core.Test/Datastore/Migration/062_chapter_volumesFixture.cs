@@ -31,7 +31,9 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_add_cbz_chapters_allowed_as_the_lowest_item_of_a_profile_with_cbz()
         {
-            var db = WithMigrationTestDb(c => GivenProfile(c, "Manga", 2,
+            var db = WithMigrationTestDb(c => GivenProfile(c,
+                "Manga",
+                2,
                 "[{\"quality\":1,\"items\":[],\"allowed\":true},{\"quality\":5,\"items\":[],\"allowed\":true},{\"quality\":4,\"items\":[],\"allowed\":true},{\"quality\":3,\"items\":[],\"allowed\":true},{\"quality\":2,\"items\":[],\"allowed\":true}]"));
 
             var profile = db.Query<chapter_volumes.Profile62>(Select).Single();
@@ -59,7 +61,9 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_not_duplicate_cbz_chapters_on_a_profile_that_already_has_it()
         {
-            var db = WithMigrationTestDb(c => GivenProfile(c, "Patched", 2,
+            var db = WithMigrationTestDb(c => GivenProfile(c,
+                "Patched",
+                2,
                 "[{\"quality\":9,\"items\":[],\"allowed\":true},{\"quality\":2,\"items\":[],\"allowed\":true}]"));
 
             var profile = db.Query<chapter_volumes.Profile62>(Select).Single();

@@ -12,14 +12,14 @@ namespace NzbDrone.Core.Messaging.Commands
     // on them are unchanged.
     public static class CommandDisplayName
     {
-        private static readonly Dictionary<string, string> Overrides = new ()
+        private static readonly Dictionary<string, string> Overrides = new()
         {
             { "WriteComicInfo", "Embed Metadata" },
             { "ReResolveMetadata", "Re-resolve Metadata" },
             { "ReResolveEdition", "Change Edition" }
         };
 
-        private static readonly Dictionary<string, string> Words = new ()
+        private static readonly Dictionary<string, string> Words = new()
         {
             { "Author", "Series" },
             { "Authors", "Series" },

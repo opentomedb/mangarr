@@ -30,7 +30,9 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_add_fan_translation_disallowed_as_the_lowest_item_of_a_manga_profile()
         {
-            var db = WithMigrationTestDb(c => GivenProfile(c, "Manga", 2,
+            var db = WithMigrationTestDb(c => GivenProfile(c,
+                "Manga",
+                2,
                 "[{\"quality\":9,\"items\":[],\"allowed\":true},{\"quality\":1,\"items\":[],\"allowed\":false},{\"quality\":5,\"items\":[],\"allowed\":false},{\"quality\":4,\"items\":[],\"allowed\":false},{\"quality\":3,\"items\":[],\"allowed\":false},{\"quality\":2,\"items\":[],\"allowed\":true}]"));
 
             var profile = db.Query<fan_translation_quality.Profile64>(Select).Single();
@@ -60,7 +62,9 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_not_duplicate_fan_translation_on_a_profile_that_already_has_it()
         {
-            var db = WithMigrationTestDb(c => GivenProfile(c, "Patched", 2,
+            var db = WithMigrationTestDb(c => GivenProfile(c,
+                "Patched",
+                2,
                 "[{\"quality\":14,\"items\":[],\"allowed\":false},{\"quality\":2,\"items\":[],\"allowed\":true}]"));
 
             var profile = db.Query<fan_translation_quality.Profile64>(Select).Single();
@@ -71,7 +75,9 @@ namespace NzbDrone.Core.Test.Datastore.Migration
         [Test]
         public void should_see_fan_translation_inside_a_group_and_leave_the_group_alone()
         {
-            var db = WithMigrationTestDb(c => GivenProfile(c, "Grouped", 2,
+            var db = WithMigrationTestDb(c => GivenProfile(c,
+                "Grouped",
+                2,
                 "[{\"id\":1000,\"name\":\"Archives\",\"items\":[{\"quality\":14,\"allowed\":false},{\"quality\":2,\"allowed\":true}],\"allowed\":true}]"));
 
             var profile = db.Query<fan_translation_quality.Profile64>(Select).Single();

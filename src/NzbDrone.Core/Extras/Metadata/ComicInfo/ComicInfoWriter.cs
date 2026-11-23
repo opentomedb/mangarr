@@ -1,4 +1,3 @@
-using System.Globalization;
 using NLog;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.Extensions;
@@ -6,7 +5,6 @@ using NzbDrone.Core.Books;
 using NzbDrone.Core.DecisionEngine.Specifications;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Parser;
-using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Extras.Metadata.ComicInfo
 {

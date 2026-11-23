@@ -658,6 +658,7 @@ namespace NzbDrone.Core.MediaFiles.BookImport.Existing
                     var copy = copies[i];
                     _diskProvider.CreateFolder(Path.GetDirectoryName(held[i]));
                     _diskProvider.MoveFile(copy.Path, held[i]);
+
                     // all three paths: the maintainer approves deletions from this line
                     report.Held.Add($"{copy.Path} -> {held[i]} (replaced by {files[i]}; {copy.Size} / {SizeOf(files, i)})");
                     _mediaFileService.Delete(copy, DeleteMediaFileReason.Manual);

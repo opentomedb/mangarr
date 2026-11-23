@@ -559,6 +559,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 var i = vol.VolumeNumber;
                 var volToken = MangaVolumeParser.Format(i);
                 var foreignBookId = $"{foreignAuthorId}-v{volToken}";
+
                 // Preferred Edition (2026-09-24, D4): a non-English edition's volume label is its own
                 // ("Tome 5", "Band 5", "第5巻"); English is unchanged.
                 var title = EditionLanguages.IsEnglish(releaseLanguage)
@@ -651,6 +652,7 @@ namespace NzbDrone.Core.MetadataSource.BookInfo
                 ForeignEditionId = foreignEditionId,
                 TitleSlug = foreignEditionId,
                 Title = title,
+
                 // Preferred Edition (2026-09-24): "eng" unless the series has another edition (calibre `languages`
                 // follows). Final fix round Minor 2: a light novel's Audio edition is the English audiobook (D8)
                 // in every edition, so it is always "eng".
